@@ -1,5 +1,8 @@
 # 📚 StudyBuddy AI — Full Stack
 
+DEPLOYMENT LINK:
+https://studybuddy-omega-gray.vercel.app/
+
 > AI-powered study tool with Explain, Summarize, Quiz, Flashcards, and Chat.  
 > **Stack:** React + Tailwind CSS · Django REST Framework · Hugging Face (free)
 
