@@ -57,18 +57,7 @@ studybuddy/
 └── README.md
 ```
 
----
-
-## 1. Get Your Free Hugging Face Token
-
-1. Go to **[huggingface.co](https://huggingface.co)** → Sign up (free)
-2. Go to **Settings → Access Tokens → New Token**
-3. Name it anything, Role: **Read** → **Generate Token**
-4. Copy your token (starts with `hf_...`)
-
----
-
-## 2. Backend Setup
+## 1. Backend Setup
 
 ```bash
 cd backend
@@ -96,7 +85,7 @@ Backend runs at: **http://localhost:8000**
 
 ---
 
-## 3. Frontend Setup
+## 2. Frontend Setup
 
 ```bash
 cd frontend
@@ -155,29 +144,3 @@ POST /api/chat/
 - `animate-fade-up`, `animate-fade-in` custom keyframes
 - Responsive sidebar with `lg:translate-x-0` toggle
 
----
-
-## GitHub Upload
-
-```bash
-cd studybuddy   # project root
-
-git init
-git add .
-git commit -m "Initial commit: StudyBuddy AI full stack"
-
-# Create repo on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/studybuddy.git
-git branch -M main
-git push -u origin main
-```
-
-> ⚠️ The `.gitignore` excludes `.env` files. Never commit your API keys.
-
----
-
-## Notes
-
-- **HF Free Tier**: ~1,000 requests/day. Model cold-start can take 20–30s on first request.
-- **Rate limiting**: DRF throttles at 60 requests/hour per IP to protect your quota.
-- **Switch models**: Change `HF_MODEL` in `.env` to use any HF text-generation model.
