@@ -8,6 +8,7 @@ import { sendChat } from "../utils/api";
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef(null);
 
   function toggleSpeech(text) {
     if (!("speechSynthesis" in window)) {
@@ -19,9 +20,14 @@ function MessageBubble({ msg }) {
       setIsSpeaking(false);
     } else {
       window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      
       const utterance = new SpeechSynthesisUtterance(text);
+      utteranceRef.current = utterance; // Prevent garbage collection bug
+      
+      utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
+      
       setIsSpeaking(true);
       window.speechSynthesis.speak(utterance);
     }
