@@ -4,7 +4,18 @@ DEPLOYMENT LINK:
 https://studybuddy-omega-gray.vercel.app/
 
 > AI-powered study tool with Explain, Summarize, Quiz, Flashcards, and Chat.  
-> **Stack:** React + Tailwind CSS · Django REST Framework · Hugging Face (free)
+> **Stack:** React (Vite/CRA) + Tailwind CSS · Django REST Framework · Groq (LLM API)
+
+---
+
+## ✨ Features
+- **Explain, Summarize, Quiz, Flashcards, and Chat** powered by fast Groq LLMs.
+- **Database Caching:** Identical requests are cached in the Django SQLite database to save API costs and reduce latency.
+- **React Query:** Efficient, robust data fetching and state management on the frontend.
+- **Flashcards CSV Export:** Download your flashcards to instantly import them into Anki.
+- **Text-to-Speech (TTS):** The AI Chatbot can read its responses aloud using native browser Web Speech API.
+- **Vercel Analytics & Speed Insights:** Monitor traffic and Core Web Vitals directly on Vercel.
+- **Render Ready:** Includes a `render.yaml` Blueprint for 1-click backend deployment.
 
 ---
 
@@ -14,45 +25,22 @@ https://studybuddy-omega-gray.vercel.app/
 studybuddy/
 ├── frontend/                 # React + Tailwind CSS
 │   ├── public/
-│   │   └── index.html
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Layout.jsx       # Sidebar + mobile nav
-│   │   │   ├── PageHeader.jsx
-│   │   │   ├── Card.jsx
-│   │   │   ├── Button.jsx
-│   │   │   ├── Input.jsx        # Input, Textarea, Select
-│   │   │   └── LoadingSkeleton.jsx
-│   │   ├── pages/
-│   │   │   ├── ExplainPage.jsx
-│   │   │   ├── SummarizePage.jsx
-│   │   │   ├── QuizPage.jsx
-│   │   │   ├── FlashcardsPage.jsx
-│   │   │   └── ChatPage.jsx
-│   │   ├── utils/
-│   │   │   └── api.js           # Axios client
-│   │   ├── App.jsx
-│   │   ├── index.js
-│   │   └── index.css            # Tailwind directives + custom
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── .env
+│   │   ├── components/      # UI components (Layout, PageHeader, Card, etc.)
+│   │   ├── pages/           # Explain, Summarize, Quiz, Flashcards, Chat
+│   │   ├── utils/           # api.js
+│   │   ├── App.jsx          # Routes, React Query Provider, Analytics
+│   │   └── index.css        # Tailwind directives + custom CSS
 │   └── package.json
 │
 ├── backend/                  # Django REST Framework
-│   ├── studybuddy/
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── study_api/
-│   │   ├── hf_client.py        # Hugging Face API helper
-│   │   ├── serializers.py      # DRF input validation
-│   │   ├── views.py            # 5 API endpoints
-│   │   └── urls.py
-│   ├── manage.py
+│   ├── studybuddy/          # Project config (settings.py, urls.py)
+│   ├── study_api/           # API Views, Serializers, hf_client.py
+│   ├── build.sh             # Build script for Render
 │   ├── requirements.txt
-│   └── .env                    # ← Add your HF key here
+│   └── .env                 # ← Add your GROQ_API_KEY here
 │
+├── render.yaml               # Render Infrastructure-as-Code Blueprint
 ├── .gitignore
 └── README.md
 ```
@@ -72,10 +60,11 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env .env.backup             # optional
-# Edit .env and set HF_API_KEY=hf_your_token_here
+# Edit .env and set GROQ_API_KEY=gsk_your_token_here
 
-# Run migrations
+# Run migrations and setup cache table
 python manage.py migrate
+python manage.py createcachetable
 
 # Start server
 python manage.py runserver
@@ -101,6 +90,15 @@ Frontend runs at: **http://localhost:3000**
 
 ---
 
+## 3. Deploy to Render (Backend)
+1. Go to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** > **Blueprint**.
+3. Connect this GitHub repository.
+4. Render reads `render.yaml` and deploys the PostgreSQL database and Django Web Service.
+5. Provide your `GROQ_API_KEY` when prompted.
+
+---
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -111,25 +109,7 @@ Frontend runs at: **http://localhost:3000**
 | POST | `/api/flashcards/` | Generate flashcards |
 | POST | `/api/chat/` | Chat with AI tutor |
 
-### Example Requests
-
-**Explain:**
-```json
-POST /api/explain/
-{ "topic": "Photosynthesis", "level": "beginner" }
-```
-
-**Quiz:**
-```json
-POST /api/quiz/
-{ "topic": "World War II", "num_questions": 5, "difficulty": "medium" }
-```
-
-**Chat:**
-```json
-POST /api/chat/
-{ "message": "What is gravity?", "history": [] }
-```
+*All generation endpoints automatically cache their results for 7 days.*
 
 ---
 
@@ -143,4 +123,3 @@ POST /api/chat/
 - Shimmer loading skeleton animation
 - `animate-fade-up`, `animate-fade-in` custom keyframes
 - Responsive sidebar with `lg:translate-x-0` toggle
-
