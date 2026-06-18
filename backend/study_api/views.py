@@ -12,7 +12,7 @@ from .serializers import (
     FlashcardsSerializer,
     ChatSerializer,
 )
-from .hf_client import query_hf, query_hf_json
+from .groq_client import query_groq, query_groq_json
 
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ class ExplainView(APIView):
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
-            data = query_hf_json(EXPLAIN_SYSTEM, user_msg, max_tokens=700)
+            data = query_groq_json(EXPLAIN_SYSTEM, user_msg, max_tokens=700)
             cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
@@ -120,7 +120,7 @@ class SummarizeView(APIView):
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
-            data = query_hf_json(SUMMARIZE_SYSTEM, user_msg, max_tokens=800)
+            data = query_groq_json(SUMMARIZE_SYSTEM, user_msg, max_tokens=800)
             cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
@@ -159,7 +159,7 @@ class QuizView(APIView):
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
-            data = query_hf_json(QUIZ_SYSTEM, user_msg, max_tokens=1000)
+            data = query_groq_json(QUIZ_SYSTEM, user_msg, max_tokens=1000)
             # Ensure questions list exists
             if "questions" not in data:
                 raise ValueError("Response missing 'questions' key")
@@ -200,7 +200,7 @@ class FlashcardsView(APIView):
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
-            data = query_hf_json(FLASHCARDS_SYSTEM, user_msg, max_tokens=900)
+            data = query_groq_json(FLASHCARDS_SYSTEM, user_msg, max_tokens=900)
             if "flashcards" not in data:
                 raise ValueError("Response missing 'flashcards' key")
             cache.set(cache_key, data, timeout=60*60*24*7)
@@ -236,7 +236,7 @@ class ChatView(APIView):
         conversation += f"Student: {message}\nStudy Buddy:"
 
         try:
-            raw = query_hf(CHAT_SYSTEM, conversation, max_tokens=600)
+            raw = query_groq(CHAT_SYSTEM, conversation, max_tokens=600)
             # Strip any "Study Buddy:" prefix the model might echo
             reply = re.sub(r"^Study Buddy:\s*", "", raw).strip()
             # Truncate at next "Student:" if model hallucinates continuation

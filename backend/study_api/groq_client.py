@@ -81,12 +81,12 @@ def extract_json(text: str) -> dict:
     raise ValueError(f"No valid JSON found. Raw output:\n{text[:400]}")
 
 
-def query_hf(system: str, user: str, max_tokens: int = 800) -> str:
-    """Kept same name so views.py needs no changes."""
+def query_groq(system: str, user: str, max_tokens: int = 800) -> str:
+    """Wrapper to query Groq and return text."""
     return call_groq(system, user, max_tokens)
 
 
-def query_hf_json(system: str, user: str, max_tokens: int = 800) -> dict:
-    """Kept same name so views.py needs no changes."""
+def query_groq_json(system: str, user: str, max_tokens: int = 800) -> dict:
+    """Wrapper to query Groq and return parsed JSON."""
     raw = call_groq(system, user, max_tokens)
     return extract_json(raw)

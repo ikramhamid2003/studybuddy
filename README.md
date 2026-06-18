@@ -35,7 +35,7 @@ studybuddy/
 │
 ├── backend/                  # Django REST Framework
 │   ├── studybuddy/          # Project config (settings.py, urls.py)
-│   ├── study_api/           # API Views, Serializers, hf_client.py
+│   ├── study_api/           # API Views, Serializers, groq_client.py
 │   ├── build.sh             # Build script for Render
 │   ├── requirements.txt
 │   └── .env                 # ← Add your GROQ_API_KEY here
