@@ -1,20 +1,29 @@
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Send, Trash2, Bot, User, Volume2 } from "lucide-react";
+import { Send, Trash2, Bot, User, Volume2, Square } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
 import { sendChat } from "../utils/api";
 
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  function speakText(text) {
-    if ("speechSynthesis" in window) {
+  function toggleSpeech(text) {
+    if (!("speechSynthesis" in window)) {
+      return toast.error("Text-to-speech is not supported in this browser.");
+    }
+
+    if (isSpeaking) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
+      setIsSpeaking(false);
     } else {
-      toast.error("Text-to-speech is not supported in this browser.");
+      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
     }
   }
 
@@ -43,8 +52,8 @@ function MessageBubble({ msg }) {
         </div>
         {!isUser && (
           <div className="flex justify-start ml-1 mt-0.5">
-             <button onClick={() => speakText(msg.content)} className="text-slate-500 hover:text-amber-400 transition-colors" title="Read aloud">
-               <Volume2 size={14} />
+             <button onClick={() => toggleSpeech(msg.content)} className={`transition-colors ${isSpeaking ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}`} title={isSpeaking ? "Stop reading" : "Read aloud"}>
+               {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
              </button>
           </div>
         )}
