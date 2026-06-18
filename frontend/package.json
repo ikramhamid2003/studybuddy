@@ -5,6 +5,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.7.2",
     "lucide-react": "^0.414.0",
     "react": "^18.3.1",
