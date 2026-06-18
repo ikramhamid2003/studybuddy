@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
 import Layout from "./components/Layout";
 import ExplainPage from "./pages/ExplainPage";
 import SummarizePage from "./pages/SummarizePage";
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
         </Routes>
       </Layout>
+      <Analytics />
     </BrowserRouter>
   );
 }
