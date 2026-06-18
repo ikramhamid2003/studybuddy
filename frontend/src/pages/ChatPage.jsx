@@ -1,12 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Send, Trash2, Bot, User } from "lucide-react";
+import { Send, Trash2, Bot, User, Volume2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
 import { sendChat } from "../utils/api";
 
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
+
+  function speakText(text) {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      toast.error("Text-to-speech is not supported in this browser.");
+    }
+  }
 
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
@@ -21,14 +31,23 @@ function MessageBubble({ msg }) {
       </div>
 
       {/* Bubble */}
-      <div
-        className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed
-          ${isUser
-            ? "bg-amber-400 text-slate-900 font-medium rounded-tr-sm"
-            : "bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm whitespace-pre-wrap"
-          }`}
-      >
-        {msg.content}
+      <div className={`flex flex-col gap-1 max-w-[78%]`}>
+        <div
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
+            ${isUser
+              ? "bg-amber-400 text-slate-900 font-medium rounded-tr-sm"
+              : "bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm whitespace-pre-wrap"
+            }`}
+        >
+          {msg.content}
+        </div>
+        {!isUser && (
+          <div className="flex justify-start ml-1 mt-0.5">
+             <button onClick={() => speakText(msg.content)} className="text-slate-500 hover:text-amber-400 transition-colors" title="Read aloud">
+               <Volume2 size={14} />
+             </button>
+          </div>
+        )}
       </div>
     </div>
   );

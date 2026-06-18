@@ -1,4 +1,6 @@
 import re
+import hashlib
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -75,7 +77,13 @@ class ExplainView(APIView):
         )
 
         try:
+            cache_key = "explain_" + hashlib.md5(user_msg.encode('utf-8')).hexdigest()
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data, status=status.HTTP_200_OK)
+
             data = query_hf_json(EXPLAIN_SYSTEM, user_msg, max_tokens=700)
+            cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response(
@@ -107,7 +115,13 @@ class SummarizeView(APIView):
         )
 
         try:
+            cache_key = "summarize_" + hashlib.md5(user_msg.encode('utf-8')).hexdigest()
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data, status=status.HTTP_200_OK)
+
             data = query_hf_json(SUMMARIZE_SYSTEM, user_msg, max_tokens=800)
+            cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response(
@@ -140,10 +154,16 @@ class QuizView(APIView):
         )
 
         try:
+            cache_key = "quiz_" + hashlib.md5(user_msg.encode('utf-8')).hexdigest()
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data, status=status.HTTP_200_OK)
+
             data = query_hf_json(QUIZ_SYSTEM, user_msg, max_tokens=1000)
             # Ensure questions list exists
             if "questions" not in data:
                 raise ValueError("Response missing 'questions' key")
+            cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response(
@@ -175,9 +195,15 @@ class FlashcardsView(APIView):
         )
 
         try:
+            cache_key = "flashcards_" + hashlib.md5(user_msg.encode('utf-8')).hexdigest()
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data, status=status.HTTP_200_OK)
+
             data = query_hf_json(FLASHCARDS_SYSTEM, user_msg, max_tokens=900)
             if "flashcards" not in data:
                 raise ValueError("Response missing 'flashcards' key")
+            cache.set(cache_key, data, timeout=60*60*24*7)
             return Response(data, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response(

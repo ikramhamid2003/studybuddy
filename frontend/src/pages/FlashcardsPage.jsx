@@ -1,6 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Layers, RotateCcw, Eye } from "lucide-react";
+import { Layers, RotateCcw, Eye, Download } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -68,6 +68,20 @@ export default function FlashcardsPage() {
     }
   }
 
+  function exportCSV() {
+    if (!cards.length) return;
+    const header = "Front,Back,Hint\n";
+    const rows = cards.map(c => `"${c.front.replace(/"/g, '""')}","${c.back.replace(/"/g, '""')}","${(c.hint || '').replace(/"/g, '""')}"`).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8," + header + rows;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${topic || "flashcards"}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   return (
     <div>
       <PageHeader
@@ -118,14 +132,24 @@ export default function FlashcardsPage() {
             <span className="text-slate-500 text-xs font-mono">
               {cards.length} cards · click to flip
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setKey((k) => k + 1)}
-            >
-              <RotateCcw size={13} />
-              Reset All
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportCSV}
+              >
+                <Download size={13} />
+                Export CSV
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setKey((k) => k + 1)}
+              >
+                <RotateCcw size={13} />
+                Reset All
+              </Button>
+            </div>
           </div>
 
           <div key={key} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

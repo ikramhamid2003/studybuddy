@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@tanstack/react-query": "^5.101.0",
     "@vercel/analytics": "^2.0.1",
     "axios": "^1.7.2",
     "lucide-react": "^0.414.0",

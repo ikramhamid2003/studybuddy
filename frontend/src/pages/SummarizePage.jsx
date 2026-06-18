@@ -1,5 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
 import { FileText, Tag, BookOpen, Lightbulb } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
@@ -10,23 +11,16 @@ import { summarizeNotes } from "../utils/api";
 
 export default function SummarizePage() {
   const [notes, setNotes] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { mutate, data: result, isPending: loading } = useMutation({
+    mutationFn: () => summarizeNotes(notes.trim()),
+    onSuccess: () => toast.success("Summary ready!"),
+    onError: (err) => toast.error(err.message || "Failed to summarize.")
+  });
 
-  async function handleSummarize() {
+  function handleSummarize() {
     if (!notes.trim()) return toast.error("Please paste some notes first");
     if (notes.trim().length < 30) return toast.error("Notes too short — add more content");
-    setLoading(true);
-    setResult(null);
-    try {
-      const data = await summarizeNotes(notes.trim());
-      setResult(data);
-      toast.success("Summary ready!");
-    } catch (err) {
-      toast.error(err.message || "Failed to summarize.");
-    } finally {
-      setLoading(false);
-    }
+    mutate();
   }
 
   return (

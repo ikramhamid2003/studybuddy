@@ -1,5 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
 import { Lightbulb, ArrowRight, BookMarked, Puzzle } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
@@ -11,22 +12,15 @@ import { explainTopic } from "../utils/api";
 export default function ExplainPage() {
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { mutate, data: result, isPending: loading } = useMutation({
+    mutationFn: () => explainTopic(topic.trim(), level),
+    onSuccess: () => toast.success("Explanation ready!"),
+    onError: (err) => toast.error(err.message || "Failed to explain. Try again.")
+  });
 
-  async function handleExplain() {
+  function handleExplain() {
     if (!topic.trim()) return toast.error("Please enter a topic");
-    setLoading(true);
-    setResult(null);
-    try {
-      const data = await explainTopic(topic.trim(), level);
-      setResult(data);
-      toast.success("Explanation ready!");
-    } catch (err) {
-      toast.error(err.message || "Failed to explain. Try again.");
-    } finally {
-      setLoading(false);
-    }
+    mutate();
   }
 
   return (
