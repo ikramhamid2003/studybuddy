@@ -28,3 +28,8 @@ tzdata==2025.3
 urllib3==2.6.3
 whitenoise==6.12.0
 sentry-sdk[django]
+pytest
+pytest-django
+pytest-mock
+ruff
+

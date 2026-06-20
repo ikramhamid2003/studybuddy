@@ -1,9 +1,15 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 load_dotenv()
+
+# Detect if we are testing
+IS_TESTING = "pytest" in sys.modules or "test" in sys.argv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -11,6 +17,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-before-product
 DEBUG = os.getenv("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS]
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -57,9 +64,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "studybuddy.wsgi.application"
 
 
-DATABASES = {
-    "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
-}
+# Determine if we are testing (defined earlier in settings)
+if IS_TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db_test.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    }
+
 
 CACHES = {
     "default": {
@@ -100,11 +117,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # GlitchTip Error Tracking (Sentry-compatible)
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-
 GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
-if GLITCHTIP_DSN:
+
+if GLITCHTIP_DSN and not IS_TESTING:
     sentry_sdk.init(
         dsn=GLITCHTIP_DSN,
         integrations=[DjangoIntegration()],
