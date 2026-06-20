@@ -98,3 +98,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Groq API — free at https://console.groq.com
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+# GlitchTip Error Tracking (Sentry-compatible)
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
+if GLITCHTIP_DSN:
+    sentry_sdk.init(
+        dsn=GLITCHTIP_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=1.0,
+        send_default_pii=True,
+    )

@@ -1,6 +1,8 @@
 import re
 import hashlib
+import json
 from django.core.cache import cache
+from django.http import StreamingHttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,7 +14,7 @@ from .serializers import (
     FlashcardsSerializer,
     ChatSerializer,
 )
-from .groq_client import query_groq, query_groq_json
+from .groq_client import query_groq, query_groq_json, stream_groq
 
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
@@ -248,3 +250,34 @@ class ChatView(APIView):
                 {"error": f"AI request failed: {str(e)}"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+
+
+class ChatStreamView(APIView):
+    """POST /api/chat/stream/ — Stream multi-turn study assistant chat."""
+
+    def post(self, request):
+        serializer = ChatSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        message = serializer.validated_data["message"]
+        history = serializer.validated_data.get("history", [])[-6:]
+
+        conversation = ""
+        for turn in history:
+            tag = "Student" if turn["role"] == "user" else "Study Buddy"
+            conversation += f"{tag}: {turn['content']}\n"
+        conversation += f"Student: {message}\nStudy Buddy:"
+
+        def event_generator():
+            try:
+                for chunk in stream_groq(CHAT_SYSTEM, conversation, max_tokens=600):
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n".encode('utf-8')
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n".encode('utf-8')
+
+        response = StreamingHttpResponse(event_generator(), content_type="text/event-stream")
+        response['X-Accel-Buffering'] = 'no'
+        response['Cache-Control'] = 'no-cache'
+        return response
+

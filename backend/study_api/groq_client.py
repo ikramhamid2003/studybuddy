@@ -90,3 +90,50 @@ def query_groq_json(system: str, user: str, max_tokens: int = 800) -> dict:
     """Wrapper to query Groq and return parsed JSON."""
     raw = call_groq(system, user, max_tokens)
     return extract_json(raw)
+
+
+def stream_groq(system: str, user: str, max_tokens: int = 800):
+    """Call Groq API with stream=True and yield text tokens in real time."""
+    if not settings.GROQ_API_KEY:
+        raise ValueError(
+            "GROQ_API_KEY is not set. Add it to your .env file.\n"
+            "Get a FREE key at: https://console.groq.com"
+        )
+
+    response = requests.post(
+        GROQ_ENDPOINT,
+        headers={
+            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": settings.GROQ_MODEL,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user",   "content": user},
+            ],
+            "max_tokens": max_tokens,
+            "temperature": 0.4,
+            "top_p": 0.9,
+            "stream": True,
+        },
+        timeout=30,
+        stream=True,
+    )
+    response.raise_for_status()
+
+    for line in response.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8").strip()
+        if line_str.startswith("data:"):
+            data_content = line_str[5:].strip()
+            if data_content == "[DONE]":
+                break
+            try:
+                chunk = json.loads(data_content)
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                if "content" in delta:
+                    yield delta["content"]
+            except (json.JSONDecodeError, KeyError, IndexError):
+                continue

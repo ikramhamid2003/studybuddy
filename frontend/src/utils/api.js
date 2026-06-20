@@ -36,4 +36,74 @@ export const generateFlashcards = (topic, num_cards) =>
 export const sendChat = (message, history) =>
   api.post("/chat/", { message, history });
 
+export const sendChatStream = async (message, history, onChunk, onDone, onError) => {
+  try {
+    const response = await fetch(`${BASE_URL}/chat/stream/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, history }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop(); // Keep partial line in buffer
+
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (cleanLine.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(cleanLine.substring(6));
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            if (data.chunk) {
+              onChunk(data.chunk);
+            }
+          } catch (e) {
+            console.error("Error parsing SSE chunk:", e);
+          }
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const cleanLine = buffer.trim();
+      if (cleanLine.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(cleanLine.substring(6));
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          if (data.chunk) {
+            onChunk(data.chunk);
+          }
+        } catch (e) {
+          console.error("Error parsing SSE chunk:", e);
+        }
+      }
+    }
+
+    onDone();
+  } catch (error) {
+    if (onError) onError(error);
+    else console.error("Streaming chat error:", error);
+  }
+};
+
 export default api;
+

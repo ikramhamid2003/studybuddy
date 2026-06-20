@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { Send, Trash2, Bot, User, Volume2, Square } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
-import { sendChat } from "../utils/api";
+import { sendChatStream } from "../utils/api";
 
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
@@ -56,7 +56,7 @@ function MessageBubble({ msg }) {
         >
           {msg.content}
         </div>
-        {!isUser && (
+        {!isUser && msg.content && (
           <div className="flex justify-start ml-1 mt-0.5">
              <button onClick={() => toggleSpeech(msg.content)} className={`transition-colors ${isSpeaking ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}`} title={isSpeaking ? "Stop reading" : "Read aloud"}>
                {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
@@ -111,29 +111,56 @@ export default function ChatPage() {
     const userMsg = (text || input).trim();
     if (!userMsg || loading) return;
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: userMsg }]);
+    
+    const currentMessages = [...messages, { role: "user", content: userMsg }];
+    setMessages(currentMessages);
     setLoading(true);
 
     try {
       const history = messages
         .slice(-8)
         .map((m) => ({ role: m.role, content: m.content }));
-      const data = await sendChat(userMsg, history);
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: data.reply || "Sorry, no response." },
-      ]);
-    } catch (err) {
-      toast.error(err.message || "Failed to send message");
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content:
-            "Connection error. Make sure your Django backend is running at localhost:8000.",
+      
+      let isFirstChunk = true;
+
+      await sendChatStream(
+        userMsg,
+        history,
+        (chunk) => {
+          if (isFirstChunk) {
+            isFirstChunk = false;
+            setLoading(false);
+            setMessages((m) => [...m, { role: "assistant", content: chunk }]);
+          } else {
+            setMessages((m) => {
+              const next = [...m];
+              const last = next[next.length - 1];
+              if (last && last.role === "assistant") {
+                last.content += chunk;
+              }
+              return next;
+            });
+          }
         },
-      ]);
-    } finally {
+        () => {
+          setLoading(false);
+          inputRef.current?.focus();
+        },
+        (err) => {
+          toast.error(err.message || "Failed to send message");
+          setLoading(false);
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: "Connection error. Make sure your Django backend is running.",
+            },
+          ]);
+          inputRef.current?.focus();
+        }
+      );
+    } catch (err) {
+      toast.error(err.message || "Failed to initiate stream");
       setLoading(false);
       inputRef.current?.focus();
     }
