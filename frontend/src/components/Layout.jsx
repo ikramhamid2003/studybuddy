@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   BookOpen,
@@ -20,17 +20,31 @@ const navItems = [
   { to: "/chat", label: "Chat", icon: MessageSquare, color: "text-rose-400" },
 ];
 
+const glowColors = {
+  "/explain": "bg-amber-500/10 shadow-[0_0_160px_rgba(245,158,11,0.12)]",
+  "/summarize": "bg-emerald-500/10 shadow-[0_0_160px_rgba(16,185,129,0.12)]",
+  "/quiz": "bg-violet-500/10 shadow-[0_0_160px_rgba(139,92,246,0.12)]",
+  "/flashcards": "bg-sky-500/10 shadow-[0_0_160px_rgba(14,165,233,0.12)]",
+  "/chat": "bg-rose-500/10 shadow-[0_0_160px_rgba(244,63,94,0.12)]",
+};
+
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const location = useLocation();
+
+  const activeGlow = glowColors[location.pathname] || "bg-amber-500/10";
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
+      {/* Dynamic Ambient Background Glow & Grid */}
+      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
+      <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
       {/* ── Sidebar ── */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-40 w-64 flex flex-col
-          bg-slate-900 border-r border-slate-800
+          bg-slate-900 border-r border-slate-800 relative z-20
           transform transition-transform duration-300 ease-in-out
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 lg:static lg:flex
@@ -137,7 +151,7 @@ export default function Layout({ children }) {
       )}
 
       {/* ── Main ── */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
           <div className="flex items-center gap-2">

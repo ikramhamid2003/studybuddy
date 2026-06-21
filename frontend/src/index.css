@@ -9,7 +9,7 @@
 
   body {
     font-family: "DM Sans", system-ui, sans-serif;
-    background-color: #0a0f1e;
+    background-color: #030712;
     color: #f1f5f9;
     -webkit-font-smoothing: antialiased;
   }
@@ -101,4 +101,28 @@
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
   .animation-delay-400 { animation-delay: 400ms; }
+
+  /* Premium Floating Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-15px) scale(1.05); }
+  }
+  @keyframes float-reverse {
+    0%, 100% { transform: translateY(0) scale(1.05); }
+    50% { transform: translateY(15px) scale(1); }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.25; }
+  }
+
+  .animate-float {
+    animation: float 7s ease-in-out infinite;
+  }
+  .animate-float-reverse {
+    animation: float-reverse 9s ease-in-out infinite;
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 5s ease-in-out infinite;
+  }
 }
