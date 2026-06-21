@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,10 +33,22 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
+      document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+    <div className="cursor-glow-container relative min-h-screen">
+      <div className="pointer-events-none fixed inset-0 z-0 cursor-glow-element" />
+      <div className="relative z-10">
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -117,5 +130,7 @@ export default function App() {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+      </div>
+    </div>
   );
 }

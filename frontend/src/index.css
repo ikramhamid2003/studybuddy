@@ -9,28 +9,32 @@
 
   body {
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-    background-color: #030712;
+    background-color: #030209;
     color: #f1f5f9;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   h1, h2, h3 {
     font-family: "Outfit", sans-serif;
   }
 
+  /* Ultimate Interactive Scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: rgba(3, 2, 9, 0.95);
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    border: 2px solid rgba(3, 2, 9, 0.95);
+    transition: all 0.3s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #fbbf24;
+    background: rgba(251, 191, 36, 0.4);
   }
 }
 
@@ -91,6 +95,33 @@
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-6px); opacity: 1; }
   }
+
+  /* High-end Hover Shimmer Layer for Buttons */
+  .btn-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shimmer::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 45%,
+      rgba(255, 255, 255, 0.15) 50%,
+      transparent 55%
+    );
+    transform: rotate(-45deg);
+    transition: all 0.6s ease;
+    opacity: 0;
+  }
+  .btn-shimmer:hover::after {
+    left: 130%;
+    opacity: 1;
+  }
 }
 
 @layer utilities {
@@ -124,5 +155,19 @@
   }
   .animate-pulse-slow {
     animation: pulse-slow 5s ease-in-out infinite;
+  }
+
+  /* Ultimate Interactive Cursor Tracking Glow Layer */
+  .cursor-glow-container {
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+  }
+  .cursor-glow-element {
+    background: radial-gradient(
+      500px circle at var(--mouse-x) var(--mouse-y),
+      rgba(251, 191, 36, 0.08),
+      rgba(139, 92, 246, 0.03) 30%,
+      transparent 80%
+    );
   }
 }
