@@ -37,28 +37,28 @@ function MessageBubble({ msg }) {
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
       {/* Avatar */}
       <div
-        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5
-          ${isUser ? "bg-amber-400" : "bg-slate-700"}`}
+        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm border
+          ${isUser ? "bg-rose-500 border-rose-400/20" : "bg-slate-900/60 border-slate-800/80"}`}
       >
         {isUser
-          ? <User size={15} className="text-slate-900" />
-          : <Bot size={15} className="text-amber-400" />}
+          ? <User size={15} className="text-white" />
+          : <Bot size={15} className="text-rose-400" />}
       </div>
 
       {/* Bubble */}
       <div className={`flex flex-col gap-1 max-w-[78%]`}>
         <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
             ${isUser
-              ? "bg-amber-400 text-slate-900 font-medium rounded-tr-sm"
-              : "bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm whitespace-pre-wrap"
+              ? "bg-gradient-to-r from-rose-500 to-rose-450 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
+              : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
             }`}
         >
           {msg.content}
         </div>
         {!isUser && msg.content && (
           <div className="flex justify-start ml-1 mt-0.5">
-             <button onClick={() => toggleSpeech(msg.content)} className={`transition-colors ${isSpeaking ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}`} title={isSpeaking ? "Stop reading" : "Read aloud"}>
+             <button onClick={() => toggleSpeech(msg.content)} className={`transition-colors ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-slate-500 hover:text-rose-400'}`} title={isSpeaking ? "Stop reading" : "Read aloud"}>
                {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
              </button>
           </div>
@@ -71,13 +71,13 @@ function MessageBubble({ msg }) {
 function TypingIndicator() {
   return (
     <div className="flex gap-3 animate-fade-in">
-      <div className="w-8 h-8 rounded-xl bg-slate-700 flex items-center justify-center flex-shrink-0">
-        <Bot size={15} className="text-amber-400" />
+      <div className="w-8 h-8 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center flex-shrink-0">
+        <Bot size={15} className="text-rose-455" />
       </div>
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3.5 flex items-center gap-1.5">
-        <span className="typing-dot w-2 h-2 rounded-full bg-amber-400" />
-        <span className="typing-dot w-2 h-2 rounded-full bg-amber-400" />
-        <span className="typing-dot w-2 h-2 rounded-full bg-amber-400" />
+      <div className="backdrop-blur-md bg-slate-900/40 border border-slate-800/80 rounded-2xl rounded-tl-sm px-4 py-3.5 flex items-center gap-1.5 shadow-sm">
+        <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
+        <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
+        <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
       </div>
     </div>
   );

@@ -13,31 +13,31 @@ function Flashcard({ card, index }) {
 
   return (
     <div
-      className="flashcard-scene h-44 cursor-pointer group"
+      className="flashcard-scene h-48 cursor-pointer group"
       onClick={() => setFlipped((f) => !f)}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
         {/* Front */}
-        <div className="flashcard-face bg-slate-900 border border-slate-700 rounded-2xl flex flex-col items-center justify-center p-5 text-center hover:border-slate-600 transition-colors group-hover:shadow-card">
-          <span className="text-slate-600 text-xs font-mono uppercase tracking-widest mb-3">
+        <div className="flashcard-face backdrop-blur-md bg-slate-900/60 border border-slate-800/80 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.12)] transition-all duration-300">
+          <span className="text-sky-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
             Question
           </span>
-          <p className="text-white text-sm font-medium leading-relaxed">{card.front}</p>
+          <p className="text-white text-sm font-semibold leading-relaxed">{card.front}</p>
           {card.hint && (
-            <p className="text-slate-600 text-xs mt-3 italic">Hint: {card.hint}</p>
+            <p className="text-slate-500 text-xs mt-3 italic font-light">Hint: {card.hint}</p>
           )}
           <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Eye size={14} className="text-slate-600" />
+            <Eye size={14} className="text-sky-400 animate-pulse" />
           </div>
         </div>
 
         {/* Back */}
-        <div className="flashcard-face flashcard-back-face bg-slate-800 border border-amber-400/20 rounded-2xl flex flex-col items-center justify-center p-5 text-center">
-          <span className="text-amber-400/60 text-xs font-mono uppercase tracking-widest mb-3">
+        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-850/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)]">
+          <span className="text-emerald-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
             Answer
           </span>
-          <p className="text-amber-100 text-sm leading-relaxed">{card.back}</p>
+          <p className="text-emerald-100 text-sm font-semibold leading-relaxed">{card.back}</p>
         </div>
       </div>
     </div>
