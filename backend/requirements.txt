@@ -32,4 +32,6 @@ pytest
 pytest-django
 pytest-mock
 ruff
+djangorestframework-simplejwt
+
 

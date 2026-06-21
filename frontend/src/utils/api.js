@@ -8,6 +8,18 @@ const api = axios.create({
   timeout: 90000, // 90s — HF cold start can be slow
 });
 
+// Request interceptor to attach JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Response interceptor for cleaner errors
 api.interceptors.response.use(
   (res) => res.data,
@@ -38,11 +50,17 @@ export const sendChat = (message, history) =>
 
 export const sendChatStream = async (message, history, onChunk, onDone, onError) => {
   try {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${BASE_URL}/chat/stream/`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ message, history }),
     });
 

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.contrib.auth.models import User
+
 
 
 class ExplainSerializer(serializers.Serializer):
@@ -39,3 +41,20 @@ class ChatMessageSerializer(serializers.Serializer):
 class ChatSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=2000, required=True)
     history = ChatMessageSerializer(many=True, required=False, default=list)
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=6)
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password")
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
+            password=validated_data["password"]
+        )
+        return user
+

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   BookOpen,
   FileText,
@@ -21,6 +22,7 @@ const navItems = [
 
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
@@ -83,6 +85,37 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
+
+        {/* User / Logout */}
+        {user ? (
+          <div className="px-6 py-4 border-t border-slate-800 flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-sm">
+                {user.username[0].toUpperCase()}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-white text-sm font-semibold truncate">{user.username}</p>
+                <p className="text-slate-500 text-xs truncate">Student</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="mt-2 w-full px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <div className="px-6 py-4 border-t border-slate-800 flex flex-col gap-2">
+            <NavLink
+              to="/login"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-sm font-bold transition-colors"
+            >
+              Log In
+            </NavLink>
+          </div>
+        )}
 
         {/* Footer info */}
         <div className="px-6 py-4 border-t border-slate-800">
