@@ -35,7 +35,7 @@ export default function Button({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        inline-flex items-center gap-2 transition-all duration-150
+        inline-flex items-center justify-center gap-2 transition-all duration-150
         disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
         ${variants[variant]} ${sizes[size]} ${className}
       `}

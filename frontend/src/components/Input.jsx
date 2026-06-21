@@ -1,4 +1,4 @@
-export function Input({ label, className = "", ...props }) {
+export function Input({ label, className = "", inputClassName = "", ...props }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -7,19 +7,19 @@ export function Input({ label, className = "", ...props }) {
         </label>
       )}
       <input
-        className="
+        className={`
           w-full px-4 py-2.5 bg-slate-800 border border-slate-700
           rounded-xl text-white text-sm placeholder-slate-500
           focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30
-          transition-colors duration-150 font-body
-        "
+          transition-colors duration-150 font-body ${inputClassName}
+        `}
         {...props}
       />
     </div>
   );
 }
 
-export function Textarea({ label, className = "", ...props }) {
+export function Textarea({ label, className = "", textareaClassName = "", ...props }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -28,19 +28,19 @@ export function Textarea({ label, className = "", ...props }) {
         </label>
       )}
       <textarea
-        className="
+        className={`
           w-full px-4 py-3 bg-slate-800 border border-slate-700
           rounded-xl text-white text-sm placeholder-slate-500
           focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30
-          transition-colors duration-150 resize-y min-h-[140px] font-body
-        "
+          transition-colors duration-150 resize-y min-h-[140px] font-body ${textareaClassName}
+        `}
         {...props}
       />
     </div>
   );
 }
 
-export function Select({ label, children, className = "", ...props }) {
+export function Select({ label, children, className = "", selectClassName = "", ...props }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -49,12 +49,12 @@ export function Select({ label, children, className = "", ...props }) {
         </label>
       )}
       <select
-        className="
+        className={`
           w-full px-4 py-2.5 bg-slate-800 border border-slate-700
           rounded-xl text-white text-sm
           focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30
-          transition-colors duration-150 cursor-pointer
-        "
+          transition-colors duration-150 cursor-pointer ${selectClassName}
+        `}
         {...props}
       >
         {children}
