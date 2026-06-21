@@ -134,9 +134,13 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
 
 if GLITCHTIP_DSN and not IS_TESTING:
-    sentry_sdk.init(
-        dsn=GLITCHTIP_DSN,
-        integrations=[DjangoIntegration()],
-        traces_sample_rate=1.0,
-        send_default_pii=True,
-    )
+    try:
+        sentry_sdk.init(
+            dsn=GLITCHTIP_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=1.0,
+            send_default_pii=True,
+        )
+    except Exception as e:
+        import sys
+        print(f"Warning: Failed to initialize sentry_sdk: {e}", file=sys.stderr)
