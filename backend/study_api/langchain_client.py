@@ -1,7 +1,7 @@
 from django.conf import settings
-from langchain_groq import ChatGroq
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_groq import ChatGroq
 from pydantic import BaseModel
 
 

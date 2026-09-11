@@ -1,0 +1,3 @@
+[lint.per-file-ignores]
+"**/migrations/**" = ["RUF012"]
+"**/models.py" = ["RUF012"]

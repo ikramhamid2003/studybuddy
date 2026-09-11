@@ -63,9 +63,11 @@ class _FakeLLM:
 
 
 def test_get_llm_raises_without_api_key():
-    with patch.object(settings, "GROQ_API_KEY", ""):
-        with pytest.raises(ValueError, match="GROQ_API_KEY"):
-            query_groq("sys", "user")
+    with (
+        patch.object(settings, "GROQ_API_KEY", ""),
+        pytest.raises(ValueError, match="GROQ_API_KEY"),
+    ):
+        query_groq("sys", "user")
 
 
 @patch("study_api.langchain_client._get_llm")
