@@ -1,0 +1,155 @@
+import axios from "axios";
+
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: { "Content-Type": "application/json" },
+  timeout: 90000, // 90s — HF cold start can be slow
+});
+
+// Request interceptor to attach JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for cleaner errors
+api.interceptors.response.use(
+  (res) => res.data,
+  (err) => {
+    const msg =
+      err.response?.data?.error ||
+      err.response?.data?.detail ||
+      err.message ||
+      "Something went wrong";
+    return Promise.reject(new Error(msg));
+  }
+);
+
+export const explainTopic = (topic, level) =>
+  api.post("/explain/", { topic, level });
+
+export const summarizeNotes = (notes, format = "bullets") =>
+  api.post("/summarize/", { notes, format });
+
+export const generateQuiz = (topic, num_questions, difficulty) =>
+  api.post("/quiz/", { topic, num_questions, difficulty });
+
+export const generateFlashcards = (topic, num_cards) =>
+  api.post("/flashcards/", { topic, num_cards });
+
+export const sendChat = (message, history, sessionId) =>
+  api.post("/chat/", { message, history, session_id: sessionId ?? null });
+
+// ── Chat sessions (sidebar) ──────────────────────────────────────────────
+
+export const listChatSessions = () => api.get("/sessions/");
+
+export const createChatSession = () => api.post("/sessions/", {});
+
+export const getChatSession = (sessionId) => api.get(`/sessions/${sessionId}/`);
+
+export const renameChatSession = (sessionId, title) =>
+  api.patch(`/sessions/${sessionId}/`, { title });
+
+export const deleteChatSession = (sessionId) =>
+  api.delete(`/sessions/${sessionId}/`);
+
+export const sendChatStream = async (
+  message,
+  history,
+  sessionId,
+  onChunk,
+  onDone,
+  onError
+) => {
+  try {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${BASE_URL}/chat/stream/`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ message, history, session_id: sessionId ?? null }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let resultSessionId = null;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop(); // Keep partial line in buffer
+
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (cleanLine.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(cleanLine.substring(6));
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            if (data.chunk) {
+              onChunk(data.chunk);
+            }
+            if (data.done) {
+              resultSessionId = data.session_id ?? null;
+            }
+          } catch (e) {
+            console.error("Error parsing SSE chunk:", e);
+          }
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const cleanLine = buffer.trim();
+      if (cleanLine.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(cleanLine.substring(6));
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          if (data.chunk) {
+            onChunk(data.chunk);
+          }
+          if (data.done) {
+            resultSessionId = data.session_id ?? null;
+          }
+        } catch (e) {
+          console.error("Error parsing SSE chunk:", e);
+        }
+      }
+    }
+
+    onDone(resultSessionId);
+  } catch (error) {
+    if (onError) onError(error);
+    else console.error("Streaming chat error:", error);
+  }
+};
+
+export default api;
+
