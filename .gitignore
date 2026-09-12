@@ -16,3 +16,4 @@ frontend/build/
 .DS_Store
 Thumbs.db
 backend/prodenv/
+backend/venv/
