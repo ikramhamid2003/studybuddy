@@ -7,8 +7,7 @@ import {
   Layers,
   MessageSquare,
   Sparkles,
-  Menu,
-  X,
+  ChevronDown,
   Zap,
 } from "lucide-react";
 
@@ -29,27 +28,20 @@ const glowColors = {
 };
 
 export default function Layout({ children }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
 
   const activeGlow = glowColors[location.pathname] || "bg-amber-500/10";
+  const currentItem = navItems.find((item) => item.to === location.pathname);
 
   return (
     <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
       {/* Dynamic Ambient Background Glow & Grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
-      {/* ── Sidebar ── */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 w-64 flex flex-col
-          bg-slate-900 border-r border-slate-800 relative z-20
-          transform transition-transform duration-300 ease-in-out
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 lg:static lg:flex
-        `}
-      >
+      {/* ── Sidebar (desktop only) ── */}
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 relative z-20 bg-slate-900 border-r border-slate-800">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
           <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
@@ -72,7 +64,6 @@ export default function Layout({ children }) {
             <NavLink
               key={to}
               to={to}
-              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group
                 ${
@@ -105,12 +96,9 @@ export default function Layout({ children }) {
           <div className="px-6 py-4 border-t border-slate-800 flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-sm">
-                {user.username[0].toUpperCase()}
+                S
               </div>
-              <div className="overflow-hidden">
-                <p className="text-white text-sm font-semibold truncate">{user.username}</p>
-                <p className="text-slate-500 text-xs truncate">Student</p>
-              </div>
+              <p className="text-white text-sm font-semibold truncate">Student</p>
             </div>
             <button
               onClick={logout}
@@ -123,7 +111,6 @@ export default function Layout({ children }) {
           <div className="px-6 py-4 border-t border-slate-800 flex flex-col gap-2">
             <NavLink
               to="/login"
-              onClick={() => setMobileOpen(false)}
               className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-sm font-bold transition-colors"
             >
               Log In
@@ -142,17 +129,9 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
-        {/* Mobile header */}
+        {/* Mobile header with dropdown nav */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center">
@@ -160,12 +139,79 @@ export default function Layout({ children }) {
             </div>
             <span className="font-display font-bold text-white">StudyBuddy</span>
           </div>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              aria-expanded={dropdownOpen}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            >
+              {currentItem ? currentItem.label : "Menu"}
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {dropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 w-56 z-50 rounded-xl border border-slate-800 bg-slate-900 shadow-card overflow-hidden">
+                  <nav className="p-2 space-y-1">
+                    {navItems.map(({ to, label, icon: Icon, color }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        onClick={() => setDropdownOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-slate-800 text-white"
+                              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Icon
+                              className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? color : "text-slate-500"}`}
+                              size={18}
+                            />
+                            {label}
+                            {isActive && (
+                              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    ))}
+                  </nav>
+
+                  {user && (
+                    <div className="border-t border-slate-800 p-3">
+                      <div className="flex items-center gap-2 px-1">
+                        <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-xs">
+                          S
+                        </div>
+                        <p className="text-white text-sm font-semibold">Student</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          logout();
+                        }}
+                        className="mt-2 w-full px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
         {/* Page content */}
