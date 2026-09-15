@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: studybuddy-backend
+    env: python
+    region: ohio
+    healthCheckPath: /api/health/
+    buildCommand: "cd backend && chmod +x build.sh && ./build.sh"
+    startCommand: "cd backend && gunicorn studybuddy.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "studybuddy-api-hkgx.onrender.com"
+      - key: GROQ_API_KEY
+        sync: false

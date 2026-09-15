@@ -1,0 +1,15 @@
+name: Keep API Warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          curl -sSf --max-time 60 https://studybuddy-api-hkgx.onrender.com/api/health/
+          echo "API responded"

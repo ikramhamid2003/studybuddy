@@ -1,0 +1,20 @@
+Django==6.0.3
+djangorestframework==3.16.1
+djangorestframework-simplejwt
+django-cors-headers==4.9.0
+whitenoise==6.12.0
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+python-dotenv==1.2.2
+requests==2.32.5
+gunicorn==25.1.0
+sentry-sdk[django]
+langchain-core
+langchain-groq
+pydantic==2.12.5
+
+# dev / test only
+pytest
+pytest-django
+pytest-mock
+ruff

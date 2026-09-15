@@ -1,0 +1,27 @@
+# Python / Django
+backend/.env
+backend/__pycache__/
+backend/study_api/__pycache__/
+backend/studybuddy/__pycache__/
+backend/db.sqlite3
+*.sqlite3
+*.pyc
+
+# Node / React
+frontend/.env
+frontend/.env.*
+frontend/node_modules/
+frontend/build/
+
+# Lint tools
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Command Code IDE (editor-local only)
+.commandcode/
+backend/prodenv/
+backend/venv/
