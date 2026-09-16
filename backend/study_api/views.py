@@ -390,6 +390,8 @@ class UnifiedAPIView(APIView):
     unregister, chat_stream
     """
 
+    permission_classes = (AllowAny,)
+
     def post(self, request):
         action = request.data.get("action")
         if not action or action not in ACTION_MAP:

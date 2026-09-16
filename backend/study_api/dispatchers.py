@@ -72,7 +72,7 @@ def _unwrap(obj):
 # ── Actions (public – no auth) ───────────────────────────────────────────────
 
 
-def _action_register(data):
+def _action_register(data, request=None):
     username = data.get("username", "").strip()
     password = data.get("password", "")
     email = data.get("email", "").strip()
@@ -86,7 +86,7 @@ def _action_register(data):
         return _error(msg, code=status.HTTP_400_BAD_REQUEST)
 
 
-def _action_login(data):
+def _action_login(data, request=None):
     serializer = TokenObtainPairSerializer(data={"username": data.get("username", ""), "password": data.get("password", "")})
     try:
         serializer.is_valid(raise_exception=True)
@@ -95,7 +95,7 @@ def _action_login(data):
         return _error(str(e))
 
 
-def _action_refresh(data):
+def _action_refresh(data, request=None):
     refresh_token = data.get("refresh")
     if not refresh_token:
         return _error("refresh token required")
