@@ -56,8 +56,8 @@ def _error(msg, code=status.HTTP_400_BAD_REQUEST):
     return Response({"ok": False, "error": msg}, status=code)
 
 
-def _ok(data=None):
-    return Response({"ok": True, **(data or {})})
+def _ok(data=None, status=status.HTTP_200_OK):
+    return Response({"ok": True, **(data or {})}, status=status)
 
 
 def _unwrap(obj):
