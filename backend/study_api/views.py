@@ -30,7 +30,7 @@ from .serializers import (
     GenerationModelSerializer,
     RegisterSerializer,
 )
-from dispatchers import ACTION_MAP, PUBLIC_ACTIONS
+from .dispatchers import ACTION_MAP, PUBLIC_ACTIONS
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
 

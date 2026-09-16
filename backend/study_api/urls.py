@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from views import (
+from .views import (
     ChatSessionDetailView,
     ChatSessionListCreateView,
     ChatStreamView,
