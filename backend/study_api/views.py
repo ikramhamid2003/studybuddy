@@ -399,18 +399,17 @@ class UnifiedAPIView(APIView):
             )
 
         # Enforce auth for non-public actions
-        if action not in PUBLIC_ACTIONS:
-            if not request.user or not request.user.is_authenticated:
-                return Response(
-                    {"ok": False, "error": "Authentication required."},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
+        if action not in PUBLIC_ACTIONS and (not request.user or not request.user.is_authenticated):
+            return Response(
+                {"ok": False, "error": "Authentication required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         handler = ACTION_MAP[action]
         try:
             result = handler(request.data, request)
             return result
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return Response(
                 {"ok": False, "error": str(exc)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

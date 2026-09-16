@@ -2,10 +2,8 @@ from django.contrib.auth.models import User
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 
 import json
 
@@ -83,19 +81,17 @@ def _action_register(data):
     try:
         user = User.objects.create_user(username=username, email=email, password=password)
         return _ok({"message": "Registered", "user": {"username": user.username, "email": user.email}})
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         msg = str(e) or "Registration failed"
         return _error(msg, code=status.HTTP_400_BAD_REQUEST)
 
-
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 
 def _action_login(data):
     serializer = TokenObtainPairSerializer(data={"username": data.get("username", ""), "password": data.get("password", "")})
     try:
         serializer.is_valid(raise_exception=True)
         return _ok(_unwrap(serializer.validated_data))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return _error(str(e))
 
 
@@ -107,7 +103,7 @@ def _action_refresh(data):
     try:
         serializer.is_valid(raise_exception=True)
         return _ok(_unwrap(serializer.validated_data))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return _error(str(e))
 
 
@@ -132,7 +128,7 @@ def _action_generate(data, request):
         return _error(f"unknown type: {gen_type}")
     try:
         result = handler()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return _error(f"AI request failed: {e}", code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
     generation = Generation.objects.create(user=request.user, type=gen_type, topic=topic, result=result)
@@ -197,7 +193,7 @@ def _action_session_delete(data, request):
 def _action_unregister(data, request):
     try:
         request.user.delete()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return _error(str(e))
     return _ok({"message": "Account deleted"})
 
@@ -231,7 +227,7 @@ def _action_chat_stream(data, request):
                 session.save()
 
             yield f'data: {{"done": true, "session_id": {json.dumps(session.id if session else None)}}}\n\n'.encode()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             yield f'data: {{"error": {json.dumps(str(e))}}}\n\n'.encode()
 
     session = None
