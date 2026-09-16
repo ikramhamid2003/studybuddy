@@ -1,21 +1,20 @@
-from sentry_sdk.integrations.django import DjangoIntegration
-import sentry_sdk
 import os
 import sys
 from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
-
+import sentry_sdk
 from dotenv import load_dotenv
+from sentry_sdk.integrations.django import DjangoIntegration
+
 load_dotenv()
 print("DIAGNOSTIC: after dotenv", flush=True)
 
 # Sentry SDK disabled locally — blocks on network call during module init.
 # Replaced with sys.modules stub so `import sentry_sdk` always returns None instantly.
-import sys as _s
-_s.modules['sentry_sdk'] = None
-_s.modules['sentry_sdk.integrations.django'] = None
+sys.modules["sentry_sdk"] = None
+sys.modules["sentry_sdk.integrations.django"] = None
 
 # Detect if we are testing
 IS_TESTING = "pytest" in sys.modules or "test" in sys.argv

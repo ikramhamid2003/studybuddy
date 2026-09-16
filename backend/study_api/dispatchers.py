@@ -1,22 +1,32 @@
+# Lazy/safe import of LangChain — network calls during module init can block
+import json
+
 from django.contrib.auth.models import User
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 
-# Lazy/safe import of LangChain — network calls during module init can block
-import json
+from .models import ChatMessage, ChatSession, Generation
+from .schemas import FlashcardsResponse, QuizResponse
 
 try:
-    from .langchain_client import chat_groq, query_groq_json, query_groq_structured, stream_chat_groq
+    from .langchain_client import (
+        chat_groq,
+        query_groq_json,
+        query_groq_structured,
+        stream_chat_groq,
+    )
+
     _HAS_LANGCHAIN = True
-except Exception:
+except Exception:  # noqa: BLE001
     # Server starts even if LangChain is broken/unreachable
     chat_groq = query_groq_json = stream_chat_groq = query_groq_structured = None
     _HAS_LANGCHAIN = False
-from .models import ChatMessage, ChatSession, Generation
-from .schemas import FlashcardsResponse, QuizResponse
 
 
 # Actions that do NOT require authentication

@@ -9,6 +9,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .dispatchers import ACTION_MAP, PUBLIC_ACTIONS
+
 # pyrefly: ignore [missing-import]
 from .langchain_client import (
     chat_groq,
@@ -16,10 +18,13 @@ from .langchain_client import (
     query_groq_structured,
     stream_chat_groq,
 )
+
 # pyrefly: ignore [missing-import]
 from .models import ChatMessage, ChatSession, Generation
+
 # pyrefly: ignore [missing-import]
 from .schemas import FlashcardsResponse, QuizResponse
+
 # pyrefly: ignore [missing-import]
 from .serializers import (
     ChatSerializer,
@@ -30,7 +35,6 @@ from .serializers import (
     GenerationModelSerializer,
     RegisterSerializer,
 )
-from .dispatchers import ACTION_MAP, PUBLIC_ACTIONS
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
 
