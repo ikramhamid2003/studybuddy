@@ -88,26 +88,27 @@ def _action_register(data):
         return _error(msg, code=status.HTTP_400_BAD_REQUEST)
 
 
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+
 def _action_login(data):
-    class _Req:
-        def __init__(s):
-            s.data = {"username": data.get("username", ""), "password": data.get("password", "")}
-    ret = TokenObtainPairView.post(_Req())
-    if isinstance(ret, Response) and ret.status_code == 200:
-        return _ok(_unwrap(dict(ret.data)))
-    # If login fails DRF returns error response already
-    return ret
+    serializer = TokenObtainPairSerializer(data={"username": data.get("username", ""), "password": data.get("password", "")})
+    try:
+        serializer.is_valid(raise_exception=True)
+        return _ok(_unwrap(serializer.validated_data))
+    except Exception as e:
+        return _error(str(e))
 
 
 def _action_refresh(data):
     refresh_token = data.get("refresh")
     if not refresh_token:
         return _error("refresh token required")
-    req_data = {"refresh": refresh_token}
-    ret = TokenRefreshView.post(type("Dummy", (), {"data": req_data})())
-    if isinstance(ret, Response) and ret.status_code == 200:
-        return _ok(_unwrap(dict(ret.data)))
-    return ret
+    serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+    try:
+        serializer.is_valid(raise_exception=True)
+        return _ok(_unwrap(serializer.validated_data))
+    except Exception as e:
+        return _error(str(e))
 
 
 # ── Actions (authenticated – JWT required) ──────────────────────────────────
