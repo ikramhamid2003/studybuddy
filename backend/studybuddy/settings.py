@@ -77,7 +77,8 @@ if IS_TESTING:
         }
     }
 else:
-    DATABASES = {"default": dj_database_url.parse(os.environ.get("DATABASE_URL"))}
+    db_url = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+    DATABASES = {"default": dj_database_url.parse(db_url)}
 
 
 CACHES = {
@@ -90,6 +91,7 @@ CACHES = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://studybuddy-omega-gray.vercel.app",
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
