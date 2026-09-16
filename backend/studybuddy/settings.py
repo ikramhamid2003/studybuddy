@@ -1,3 +1,5 @@
+from sentry_sdk.integrations.django import DjangoIntegration
+import sentry_sdk
 import os
 import sys
 from datetime import timedelta
@@ -42,7 +44,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
