@@ -74,7 +74,7 @@ def _error(msg, code=status.HTTP_400_BAD_REQUEST):
 
 
 def _ok(data=None, status=status.HTTP_200_OK):
-    return Response({"ok": True, **(data or {})}, status=status)
+    return Response({"ok": True, "data": {} if data is None else data}, status=status)
 
 
 def _unwrap(obj):
@@ -269,5 +269,5 @@ ACTION_MAP = {
     "session_delete": _action_session_delete,
     "unregister": _action_unregister,
     "chat_stream": _action_chat_stream,
-    "health": lambda _: _ok({"status": "ok"}),
+    "health": lambda _data, _request=None: _ok({"status": "ok"}),
 }

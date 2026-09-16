@@ -35,6 +35,21 @@ def test_register_view(api_client):
     assert resp.data["user"]["username"] == "newuser"
 
 
+def test_unified_login_returns_tokens_under_data(api_client):
+    User.objects.create_user(username="newuser", password="securepassword123")
+
+    resp = api_client.post(
+        "/api/unified/",
+        {"action": "login", "username": "newuser", "password": "securepassword123"},
+        format="json",
+    )
+
+    assert resp.status_code == 200
+    assert resp.data["ok"] is True
+    assert resp.data["data"]["access"]
+    assert resp.data["data"]["refresh"]
+
+
 @patch("study_api.views.stream_chat_groq")
 def test_chat_stream_view(mock_stream, auth_client):
     mock_stream.return_value = ["hello", " stream"]
