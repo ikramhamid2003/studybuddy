@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lightbulb, ArrowRight, BookMarked, Puzzle } from "lucide-react";
+import { Lightbulb, ArrowRight, BookMarked, Puzzle, Copy, Check } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -10,6 +10,12 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
 
+function copyToClipboard(text, setCopied) {
+  navigator.clipboard.writeText(text);
+  setCopied(true);
+  setTimeout(() => setCopied(false), 2000);
+}
+
 export default function ExplainPage() {
   const queryClient = useQueryClient();
   // Local state mirrors the form controls and the currently displayed result.
@@ -17,6 +23,7 @@ export default function ExplainPage() {
   const [level, setLevel] = useState("beginner");
   const [result, setResult] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+  const [copied, setCopied] = useState(false);
   const { mutate, isPending: loading } = useMutation({
     mutationFn: () => generateAll(topic.trim(), "explain", { level }),
     onSuccess: (data) => {
@@ -34,6 +41,15 @@ export default function ExplainPage() {
     if (!topic.trim()) return toast.error("Please enter a topic");
     mutate();
   }
+
+  const fullText = result
+    ? [
+        result.explanation,
+        result.key_points?.length ? `\n\nKey Points:\n${result.key_points.map(p => `• ${p}`).join("\n")}` : "",
+        result.analogy ? `\n\nAnalogy:\n${result.analogy}` : "",
+        result.example ? `\n\nExample:\n${result.example}` : "",
+      ].filter(Boolean).join("")
+    : "";
 
   return (
     <div>
@@ -53,6 +69,7 @@ export default function ExplainPage() {
             onChange={(e) => setTopic(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleExplain()}
             className="flex-1"
+            leftIcon={<Lightbulb className="w-4 h-4" />}
           />
           <Select
             label="Level"
@@ -80,8 +97,8 @@ export default function ExplainPage() {
 
       {/* Loading */}
       {loading && (
-        <Card>
-          <LoadingSkeleton lines={4} message="Crafting your explanation..." />
+        <Card variant="elevated">
+          <LoadingSkeleton lines={4} message="Crafting your explanation..." variant="card" />
         </Card>
       )}
 
@@ -89,22 +106,35 @@ export default function ExplainPage() {
       {result && !loading && (
         <div className="space-y-4 animate-fade-up">
           {/* Main explanation */}
-          <Card accent="amber">
-            <div className="flex items-center gap-2 mb-3">
-              <Lightbulb className="text-amber-400" size={18} />
-              <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">
-                Explanation
-              </span>
-              <span className="ml-auto text-xs font-mono text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">
-                {level}
-              </span>
+          <Card accent="amber" variant="elevated">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="text-amber-400" size={18} />
+                <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">
+                  Explanation
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">
+                  {level}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(fullText, setCopied)}
+                  className="h-8 w-8 p-0"
+                  aria-label={copied ? "Copied!" : "Copy explanation"}
+                >
+                  {copied ? <Check className="text-emerald-400" size={14} /> : <Copy className="text-slate-400" size={14} />}
+                </Button>
+              </div>
             </div>
-            <p className="text-slate-200 text-sm leading-relaxed">{result.explanation}</p>
+            <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.explanation}</p>
           </Card>
 
           {/* Key Points */}
           {result.key_points?.length > 0 && (
-            <Card accent="emerald">
+            <Card accent="emerald" variant="elevated">
               <div className="flex items-center gap-2 mb-3">
                 <BookMarked className="text-emerald-400" size={18} />
                 <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
@@ -125,7 +155,7 @@ export default function ExplainPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {/* Analogy */}
             {result.analogy && (
-              <Card accent="violet">
+              <Card accent="violet" variant="elevated">
                 <div className="flex items-center gap-2 mb-3">
                   <Puzzle className="text-violet-400" size={18} />
                   <span className="text-violet-400 text-xs font-mono uppercase tracking-widest">
@@ -138,7 +168,7 @@ export default function ExplainPage() {
 
             {/* Example */}
             {result.example && (
-              <Card accent="sky">
+              <Card accent="sky" variant="elevated">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-sky-400 text-xs font-mono uppercase tracking-widest">
                     📖 Example

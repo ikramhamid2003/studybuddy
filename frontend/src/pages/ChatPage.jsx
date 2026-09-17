@@ -12,9 +12,13 @@ import {
   Pencil,
   Check,
   X,
+  Copy,
+  Check as CheckIcon,
+  Sparkles,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
+import Card from "../components/Card";
 import {
   sendChatStream,
   listChatSessions,
@@ -24,9 +28,10 @@ import {
   deleteChatSession,
 } from "../utils/api";
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onCopy }) {
   const isUser = msg.role === "user";
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [copied, setCopied] = useState(false);
   const utteranceRef = useRef(null);
 
   function toggleSpeech(text) {
@@ -54,6 +59,13 @@ function MessageBubble({ msg }) {
     }
   }
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(msg.content);
+    setCopied(true);
+    if (onCopy) onCopy();
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
       {/* Avatar */}
@@ -67,7 +79,7 @@ function MessageBubble({ msg }) {
       </div>
 
       {/* Bubble */}
-      <div className={`flex flex-col gap-1 max-w-[78%]`}>
+      <div className={`flex flex-col gap-1 max-w-[78%] relative`}>
         <div
           className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
             ${isUser
@@ -78,10 +90,27 @@ function MessageBubble({ msg }) {
           {msg.content}
         </div>
         {!isUser && msg.content && (
-          <div className="flex justify-start ml-1 mt-0.5">
-             <button onClick={() => toggleSpeech(msg.content)} className={`transition-colors ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-slate-500 hover:text-rose-400'}`} title={isSpeaking ? "Stop reading" : "Read aloud"}>
-               {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
-             </button>
+          <div className="flex items-center justify-start gap-1.5 ml-1 mt-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleSpeech(msg.content)}
+              className={`h-7 w-7 p-0 transition-colors ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-slate-500 hover:text-rose-400'}`}
+              title={isSpeaking ? "Stop reading" : "Read aloud"}
+              aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
+            >
+              {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+              className="h-7 w-7 p-0 text-slate-500 hover:text-amber-400 transition-colors"
+              title={copied ? "Copied!" : "Copy message"}
+              aria-label={copied ? "Copied!" : "Copy message"}
+            >
+              {copied ? <CheckIcon className="text-emerald-400" size={14} /> : <Copy size={14} />}
+            </Button>
           </div>
         )}
       </div>
@@ -399,7 +428,7 @@ export default function ChatPage() {
         style={{ height: "calc(100vh - 280px)", minHeight: 400 }}
       >
         {/* Sessions sidebar */}
-        <div className="w-56 flex-shrink-0 bg-slate-900 border border-slate-800 rounded-2xl shadow-card flex flex-col overflow-hidden">
+        <Card variant="elevated" className="w-56 flex-shrink-0 flex flex-col overflow-hidden">
           <div className="p-3 border-b border-slate-800">
             <Button variant="secondary" size="sm" onClick={startNewChat} className="w-full justify-center">
               <Plus size={14} />
@@ -408,9 +437,19 @@ export default function ChatPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {sessionsLoading ? (
-              <p className="text-slate-600 text-xs px-2 py-2 font-mono">Loading…</p>
+              <div className="text-center py-4">
+                <LoadingSkeleton lines={2} message="Loading chats..." variant="inline" />
+              </div>
             ) : sessions.length === 0 ? (
-              <p className="text-slate-600 text-xs px-2 py-2">No chats yet — send a message to start one.</p>
+              <div className="text-center py-8 px-2">
+                <div className="w-10 h-10 rounded-xl bg-slate-800/60 flex items-center justify-center mx-auto mb-2 border border-slate-800">
+                  <MessageSquare className="text-slate-500" size={20} />
+                </div>
+                <p className="text-slate-500 text-xs font-mono mb-1">No chats yet</p>
+                <p className="text-slate-600 text-[10px] font-light max-w-xs mx-auto">
+                  Send a message to start your first conversation.
+                </p>
+              </div>
             ) : (
               sessions.map((s) => (
                 <SessionRow
@@ -424,7 +463,7 @@ export default function ChatPage() {
               ))
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Chat window */}
         <div className="flex-1 min-w-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-card">
@@ -433,6 +472,11 @@ export default function ChatPage() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
               <span className="text-slate-500 text-xs font-mono">AI Online</span>
+              {activeSessionId && (
+                <span className="text-slate-600 text-[10px] font-mono px-2 py-0.5 bg-slate-800/50 rounded">
+                  #{activeSessionId}
+                </span>
+              )}
             </div>
             <Button variant="ghost" size="sm" onClick={startNewChat}>
               <Trash2 size={13} />
@@ -444,17 +488,20 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {/* Quick suggestions on first load */}
             {messages.length === 1 && (
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleSend(s)}
-                    className="text-left px-3 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/40 rounded-xl text-xs text-slate-400 hover:text-amber-300 transition-all duration-150"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <Card variant="outlined" className="animate-fade-up">
+                <p className="text-slate-500 text-xs font-mono mb-2">Try asking:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleSend(s)}
+                      className="text-left px-3 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/40 rounded-xl text-xs text-slate-400 hover:text-amber-300 transition-all duration-150"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </Card>
             )}
 
             {messages.map((m, i) => (
@@ -485,7 +532,7 @@ export default function ChatPage() {
                 <Send size={15} />
               </Button>
             </div>
-            <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send</p>
+            <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
           </div>
         </div>
       </div>

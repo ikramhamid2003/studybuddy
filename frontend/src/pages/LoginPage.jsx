@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { LogIn, Key, User, Eye, EyeOff } from "lucide-react";
+import { LogIn, Key, User, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -49,60 +49,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4">
-      <Card className="w-full max-w-md border-t-4 border-t-amber-400 p-8">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-amber-400/10 flex items-center justify-center mx-auto mb-3">
-            <LogIn className="text-amber-400" size={24} />
+    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 animate-fade-in">
+      <Card variant="elevated" className="w-full max-w-md border-t-4 border-t-amber-400 p-8 animate-fade-up">
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center mx-auto mb-4 shadow-[0_8px_24px_rgba(245,158,11,0.3)]">
+            <Sparkles className="text-slate-900" size={28} />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Log In to StudyBuddy</h2>
-          <p className="text-slate-400 text-sm mt-1.5">Welcome back! Access your study dashboard.</p>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
+          <p className="text-slate-400 text-sm mt-2">Sign in to continue your study journey</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-slate-300 text-xs font-semibold mb-2 uppercase tracking-wider">Username</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 pointer-events-none">
-                <User size={16} />
-              </span>
-              <Input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                inputClassName="pl-10"
-                disabled={loading}
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Input
+            label="Username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
+            leftIcon={<User className="w-4 h-4" />}
+            disabled={loading}
+            error={username.length > 0 && username.length < 3 ? "Username must be at least 3 characters" : undefined}
+            hint="Your unique username"
+          />
 
-          <div>
-            <label className="block text-slate-300 text-xs font-semibold mb-2 uppercase tracking-wider">Password</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 pointer-events-none">
-                <Key size={16} />
-              </span>
-              <Input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                inputClassName="pl-10 pr-10"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                disabled={loading}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
+          <Input
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            leftIcon={<Key className="w-4 h-4" />}
+            rightIcon={showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            onRightIconClick={() => setShowPassword(!showPassword)}
+            disabled={loading}
+            error={password.length > 0 && password.length < 6 ? "Password must be at least 6 characters" : undefined}
+            hint="Minimum 6 characters"
+          />
 
-          <Button type="submit" loading={loading} className="w-full mt-2" size="md">
+          <Button type="submit" loading={loading} className="w-full mt-2" size="lg">
+            <LogIn className="w-4 h-4 mr-2" />
             Log In
           </Button>
 

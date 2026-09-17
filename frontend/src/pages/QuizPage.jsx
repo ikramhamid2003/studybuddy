@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Trophy, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Trophy, RefreshCw, ArrowRight } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -19,7 +19,7 @@ function ScoreCard({ score, total, onRetry }) {
   const message = pct >= 80 ? "Excellent work! 🎉" : pct >= 50 ? "Good effort! 📚" : "Keep studying! 💪";
 
   return (
-    <div className="backdrop-blur-md bg-slate-900/60 border border-slate-800/80 rounded-3xl p-8 text-center mb-6 shadow-2xl animate-fade-up">
+    <Card variant="elevated" accent={pct >= 80 ? "emerald" : pct >= 50 ? "amber" : "rose"} className="text-center animate-fade-up">
       <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-4 animate-bounce" />
       <div className={`font-display text-6xl mb-1 ${color}`}>{pct}%</div>
       <p className="text-slate-400 text-sm mb-1">{score} / {total} correct</p>
@@ -34,7 +34,7 @@ function ScoreCard({ score, total, onRetry }) {
         <RefreshCw size={15} className="mr-1.5" />
         Try Again
       </Button>
-    </div>
+    </Card>
   );
 }
 
@@ -106,6 +106,7 @@ export default function QuizPage() {
             onChange={(e) => setTopic(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             className="flex-1"
+            leftIcon={<Trophy className="w-4 h-4" />}
           />
           <Select label="Questions" value={numQ} onChange={(e) => setNumQ(e.target.value)} className="sm:w-36">
             <option value="3">3</option>
@@ -120,14 +121,15 @@ export default function QuizPage() {
         </div>
         <div className="mt-4">
           <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim()}>
+            <ArrowRight size={16} />
             Generate Quiz
           </Button>
         </div>
       </Card>
 
       {loading && (
-        <Card>
-          <LoadingSkeleton lines={6} message="Writing your quiz questions..." />
+        <Card variant="elevated">
+          <LoadingSkeleton lines={6} message="Writing your quiz questions..." variant="card" />
         </Card>
       )}
 
@@ -140,16 +142,13 @@ export default function QuizPage() {
         const isCorrect = userAns === q.answer;
 
         return (
-          <div
+          <Card
             key={q.id}
+            variant={submitted ? (isCorrect ? "elevated" : "elevated") : "default"}
+            accent={submitted ? (isCorrect ? "emerald" : "rose") : undefined}
             className={`
-              mb-4 rounded-2xl border p-5 transition-all duration-300 backdrop-blur-md
-              ${submitted
-                ? isCorrect
-                  ? "bg-emerald-500/5 border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.03)]"
-                  : "bg-rose-500/5 border-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.03)]"
-                : "bg-slate-900/40 border-slate-800/80 shadow-md"
-              }
+              mb-4 transition-all duration-300
+              ${submitted && isCorrect ? "animate-fade-up" : ""}
             `}
           >
             {/* Question */}
@@ -157,7 +156,7 @@ export default function QuizPage() {
               <span className="font-mono text-xs text-slate-400 bg-slate-850/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
                 Q{qi + 1}
               </span>
-              <p className="text-white font-semibold text-sm leading-relaxed mt-1">{q.question}</p>
+              <p className="text-white font-semibold text-sm leading-relaxed mt-1 flex-1">{q.question}</p>
               {submitted && (
                 <div className="ml-auto flex-shrink-0 mt-1">
                   {isCorrect
@@ -192,7 +191,21 @@ export default function QuizPage() {
                       ${submitted ? "cursor-default" : "cursor-pointer transform hover:-translate-y-[1px] hover:shadow-sm"}
                     `}
                   >
-                    {opt}
+                    <span className="flex items-center gap-3">
+                      <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isCorrectOpt ? "border-emerald-500 bg-emerald-500" :
+                        isWrongSelected ? "border-rose-500 bg-rose-500" :
+                        isSelected ? "border-violet-500 bg-violet-500" :
+                        "border-slate-700"
+                      }`}>
+                        {isCorrectOpt || isWrongSelected ? (
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        ) : isSelected ? (
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                        ) : null}
+                      </span>
+                      {opt}
+                    </span>
                   </button>
                 );
               })}
@@ -200,17 +213,17 @@ export default function QuizPage() {
 
             {/* Explanation */}
             {submitted && (
-              <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-850/80 rounded-xl text-xs text-slate-400 leading-relaxed shadow-inner">
+              <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-850/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
                 <span className="text-amber-400 font-semibold">💡 Explanation: </span>
                 {q.explanation}
               </div>
             )}
-          </div>
+          </Card>
         );
       })}
 
       {questions.length > 0 && !submitted && (
-        <div className="flex items-center gap-4 mt-4">
+        <div className="flex items-center gap-4 mt-4 animate-fade-up">
           <Button onClick={submitQuiz} size="md">
             Submit Quiz ({answeredCount}/{questions.length})
           </Button>

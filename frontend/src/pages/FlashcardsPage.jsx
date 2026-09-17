@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Layers, RotateCcw, Eye, Download } from "lucide-react";
+import { Layers, RotateCcw, Eye, Download, ArrowRight, Sparkles } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -15,15 +15,31 @@ function Flashcard({ card, index }) {
   // whole deck's interaction state.
   const [flipped, setFlipped] = useState(false);
 
+  const handleFlip = () => {
+    setFlipped((f) => !f);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleFlip();
+    }
+  };
+
   return (
     <div
       className="flashcard-scene h-48 cursor-pointer group"
-      onClick={() => setFlipped((f) => !f)}
+      onClick={handleFlip}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={flipped ? "Show question" : "Show answer"}
+      aria-pressed={flipped}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
         {/* Front */}
-        <div className="flashcard-face backdrop-blur-md bg-slate-900/60 border border-slate-800/80 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.12)] transition-all duration-300">
+        <div className="flashcard-face backdrop-blur-md bg-slate-900/60 border border-slate-800/80 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.12)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
           <span className="text-sky-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
             Question
           </span>
@@ -37,7 +53,7 @@ function Flashcard({ card, index }) {
         </div>
 
         {/* Back */}
-        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-850/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)]">
+        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-850/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
           <span className="text-emerald-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
             Answer
           </span>
@@ -95,6 +111,11 @@ export default function FlashcardsPage() {
     document.body.removeChild(link);
   }
 
+  function handleReset() {
+    setKey((k) => k + 1);
+    toast("All cards reset!", { icon: "🔄" });
+  }
+
   return (
     <div>
       <PageHeader
@@ -112,6 +133,7 @@ export default function FlashcardsPage() {
             onChange={(e) => setTopic(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             className="flex-1"
+            leftIcon={<Layers className="w-4 h-4" />}
           />
           <Select
             label="Number of Cards"
@@ -127,23 +149,23 @@ export default function FlashcardsPage() {
         </div>
         <div className="mt-4">
           <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim()}>
-            <Layers size={16} />
+            <ArrowRight size={16} />
             Generate Deck
           </Button>
         </div>
       </Card>
 
       {loading && (
-        <Card>
-          <LoadingSkeleton lines={3} message="Creating your flashcard deck..." />
+        <Card variant="elevated">
+          <LoadingSkeleton lines={3} message="Creating your flashcard deck..." variant="card" />
         </Card>
       )}
 
       {cards.length > 0 && !loading && (
         <>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-up">
             <span className="text-slate-500 text-xs font-mono">
-              {cards.length} cards · click to flip
+              {cards.length} cards · click or press Space to flip
             </span>
             <div className="flex gap-2">
               <Button
@@ -157,7 +179,7 @@ export default function FlashcardsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setKey((k) => k + 1)}
+                onClick={handleReset}
               >
                 <RotateCcw size={13} />
                 Reset All
@@ -176,10 +198,15 @@ export default function FlashcardsPage() {
       )}
 
       {cards.length === 0 && !loading && (
-        <div className="text-center py-16">
-          <Layers className="text-slate-700 w-16 h-16 mx-auto mb-4" />
-          <p className="text-slate-600 text-sm">Enter a topic to generate your flashcard deck</p>
-        </div>
+        <Card variant="outlined" className="text-center py-12 animate-fade-up">
+          <div className="w-16 h-16 rounded-2xl bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-800">
+            <Layers className="text-slate-500" size={32} />
+          </div>
+          <p className="text-slate-400 text-sm font-medium mb-1">No flashcards yet</p>
+          <p className="text-slate-600 text-xs font-light max-w-xs mx-auto">
+            Enter a topic above to generate your first flashcard deck
+          </p>
+        </Card>
       )}
 
       <ToolHistory

@@ -29,7 +29,7 @@ export default function Button({
 
   // Variant and size maps keep call sites small and consistent.
   const variants = {
-    primary: `${selectedPrimary} font-bold border-none transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.99]`,
+    primary: `${selectedPrimary} font-bold border-none relative overflow-hidden transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.99]`,
     secondary:
       "bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 hover:border-slate-700 shadow-sm",
     ghost:
@@ -54,12 +54,17 @@ export default function Button({
       className={`
         inline-flex items-center justify-center gap-2 transition-all duration-200 font-body
         disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
         ${variants[variant]} ${sizes[size]} ${className}
       `}
     >
       {/* Loading state keeps the button width/content stable while a request runs. */}
       {loading && <Loader2 className="w-4 h-4 animate-spin" />}
       {children}
+      {/* Shimmer overlay for primary variant */}
+      {variant === "primary" && !loading && !disabled && (
+        <span className="absolute inset-0 overflow-hidden rounded-inherit pointer-events-none btn-shimmer" aria-hidden="true" />
+      )}
     </button>
   );
 }
