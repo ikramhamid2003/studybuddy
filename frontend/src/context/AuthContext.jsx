@@ -48,6 +48,7 @@ export function AuthProvider({ children }) {
         throw new Error(msg);
       }
       const access = json.data.access;
+      localStorage.setItem("token", access);
       setToken(access);
       try {
         const payload = JSON.parse(atob(access.split(".")[1]));
