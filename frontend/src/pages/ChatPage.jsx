@@ -328,11 +328,19 @@ export default function ChatPage() {
         localStorage.setItem(LAST_CHAT_SESSION_KEY, String(sessionId));
       }
 
+      // Build a system message with all session titles so the model can answer
+      // questions like "what are my other chats?".
+      const sessionList = sessions
+        .filter((s) => s.id !== sessionId)
+        .map((s) => `- "${s.title}" (id: ${s.id})`)
+        .join("\n");
+      const systemPrompt = `You are a helpful AI study assistant. The user has the following other chat sessions:\n${sessionList || "(none)"}\nYou can reference these by title if the user asks about their other chats.`;
+
       let isFirstChunk = true;
 
       await sendChatStream(
         userMsg,
-        [], // history is authoritative server-side once a session exists
+        [{ role: "system", content: systemPrompt }],
         sessionId,
         (chunk) => {
           // The first chunk replaces the typing indicator with a real assistant
