@@ -49,14 +49,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 animate-fade-in">
-      <Card variant="elevated" className="w-full max-w-md border-t-4 border-t-amber-400 p-8 animate-fade-up">
+    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 animate-fade-in relative">
+      {/* Vibrant background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-violet-500/5 to-rose-500/10 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-amber-500/10 to-violet-500/10 rounded-full blur-[150px] opacity-30 pointer-events-none" />
+      
+      <Card variant="elevated" className="w-full max-w-md border-t-4 border-t-amber-400 p-8 animate-fade-up relative z-10">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center mx-auto mb-4 shadow-[0_8px_24px_rgba(245,158,11,0.3)]">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center mx-auto mb-4 shadow-[0_8px_24px_rgba(245,158,11,0.4)]">
             <Sparkles className="text-slate-900" size={28} />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
-          <p className="text-slate-400 text-sm mt-2">Sign in to continue your study journey</p>
+          <p className="text-slate-300 text-sm mt-2">Sign in to continue your study journey</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

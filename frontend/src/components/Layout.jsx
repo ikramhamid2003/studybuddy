@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   BookOpen,
@@ -36,10 +36,15 @@ export default function Layout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const activeGlow = glowColors[location.pathname] || "bg-amber-500/10";
   // Mobile header uses this to show the active tool name in the dropdown.
   const currentItem = navItems.find((item) => item.to === location.pathname);
+
+  function handleLogoClick() {
+    navigate("/");
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
@@ -49,7 +54,10 @@ export default function Layout({ children }) {
       {/* ── Sidebar (desktop only) - Fixed/Static ── */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 fixed top-0 left-0 h-screen z-30 bg-slate-900 border-r border-slate-800">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
+        <div
+          className="flex items-center gap-3 px-6 py-5 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 rounded-xl mx-3 transition-colors"
+          onClick={handleLogoClick}
+        >
           <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
             <Sparkles className="w-5 h-5 text-slate-900" />
           </div>
