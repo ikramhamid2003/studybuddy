@@ -40,7 +40,7 @@ export default function RegisterPage() {
       // protected workspace.
       await register(username, email, password);
       toast.success("Account created successfully!");
-      navigate("/explain");
+      navigate("/all");
     } catch (err) {
       toast.error(err.message || "Registration failed");
     } finally {
