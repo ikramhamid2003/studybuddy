@@ -1,4 +1,4 @@
-import { History, RotateCcw, Sparkles, ExternalLink } from "lucide-react";
+import { History, RotateCcw, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "./LoadingSkeleton";
 import { listGenerations } from "../utils/api";

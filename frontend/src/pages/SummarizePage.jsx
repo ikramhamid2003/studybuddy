@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Tag, BookOpen, Lightbulb, Copy, Check, ArrowRight } from "lucide-react";
+import { Tag, BookOpen, Lightbulb, Copy, Check, ArrowRight } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";

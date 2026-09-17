@@ -14,11 +14,11 @@ import {
   X,
   Copy,
   Check as CheckIcon,
-  Sparkles,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
 import Card from "../components/Card";
+import LoadingSkeleton from "../components/LoadingSkeleton";
 import {
   sendChatStream,
   listChatSessions,
