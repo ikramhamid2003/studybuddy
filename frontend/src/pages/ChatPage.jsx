@@ -304,6 +304,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const initialSessionOpenedRef = useRef(false);
@@ -482,17 +483,51 @@ export default function ChatPage() {
       />
 
       <div
-        className="flex gap-4"
+        className="flex gap-4 relative"
         style={{ height: "calc(100vh - 280px)", minHeight: 400 }}
       >
+        {/* Mobile sidebar overlay backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Sessions sidebar */}
-        <Card variant="elevated" className="w-56 flex-shrink-0 flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-slate-800">
+        <div
+          className={`
+            fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200
+            lg:relative lg:translate-x-0 lg:z-auto lg:w-56 lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+        >
+          {/* Mobile close header */}
+          <div className="p-3 border-b border-slate-800 flex items-center justify-between lg:hidden">
+            <span className="text-white text-sm font-semibold">Chats</span>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="p-3 border-b border-slate-800 hidden lg:block">
             <Button variant="secondary" size="sm" onClick={startNewChat} className="w-full justify-center">
               <Plus size={14} />
               New Chat
             </Button>
           </div>
+          {/* Mobile new chat button */}
+          <div className="p-3 border-b border-slate-800 lg:hidden">
+            <Button variant="secondary" size="sm" onClick={() => { startNewChat(); setSidebarOpen(false); }} className="w-full justify-center">
+              <Plus size={14} />
+              New Chat
+            </Button>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {sessionsLoading ? (
               <div className="text-center py-4">
@@ -514,20 +549,28 @@ export default function ChatPage() {
                   key={s.id}
                   session={s}
                   active={s.id === activeSessionId}
-                  onSelect={openSession}
+                  onSelect={(id) => { openSession(id); setSidebarOpen(false); }}
                   onRename={handleRename}
                   onDelete={handleDelete}
                 />
               ))
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Chat window */}
         <div className="flex-1 min-w-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-card">
           {/* Toolbar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
+              {/* Mobile sidebar toggle */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label="Open sessions"
+              >
+                <MessageSquare size={16} />
+              </button>
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
               <span className="text-slate-500 text-xs font-mono">AI Online</span>
               {activeSessionId && (
