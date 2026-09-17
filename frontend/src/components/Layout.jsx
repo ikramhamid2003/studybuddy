@@ -46,8 +46,8 @@ export default function Layout({ children }) {
       {/* Dynamic ambient background glow and grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
-      {/* ── Sidebar (desktop only) ── */}
-      <aside className="hidden lg:flex flex-col w-64 shrink-0 relative z-20 bg-slate-900 border-r border-slate-800">
+      {/* ── Sidebar (desktop only) - Fixed/Static ── */}
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 fixed top-0 left-0 h-screen z-30 bg-slate-900 border-r border-slate-800">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
           <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
@@ -62,7 +62,7 @@ export default function Layout({ children }) {
         </div>
 
         {/* Desktop navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1">
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
           <p className="text-slate-600 text-xs font-mono uppercase tracking-widest px-3 mb-3">
             Tools
           </p>
@@ -136,7 +136,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* ── Main ── */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10 lg:ml-64">
         {/* Mobile header with dropdown navigation */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
           <div className="flex items-center gap-2">
