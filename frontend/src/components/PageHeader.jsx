@@ -1,29 +1,13 @@
 import { useLocation } from "react-router-dom";
-
-const accentLines = {
-  "/all": "from-fuchsia-500/50 via-fuchsia-500/10 to-transparent",
-  "/explain": "from-amber-500/50 via-amber-500/10 to-transparent",
-  "/summarize": "from-emerald-500/50 via-emerald-500/10 to-transparent",
-  "/quiz": "from-violet-500/50 via-violet-500/10 to-transparent",
-  "/flashcards": "from-sky-500/50 via-sky-500/10 to-transparent",
-  "/chat": "from-rose-500/50 via-rose-500/10 to-transparent",
-};
-
-const accentBg = {
-  "/all": "from-fuchsia-500/10 via-fuchsia-500/5 to-transparent",
-  "/explain": "from-amber-500/10 via-amber-500/5 to-transparent",
-  "/summarize": "from-emerald-500/10 via-emerald-500/5 to-transparent",
-  "/quiz": "from-violet-500/10 via-violet-500/5 to-transparent",
-  "/flashcards": "from-sky-500/10 via-sky-500/5 to-transparent",
-  "/chat": "from-rose-500/10 via-rose-500/5 to-transparent",
-};
+import { ROUTE_ACCENT_LINE, ROUTE_ACCENT_BG } from "../utils/routeColors";
+import PropTypes from "prop-types";
 
 export default function PageHeader({ icon, title, subtitle }) {
   const location = useLocation();
   // The underline follows the current route, giving each tool a recognizable
   // accent while keeping the header component reusable.
-  const activeLine = accentLines[location.pathname] || "from-amber-500/50 via-amber-500/10 to-transparent";
-  const activeBg = accentBg[location.pathname] || "from-amber-500/10 via-amber-500/5 to-transparent";
+  const activeLine = ROUTE_ACCENT_LINE[location.pathname] || "from-amber-500/50 via-amber-500/10 to-transparent";
+  const activeBg = ROUTE_ACCENT_BG[location.pathname] || "from-amber-500/10 via-amber-500/5 to-transparent";
 
   return (
     <div className="mb-10 animate-fade-up relative">
@@ -43,3 +27,9 @@ export default function PageHeader({ icon, title, subtitle }) {
     </div>
   );
 }
+
+PageHeader.propTypes = {
+  icon: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+};

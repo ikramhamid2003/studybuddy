@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 export function Input({
   label,
   className = "",
@@ -164,3 +166,31 @@ export function Select({
     </div>
   );
 }
+
+Input.propTypes = {
+  label: PropTypes.string,
+  className: PropTypes.string,
+  inputClassName: PropTypes.string,
+  error: PropTypes.string,
+  hint: PropTypes.string,
+  leftIcon: PropTypes.node,
+  rightIcon: PropTypes.node,
+  onRightIconClick: PropTypes.func,
+};
+
+Textarea.propTypes = {
+  label: PropTypes.string,
+  className: PropTypes.string,
+  textareaClassName: PropTypes.string,
+  error: PropTypes.string,
+  hint: PropTypes.string,
+};
+
+Select.propTypes = {
+  label: PropTypes.string,
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+  selectClassName: PropTypes.string,
+  error: PropTypes.string,
+  hint: PropTypes.string,
+};

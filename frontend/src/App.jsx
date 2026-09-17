@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Layout from "./components/Layout";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AllPage from "./pages/AllPage";
 import ExplainPage from "./pages/ExplainPage";
 import SummarizePage from "./pages/SummarizePage";
@@ -98,7 +99,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <AllPage />
+                    <ErrorBoundary>
+                      <AllPage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }
@@ -108,7 +111,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <ExplainPage />
+                    <ErrorBoundary>
+                      <ExplainPage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }
@@ -118,7 +123,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <SummarizePage />
+                    <ErrorBoundary>
+                      <SummarizePage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }
@@ -128,7 +135,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <QuizPage />
+                    <ErrorBoundary>
+                      <QuizPage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }
@@ -138,7 +147,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <FlashcardsPage />
+                    <ErrorBoundary>
+                      <FlashcardsPage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }
@@ -148,7 +159,9 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <ChatPage />
+                    <ErrorBoundary>
+                      <ChatPage />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               }

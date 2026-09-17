@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ROUTE_GLOW } from "../utils/routeColors";
 import {
   BookOpen,
   FileText,
@@ -23,14 +24,6 @@ const navItems = [
 
 // Each tool owns an accent color so navigation, buttons, and page chrome feel
 // connected without every page redefining the same palette.
-const glowColors = {
-  "/all": "bg-fuchsia-500/10 shadow-[0_0_160px_rgba(217,70,239,0.12)]",
-  "/explain": "bg-amber-500/10 shadow-[0_0_160px_rgba(245,158,11,0.12)]",
-  "/summarize": "bg-emerald-500/10 shadow-[0_0_160px_rgba(16,185,129,0.12)]",
-  "/quiz": "bg-violet-500/10 shadow-[0_0_160px_rgba(139,92,246,0.12)]",
-  "/flashcards": "bg-sky-500/10 shadow-[0_0_160px_rgba(14,165,233,0.12)]",
-  "/chat": "bg-rose-500/10 shadow-[0_0_160px_rgba(244,63,94,0.12)]",
-};
 
 export default function Layout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -38,7 +31,7 @@ export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeGlow = glowColors[location.pathname] || "bg-amber-500/10";
+  const activeGlow = ROUTE_GLOW[location.pathname] || "bg-amber-500/10";
   // Mobile header uses this to show the active tool name in the dropdown.
   const currentItem = navItems.find((item) => item.to === location.pathname);
 

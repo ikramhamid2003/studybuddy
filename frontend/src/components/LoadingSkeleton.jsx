@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 export default function LoadingSkeleton({ lines = 3, message = "Thinking...", variant = "default" }) {
   const variants = {
     default: "animate-fade-in space-y-4",
@@ -49,3 +51,9 @@ export default function LoadingSkeleton({ lines = 3, message = "Thinking...", va
     </div>
   );
 }
+
+LoadingSkeleton.propTypes = {
+  lines: PropTypes.number,
+  message: PropTypes.string,
+  variant: PropTypes.oneOf(["default", "card", "inline"]),
+};

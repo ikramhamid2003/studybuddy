@@ -9,12 +9,7 @@ import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
-
-function copyToClipboard(text, setCopied) {
-  navigator.clipboard.writeText(text);
-  setCopied(true);
-  setTimeout(() => setCopied(false), 2000);
-}
+import { copyToClipboard } from "../utils/clipboard";
 
 export default function ExplainPage() {
   const queryClient = useQueryClient();

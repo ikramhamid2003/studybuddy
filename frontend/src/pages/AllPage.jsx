@@ -2,253 +2,38 @@ import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BookOpen,
-  FileText,
-  Layers,
   MessageSquare,
   Sparkles,
-  Zap,
   History,
   RotateCcw,
   ArrowRight,
   Send,
   Bot,
-  User,
   Volume2,
-  Square,
+  Download,
+  Copy,
   CheckCircle,
   XCircle,
-  Trophy,
-  Download,
-  Eye,
-  Copy,
-  Check as CheckIcon,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import Flashcard from "../components/shared/Flashcard";
+import ChatBubble from "../components/shared/ChatBubble";
+import ScoreCard from "../components/shared/ScoreCard";
+import SectionTitle from "../components/shared/SectionTitle";
+import TypeBadge from "../components/shared/TypeBadge";
 import { generateAll, listGenerations } from "../utils/api";
 
 const TOOL_OPTIONS = [
-  {
-    value: "explain",
-    label: "Explain",
-    icon: BookOpen,
-    badge: "text-amber-400 bg-amber-400/10 border-amber-400/30",
-  },
-  {
-    value: "summarize",
-    label: "Summarize",
-    icon: FileText,
-    badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
-  },
-  {
-    value: "quiz",
-    label: "Quiz",
-    icon: Zap,
-    badge: "text-violet-400 bg-violet-400/10 border-violet-400/30",
-  },
-  {
-    value: "flashcards",
-    label: "Flashcards",
-    icon: Layers,
-    badge: "text-sky-400 bg-sky-400/10 border-sky-400/30",
-  },
-  {
-    value: "chat",
-    label: "Chat",
-    icon: MessageSquare,
-    badge: "text-rose-400 bg-rose-400/10 border-rose-400/30",
-  },
+  { value: "explain", label: "Explain" },
+  { value: "summarize", label: "Summarize" },
+  { value: "quiz", label: "Quiz" },
+  { value: "flashcards", label: "Flashcards" },
+  { value: "chat", label: "Chat" },
 ];
-
-function SectionTitle({ color, children }) {
-  // Small repeated heading used inside every result card.
-  return (
-    <div className={`text-xs font-mono uppercase tracking-widest mb-3 ${color}`}>
-      {children}
-    </div>
-  );
-}
-
-function TypeBadge({ type }) {
-  // History rows and result headers share this badge for quick tool scanning.
-  const option = TOOL_OPTIONS.find((o) => o.value === type);
-  const Icon = option ? option.icon : Sparkles;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-mono px-2 py-0.5 rounded-full border flex-shrink-0 ${
-        option ? option.badge : "text-slate-400 bg-slate-800 border-slate-700"
-      }`}
-    >
-      <Icon size={12} />
-      {option ? option.label : type}
-    </span>
-  );
-}
-
-function Flashcard({ card, index }) {
-  // Individual cards manage their own flip state; deck reset remounts them.
-  const [flipped, setFlipped] = useState(false);
-
-  const handleFlip = () => setFlipped((f) => !f);
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleFlip();
-    }
-  };
-
-  return (
-    <div
-      className="flashcard-scene h-48 cursor-pointer group"
-      onClick={handleFlip}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      role="button"
-      aria-label={flipped ? "Show question" : "Show answer"}
-      aria-pressed={flipped}
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
-      <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
-        <div className="flashcard-face backdrop-blur-md bg-slate-900/60 border border-slate-800/80 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.12)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
-          <span className="text-sky-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
-            Question
-          </span>
-          <p className="text-white text-sm font-semibold leading-relaxed">{card.front}</p>
-          {card.hint && (
-            <p className="text-slate-500 text-xs mt-3 italic font-light">Hint: {card.hint}</p>
-          )}
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Eye size={14} className="text-sky-400 animate-pulse" />
-          </div>
-        </div>
-        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-850/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
-          <span className="text-emerald-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
-            Answer
-          </span>
-          <p className="text-emerald-100 text-sm font-semibold leading-relaxed">
-            {card.back}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ScoreCard({ score, total, onRetry }) {
-  // Score color and progress bar are derived from the final percentage.
-  const pct = Math.round((score / total) * 100);
-  const color =
-    pct >= 80 ? "text-emerald-450 font-black" : pct >= 50 ? "text-amber-450 font-semibold" : "text-rose-450";
-  const barColor =
-    pct >= 80
-      ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
-      : pct >= 50
-      ? "bg-gradient-to-r from-amber-500 to-amber-400"
-      : "bg-gradient-to-r from-rose-500 to-rose-400";
-  const message = pct >= 80 ? "Excellent work! 🎉" : pct >= 50 ? "Good effort! 📚" : "Keep studying! 💪";
-
-  return (
-    <Card variant="elevated" accent={pct >= 80 ? "emerald" : pct >= 50 ? "amber" : "rose"} className="text-center animate-fade-up">
-      <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-4 animate-bounce" />
-      <div className={`font-display text-6xl mb-1 ${color}`}>{pct}%</div>
-      <p className="text-slate-400 text-sm mb-1">
-        {score} / {total} correct
-      </p>
-      <p className="text-slate-200 font-medium mb-5">{message}</p>
-      <div className="w-full h-2.5 bg-slate-950/60 rounded-full overflow-hidden mb-5 mx-auto max-w-xs border border-slate-800">
-        <div className={`h-full rounded-full transition-all duration-1000 ${barColor}`} style={{ width: `${pct}%` }} />
-      </div>
-      <Button onClick={onRetry} variant="secondary">
-        <RotateCcw size={15} className="mr-1.5" />
-        Try Again
-      </Button>
-    </Card>
-  );
-}
-
-function ChatBubble({ msg }) {
-  // The same bubble component handles user and assistant layout variants.
-  const isUser = msg.role === "user";
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const utteranceRef = useRef(null);
-
-  function toggleSpeech(text) {
-    if (!("speechSynthesis" in window)) {
-      return toast.error("Text-to-speech is not supported in this browser.");
-    }
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    } else {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utteranceRef.current = utterance;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
-    }
-  }
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
-      <div
-        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm border
-          ${isUser ? "bg-rose-500 border-rose-400/20" : "bg-slate-900/60 border-slate-800/80"}`}
-      >
-        {isUser ? <User size={15} className="text-white" /> : <Bot size={15} className="text-rose-400" />}
-      </div>
-      <div className="flex flex-col gap-1 max-w-[78%] relative">
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
-            ${
-              isUser
-                ? "bg-gradient-to-r from-rose-500 to-rose-450 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
-                : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
-            }`}
-        >
-          {msg.content}
-        </div>
-        {!isUser && msg.content && (
-          <div className="flex items-center justify-start gap-1.5 ml-1 mt-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSpeech(msg.content)}
-              className={`h-7 w-7 p-0 transition-colors ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-slate-500 hover:text-rose-400'}`}
-              title={isSpeaking ? "Stop reading" : "Read aloud"}
-              aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
-            >
-              {isSpeaking ? <Square size={13} fill="currentColor" /> : <Volume2 size={14} />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopy}
-              className="h-7 w-7 p-0 text-slate-500 hover:text-amber-400 transition-colors"
-              title={copied ? "Copied!" : "Copy message"}
-              aria-label={copied ? "Copied!" : "Copy message"}
-            >
-              {copied ? <CheckIcon className="text-emerald-400" size={14} /> : <Copy size={14} />}
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function ChatTyping() {
   return (

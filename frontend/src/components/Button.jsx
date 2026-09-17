@@ -1,5 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import PropTypes from "prop-types";
+import { getPrimaryGradient } from "../utils/routeColors";
 
 export default function Button({
   children,
@@ -15,20 +17,7 @@ export default function Button({
   const location = useLocation();
   const path = location.pathname;
 
-  // Primary buttons inherit the current tool's color so actions feel tied to
-  // the page the user is working in.
-  const primaryThemes = {
-    "/all": "bg-gradient-to-r from-fuchsia-600 to-fuchsia-500 hover:from-fuchsia-500 hover:to-fuchsia-400 text-white shadow-[0_4px_20px_rgba(217,70,239,0.35)] hover:shadow-[0_4px_28px_rgba(217,70,239,0.5)]",
-    "/explain": "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
-    "/summarize": "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-[0_4px_20px_rgba(16,185,129,0.35)] hover:shadow-[0_4px_28px_rgba(16,185,129,0.5)]",
-    "/quiz": "bg-gradient-to-r from-violet-700 to-violet-600 hover:from-violet-600 hover:to-violet-500 text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.5)]",
-    "/flashcards": "bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white shadow-[0_4px_20px_rgba(14,165,233,0.35)] hover:shadow-[0_4px_28px_rgba(14,165,233,0.5)]",
-    "/chat": "bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-[0_4px_20px_rgba(244,63,94,0.35)] hover:shadow-[0_4px_28px_rgba(244,63,94,0.5)]",
-    "/login": "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
-    "/register": "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
-  };
-
-  const selectedPrimary = primaryThemes[path] || "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]";
+  const selectedPrimary = getPrimaryGradient(path);
 
   // Variant and size maps keep call sites small and consistent.
   const variants = {
@@ -72,3 +61,14 @@ export default function Button({
     </button>
   );
 }
+
+Button.propTypes = {
+  children: PropTypes.node,
+  onClick: PropTypes.func,
+  disabled: PropTypes.bool,
+  loading: PropTypes.bool,
+  variant: PropTypes.oneOf(["primary", "secondary", "ghost", "danger", "success"]),
+  size: PropTypes.oneOf(["sm", "md", "lg"]),
+  className: PropTypes.string,
+  type: PropTypes.string,
+};

@@ -1,7 +1,8 @@
-import { History, RotateCcw, Sparkles } from "lucide-react";
+import { History, RotateCcw, BookOpen, FileText, Zap, Layers, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "./LoadingSkeleton";
 import { listGenerations } from "../utils/api";
+import PropTypes from "prop-types";
 
 const TITLES = {
   explain: "Explanation History",
@@ -12,11 +13,11 @@ const TITLES = {
 };
 
 const ICONS = {
-  explain: Sparkles,
-  summarize: Sparkles,
-  quiz: Sparkles,
-  flashcards: Sparkles,
-  chat: Sparkles,
+  explain: BookOpen,
+  summarize: FileText,
+  quiz: Zap,
+  flashcards: Layers,
+  chat: MessageSquare,
 };
 
 export default function ToolHistory({ type, activeId, onSelect }) {
@@ -27,7 +28,7 @@ export default function ToolHistory({ type, activeId, onSelect }) {
     queryFn: () => listGenerations(type),
   });
 
-  const Icon = ICONS[type] || Sparkles;
+  const Icon = ICONS[type] || BookOpen;
 
   if (isLoading) {
     return (
@@ -139,3 +140,9 @@ export default function ToolHistory({ type, activeId, onSelect }) {
     </div>
   );
 }
+
+ToolHistory.propTypes = {
+  type: PropTypes.oneOf(["explain", "summarize", "quiz", "flashcards", "chat"]).isRequired,
+  activeId: PropTypes.number,
+  onSelect: PropTypes.func.isRequired,
+};

@@ -10,24 +10,6 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def api_client():
-    """Unauthenticated client used to verify protected endpoints."""
-
-    return APIClient()
-
-
-@pytest.fixture
-def auth_client():
-    """Primary authenticated user for generation ownership tests."""
-
-    client = APIClient()
-    user = User.objects.create_user(username="carol", password="testpassword")
-    client.force_authenticate(user=user)
-    client.user = user
-    return client
-
-
-@pytest.fixture
 def other_auth_client():
     """Second authenticated user used to prove data is scoped by account."""
 

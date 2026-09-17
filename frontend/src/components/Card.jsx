@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 export default function Card({ children, className = "", accent = null, hover = false, variant = "default", onClick }) {
   // Accent keys match the app's tool colors and add a subtle left border.
   const accentMap = {
@@ -37,3 +39,12 @@ export default function Card({ children, className = "", accent = null, hover = 
     </div>
   );
 }
+
+Card.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  accent: PropTypes.oneOf(["amber", "emerald", "violet", "sky", "rose", "fuchsia"]),
+  hover: PropTypes.bool,
+  variant: PropTypes.oneOf(["default", "elevated", "outlined", "glass"]),
+  onClick: PropTypes.func,
+};

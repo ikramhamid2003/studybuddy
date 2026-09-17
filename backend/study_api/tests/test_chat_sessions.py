@@ -9,24 +9,6 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def api_client():
-    """Unauthenticated client for auth-required endpoint checks."""
-
-    return APIClient()
-
-
-@pytest.fixture
-def auth_client():
-    """Primary authenticated chat owner."""
-
-    client = APIClient()
-    user = User.objects.create_user(username="alice", password="testpassword")
-    client.force_authenticate(user=user)
-    client.user = user
-    return client
-
-
-@pytest.fixture
 def other_auth_client():
     """Different user used to verify session isolation."""
 

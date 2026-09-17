@@ -1,30 +1,10 @@
 from unittest.mock import patch
 
 import pytest
-from django.contrib.auth.models import User
-from rest_framework.test import APIClient
 from study_api.models import ChatMessage, ChatSession
 
 # Enable DB access for throttling, database cache, and users
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def api_client():
-    """Unauthenticated client for public endpoints."""
-
-    return APIClient()
-
-
-@pytest.fixture
-def auth_client():
-    """Authenticated client with the user attached for ownership assertions."""
-
-    client = APIClient()
-    user = User.objects.create_user(username="testuser", password="testpassword")
-    client.force_authenticate(user=user)
-    client.user = user
-    return client
 
 
 def test_register_view(api_client):
