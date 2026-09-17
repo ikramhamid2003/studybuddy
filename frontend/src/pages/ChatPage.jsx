@@ -14,6 +14,7 @@ import {
   X,
   Copy,
   Check as CheckIcon,
+  MoreHorizontal,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
@@ -153,11 +154,13 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
   // Inline rename state stays local to each sidebar row.
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function startEdit(e) {
     e.stopPropagation();
     setDraft(session.title);
     setEditing(true);
+    setMenuOpen(false);
   }
 
   function commitEdit(e) {
@@ -175,64 +178,119 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
     setEditing(false);
   }
 
+  function handleRename(e) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    startEdit(e);
+  }
+
+  function handleDelete(e) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    onDelete(session.id);
+  }
+
+  function handleSelectRow() {
+    if (!editing) onSelect(session.id);
+  }
+
   return (
-    <div
-      onClick={() => !editing && onSelect(session.id)}
-      className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-colors
-        ${active ? "bg-amber-400/10 border border-amber-400/30" : "hover:bg-slate-800/60 border border-transparent"}`}
-    >
-      <MessageSquare
-        size={14}
-        className={`flex-shrink-0 ${active ? "text-amber-400" : "text-slate-500"}`}
-      />
-
-      {editing ? (
-        <input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commitEdit(e);
-            if (e.key === "Escape") cancelEdit(e);
-          }}
-          className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400"
+    <div className="relative">
+      <div
+        onClick={handleSelectRow}
+        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-colors
+          ${active ? "bg-amber-400/10 border border-amber-400/30" : "hover:bg-slate-800/60 border border-transparent"}`}
+      >
+        <MessageSquare
+          size={14}
+          className={`flex-shrink-0 ${active ? "text-amber-400" : "text-slate-500"}`}
         />
-      ) : (
-        <span
-          className={`flex-1 min-w-0 truncate text-xs ${active ? "text-amber-300 font-medium" : "text-slate-400"}`}
-        >
-          {session.title}
-        </span>
-      )}
 
-      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         {editing ? (
-          <>
-            <button onClick={commitEdit} className="text-emerald-400 hover:text-emerald-300" title="Save">
-              <Check size={13} />
-            </button>
-            <button onClick={cancelEdit} className="text-slate-500 hover:text-slate-300" title="Cancel">
-              <X size={13} />
-            </button>
-          </>
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitEdit(e);
+              if (e.key === "Escape") cancelEdit(e);
+            }}
+            className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400"
+          />
         ) : (
-          <>
-            <button onClick={startEdit} className="text-slate-500 hover:text-slate-300" title="Rename">
-              <Pencil size={13} />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(session.id);
-              }}
-              className="text-slate-500 hover:text-rose-400"
-              title="Delete"
-            >
-              <Trash2 size={13} />
-            </button>
-          </>
+          <span
+            className={`flex-1 min-w-0 truncate text-xs ${active ? "text-amber-300 font-medium" : "text-slate-400"}`}
+          >
+            {session.title}
+          </span>
         )}
+
+        {/* Action menu button - always visible */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition-colors flex-shrink-0"
+            title="More actions"
+            aria-label="Session actions"
+            aria-expanded={menuOpen}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+
+          {/* Dropdown menu */}
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 w-40 z-50 rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden animate-fade-in">
+                <div className="p-1 space-y-0.5">
+                  {!editing && (
+                    <>
+                      <button
+                        onClick={handleRename}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                      >
+                        <Pencil size={14} />
+                        Rename
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {editing && (
+                    <>
+                      <button
+                        onClick={commitEdit}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                      >
+                        <Check size={14} />
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-300 transition-colors"
+                      >
+                        <X size={14} />
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

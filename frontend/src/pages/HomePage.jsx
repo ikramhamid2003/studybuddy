@@ -12,7 +12,7 @@ export default function HomePage() {
     if (user) {
       navigate("/explain");
     } else {
-      navigate("/register");
+      navigate("/login");
     }
   }
 
@@ -54,7 +54,7 @@ export default function HomePage() {
       {/* Feature grid doubles as navigation into the primary study tools. */}
       <section className="space-y-16 animate-fade-up relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white font-display tracking-tight">MAANG-Grade Study Suite</h2>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white font-display tracking-tight">Study Suite</h2>
           <p className="text-slate-300 text-base font-light">Explore a unified toolkit engineered to maximize active recall and cognitive retention.</p>
         </div>
 
