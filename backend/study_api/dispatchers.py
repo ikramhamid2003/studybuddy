@@ -69,11 +69,20 @@ CHAT_SYSTEM = (
 )
 
 
+CHAT_CONTEXT_TURNS = 20
+GLOBAL_CHAT_CONTEXT_TURNS = 12
+GLOBAL_GENERATION_CONTEXT_ITEMS = 6
+
+
 def _error(msg, code=status.HTTP_400_BAD_REQUEST):
+    """Return the unified API error envelope used by the frontend client."""
+
     return Response({"ok": False, "error": msg}, status=code)
 
 
 def _ok(data=None, status=status.HTTP_200_OK):
+    """Return the unified API success envelope used by the frontend client."""
+
     return Response({"ok": True, "data": {} if data is None else data}, status=status)
 
 
@@ -86,10 +95,73 @@ def _unwrap(obj):
     return obj
 
 
+def _clip_text(value, limit=700):
+    """Trim saved context so prompts stay within a predictable token budget."""
+
+    text = str(value or "").strip()
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "..."
+
+
+def _saved_chat_session_context(user, exclude_session=None, limit=GLOBAL_CHAT_CONTEXT_TURNS):
+    """Build a compact, read-only memory block from the user's other chats."""
+    queryset = ChatMessage.objects.filter(session__user=user).select_related("session")
+    if exclude_session is not None:
+        queryset = queryset.exclude(session=exclude_session)
+
+    messages = list(queryset.order_by("-created_at")[:limit])
+    if not messages:
+        return []
+
+    lines = []
+    for msg in reversed(messages):
+        speaker = "Student" if msg.role == "user" else "Assistant"
+        lines.append(f"[{msg.session.title}] {speaker}: {_clip_text(msg.content, 500)}")
+
+    return [
+        {
+            "role": "user",
+            "content": (
+                "Saved context from this student's previous chat sessions. "
+                "Use it only when it helps answer the current question; do not mention "
+                "this context unless the student asks about prior conversations.\n"
+                + "\n".join(lines)
+            ),
+        }
+    ]
+
+
+def _saved_generation_chat_context(user, limit=GLOBAL_GENERATION_CONTEXT_ITEMS):
+    """Build a compact memory block from chat turns saved by the ALL page."""
+    generations = list(
+        Generation.objects.filter(user=user, type="chat").order_by("-created_at")[:limit]
+    )
+    if not generations:
+        return []
+
+    lines = []
+    for generation in reversed(generations):
+        reply = generation.result.get("reply", "") if isinstance(generation.result, dict) else ""
+        lines.append(f"Student: {_clip_text(generation.topic, 500)}")
+        if reply:
+            lines.append(f"Assistant: {_clip_text(reply, 500)}")
+
+    return [
+        {
+            "role": "user",
+            "content": (
+                "Saved context from this student's previous ALL-page chat messages. "
+                "Use it only when relevant to the current question.\n" + "\n".join(lines)
+            ),
+        }
+    ]
+
+
 # ── Actions (public – no auth) ───────────────────────────────────────────────
 
 
 def _action_register(data, request=None):
+    """Create a Django user from the public unified endpoint."""
+
     username = data.get("username", "").strip()
     password = data.get("password", "")
     email = data.get("email", "").strip()
@@ -104,6 +176,8 @@ def _action_register(data, request=None):
 
 
 def _action_login(data, request=None):
+    """Issue JWT access/refresh tokens using SimpleJWT validation."""
+
     serializer = TokenObtainPairSerializer(data={"username": data.get("username", ""), "password": data.get("password", "")})
     try:
         serializer.is_valid(raise_exception=True)
@@ -113,6 +187,8 @@ def _action_login(data, request=None):
 
 
 def _action_refresh(data, request=None):
+    """Refresh a JWT access token without requiring the old access token."""
+
     refresh_token = data.get("refresh")
     if not refresh_token:
         return _error("refresh token required")
@@ -128,17 +204,27 @@ def _action_refresh(data, request=None):
 
 
 def _action_generate(data, request):
+    """Route one saved AI generation to the correct prompt/client handler."""
+
     topic = data.get("topic", "").strip()
     gen_type = data.get("type")
     if not topic or not gen_type:
         return _error("topic and type required")
+
+    chat_history = []
+    if gen_type == "chat":
+        chat_history = (
+            _saved_chat_session_context(request.user)
+            + _saved_generation_chat_context(request.user)
+            + data.get("history", [])[-CHAT_CONTEXT_TURNS:]
+        )
 
     handlers = {
         "explain": lambda: query_groq_json(EXPLAIN_SYSTEM, f'Explain "{topic}" at {data.get("level","beginner")} level.', max_tokens=700),
         "summarize": lambda: query_groq_json(SUMMARIZE_SYSTEM, f'Summarize: {topic}', max_tokens=800),
         "quiz": lambda: query_groq_structured(QUIZ_SYSTEM, f'Generate {data.get("num_questions",5)} quiz Qs about "{topic}" ({data.get("difficulty","medium")}).', QuizResponse, max_tokens=1000).model_dump(),
         "flashcards": lambda: query_groq_structured(FLASHCARDS_SYSTEM, f'Create {data.get("num_cards",8)} flashcards about "{topic}".', FlashcardsResponse, max_tokens=900).model_dump(),
-        "chat": lambda: {"reply": chat_groq(CHAT_SYSTEM, data.get("history", []), topic, max_tokens=600)},
+        "chat": lambda: {"reply": chat_groq(CHAT_SYSTEM, chat_history, topic, max_tokens=600)},
     }
     handler = handlers.get(gen_type)
     if not handler:
@@ -154,6 +240,8 @@ def _action_generate(data, request):
 
 
 def _action_generations_list(data, request):
+    """List the latest saved generations, optionally filtered by tool type."""
+
     qset = Generation.objects.filter(user=request.user)
     gen_type = data.get("query_type")
     if gen_type:
@@ -163,16 +251,22 @@ def _action_generations_list(data, request):
 
 
 def _action_sessions_list(data, request):
+    """List chat sessions for the authenticated sidebar."""
+
     sessions = ChatSession.objects.filter(user=request.user)
     return _ok([{"id": s.id, "title": s.title, "created_at": s.created_at.isoformat(), "updated_at": s.updated_at.isoformat()} for s in sessions])
 
 
 def _action_session_create(data, request):
+    """Create an empty chat session before the first streamed message."""
+
     session = ChatSession.objects.create(user=request.user)
     return _ok({"id": session.id, "title": session.title, "created_at": session.created_at.isoformat(), "updated_at": session.updated_at.isoformat()}, status=status.HTTP_201_CREATED)
 
 
 def _action_sessions_detail(data, request):
+    """Return a single chat transcript with its persisted messages."""
+
     session_id = data.get("session_id")
     if not session_id:
         return _error("session_id required")
@@ -188,6 +282,8 @@ def _action_sessions_detail(data, request):
 
 
 def _action_session_rename(data, request):
+    """Rename a chat session owned by the current user."""
+
     session_id = data.get("session_id")
     title = data.get("title", "").strip()
     if not session_id or not title:
@@ -199,6 +295,8 @@ def _action_session_rename(data, request):
 
 
 def _action_session_delete(data, request):
+    """Delete one chat session and its cascade-owned messages."""
+
     session_id = data.get("session_id")
     if not session_id:
         return _error("session_id required")
@@ -208,6 +306,8 @@ def _action_session_delete(data, request):
 
 
 def _action_unregister(data, request):
+    """Delete the authenticated user account."""
+
     try:
         request.user.delete()
     except Exception as e:  # noqa: BLE001
@@ -218,18 +318,29 @@ def _action_unregister(data, request):
 # ── Special: streaming (returns SSE) ─────────────────────────────────────────
 
 def _action_chat_stream(data, request):
+    """Stream assistant tokens as SSE and persist the completed chat turn."""
+
     message = data.get("message", "")
-    history = data.get("history", [])[-6:]
+    history = data.get("history", [])[-CHAT_CONTEXT_TURNS:]
     session_id = data.get("session_id")
 
     full_reply_parts = []
     session = None
     if session_id:
         session = get_object_or_404(ChatSession, id=session_id, user=request.user)
+        session_history = [
+            {"role": m.role, "content": m.content}
+            for m in session.messages.all()
+        ][-CHAT_CONTEXT_TURNS:]
+        history = _saved_chat_session_context(request.user, exclude_session=session) + session_history
+    else:
+        history = _saved_chat_session_context(request.user) + history
 
     def event_generator():
         nonlocal full_reply_parts, session
         try:
+            # Forward each model chunk immediately while saving pieces for the
+            # final persisted assistant message.
             for chunk in stream_chat_groq(CHAT_SYSTEM, history, message, max_tokens=600):
                 full_reply_parts.append(chunk)
                 yield f"data: {{\"chunk\": {json.dumps(chunk)}}}\n\n".encode()
@@ -247,9 +358,6 @@ def _action_chat_stream(data, request):
         except Exception as e:  # noqa: BLE001
             yield f'data: {{"error": {json.dumps(str(e))}}}\n\n'.encode()
 
-    session = None
-    if session_id:
-        session = get_object_or_404(ChatSession, id=session_id, user=request.user)
     resp = StreamingHttpResponse(event_generator(), content_type="text/event-stream")
     resp["X-Accel-Buffering"] = "no"
     resp["Cache-Control"] = "no-cache"
@@ -257,6 +365,8 @@ def _action_chat_stream(data, request):
 
 
 ACTION_MAP = {
+    # The frontend sends an action string to /unified/; this table is the only
+    # place that string is coupled to backend behavior.
     "register": _action_register,
     "login": _action_login,
     "refresh": _action_refresh,

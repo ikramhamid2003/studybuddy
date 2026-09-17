@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class QuizQuestion(BaseModel):
+    """Validated shape for one model-generated quiz question."""
+
     id: int = Field(description="1-based question number")
     question: str = Field(description="The question text")
     options: list[str] = Field(
@@ -14,10 +16,14 @@ class QuizQuestion(BaseModel):
 
 
 class QuizResponse(BaseModel):
+    """Top-level quiz payload returned by structured generation."""
+
     questions: list[QuizQuestion]
 
 
 class Flashcard(BaseModel):
+    """Validated shape for one model-generated flashcard."""
+
     id: int = Field(description="1-based card number")
     front: str = Field(description="Term or question side")
     back: str = Field(description="Definition or answer side")
@@ -25,4 +31,6 @@ class Flashcard(BaseModel):
 
 
 class FlashcardsResponse(BaseModel):
+    """Top-level flashcard payload returned by structured generation."""
+
     flashcards: list[Flashcard]

@@ -20,6 +20,8 @@ export default function RegisterPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Keep the most common validation failures on the client for faster, clearer
+    // form feedback.
     if (!username.trim() || !email.trim() || !password.trim()) {
       return toast.error("Please fill in all fields");
     }
@@ -34,6 +36,8 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      // Register auto-logs in through AuthContext, then sends the user into the
+      // protected workspace.
       await register(username, email, password);
       toast.success("Account created successfully!");
       navigate("/explain");
@@ -118,6 +122,7 @@ export default function RegisterPage() {
           <div>
             <label className="block text-slate-300 text-xs font-semibold mb-2 uppercase tracking-wider">Confirm Password</label>
             <div className="relative">
+              {/* Confirmation is client-only; the backend receives one password. */}
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 pointer-events-none">
                 <Key size={16} />
               </span>

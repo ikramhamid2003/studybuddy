@@ -30,6 +30,8 @@ function MessageBubble({ msg }) {
   const utteranceRef = useRef(null);
 
   function toggleSpeech(text) {
+    // Browser speech synthesis is global, so cancel existing speech before
+    // starting a new assistant response.
     if (!("speechSynthesis" in window)) {
       return toast.error("Text-to-speech is not supported in this browser.");
     }
@@ -88,6 +90,7 @@ function MessageBubble({ msg }) {
 }
 
 function TypingIndicator() {
+  // Displayed only while the assistant stream has not produced its first token.
   return (
     <div className="flex gap-3 animate-fade-in">
       <div className="w-8 h-8 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center flex-shrink-0">
@@ -115,7 +118,10 @@ const SUGGESTIONS = [
   "Summarize the causes of WW1",
 ];
 
+const LAST_CHAT_SESSION_KEY = "studybuddy:lastChatSessionId";
+
 function SessionRow({ session, active, onSelect, onRename, onDelete }) {
+  // Inline rename state stays local to each sidebar row.
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
 
@@ -128,6 +134,7 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
   function commitEdit(e) {
     e?.stopPropagation();
     const trimmed = draft.trim();
+    // Avoid a network call when the title is unchanged or blank.
     if (trimmed && trimmed !== session.title) {
       onRename(session.id, trimmed);
     }
@@ -203,6 +210,7 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
 }
 
 export default function ChatPage() {
+  // Sessions power the sidebar; messages power the currently opened transcript.
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([WELCOME]);
@@ -211,9 +219,12 @@ export default function ChatPage() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const initialSessionOpenedRef = useRef(false);
 
   const refreshSessions = useCallback(async () => {
     try {
+      // Re-fetch after sends/renames/deletes so ordering and auto titles stay
+      // aligned with the backend.
       const data = await listChatSessions();
       setSessions(data);
     } catch (err) {
@@ -231,11 +242,13 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function openSession(sessionId) {
+  const openSession = useCallback(async (sessionId) => {
     if (sessionId === activeSessionId) return;
     try {
+      // Opening a session hydrates the full transcript from persisted messages.
       const data = await getChatSession(sessionId);
       setActiveSessionId(sessionId);
+      localStorage.setItem(LAST_CHAT_SESSION_KEY, String(sessionId));
       setMessages(
         data.messages.length
           ? data.messages.map((m) => ({ role: m.role, content: m.content }))
@@ -244,10 +257,25 @@ export default function ChatPage() {
     } catch (err) {
       toast.error("Couldn't open that chat");
     }
-  }
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    if (sessionsLoading || initialSessionOpenedRef.current || sessions.length === 0) {
+      return;
+    }
+
+    // On first load, restore the last selected chat when possible.
+    initialSessionOpenedRef.current = true;
+    const lastSessionId = Number(localStorage.getItem(LAST_CHAT_SESSION_KEY));
+    const sessionToOpen =
+      sessions.find((session) => session.id === lastSessionId) || sessions[0];
+    openSession(sessionToOpen.id);
+  }, [openSession, sessions, sessionsLoading]);
 
   function startNewChat() {
+    // A new chat remains unsaved until the first user message creates a session.
     setActiveSessionId(null);
+    localStorage.removeItem(LAST_CHAT_SESSION_KEY);
     setMessages([WELCOME]);
     setInput("");
     inputRef.current?.focus();
@@ -268,9 +296,13 @@ export default function ChatPage() {
     if (!window.confirm("Delete this chat? This can't be undone.")) return;
     try {
       await deleteChatSession(sessionId);
+      // Update local sidebar state immediately, then let the next refresh keep
+      // ordering consistent with the backend.
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (sessionId === activeSessionId) {
         startNewChat();
+      } else if (String(sessionId) === localStorage.getItem(LAST_CHAT_SESSION_KEY)) {
+        localStorage.removeItem(LAST_CHAT_SESSION_KEY);
       }
       toast.success("Chat deleted");
     } catch (err) {
@@ -293,6 +325,7 @@ export default function ChatPage() {
         const created = await createChatSession();
         sessionId = created.id;
         setActiveSessionId(sessionId);
+        localStorage.setItem(LAST_CHAT_SESSION_KEY, String(sessionId));
       }
 
       let isFirstChunk = true;
@@ -302,6 +335,8 @@ export default function ChatPage() {
         [], // history is authoritative server-side once a session exists
         sessionId,
         (chunk) => {
+          // The first chunk replaces the typing indicator with a real assistant
+          // bubble; later chunks append into that same bubble.
           if (isFirstChunk) {
             isFirstChunk = false;
             setLoading(false);
@@ -320,7 +355,8 @@ export default function ChatPage() {
         () => {
           setLoading(false);
           inputRef.current?.focus();
-          refreshSessions(); // pick up the auto-generated title / updated_at ordering
+          // Pick up the auto-generated title and updated sidebar ordering.
+          refreshSessions();
         },
         (err) => {
           toast.error(err.message || "Failed to send message");

@@ -1,14 +1,18 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { Layers, RotateCcw, Eye, Download } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
 
 function Flashcard({ card, index }) {
+  // Each card owns its flip state so flipping one card does not re-render the
+  // whole deck's interaction state.
   const [flipped, setFlipped] = useState(false);
 
   return (
@@ -45,15 +49,19 @@ function Flashcard({ card, index }) {
 }
 
 export default function FlashcardsPage() {
+  const queryClient = useQueryClient();
+  // `key` forces React to remount cards when resetting every flipped card.
   const [topic, setTopic] = useState("");
   const [numCards, setNumCards] = useState("8");
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState(0); // used to reset all cards
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
 
   async function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
     setLoading(true);
+    // Clear old cards while the new deck is being generated.
     setCards([]);
     try {
       const data = await generateAll(topic.trim(), "flashcards", {
@@ -61,7 +69,9 @@ export default function FlashcardsPage() {
       });
       if (!data.flashcards?.length) throw new Error("No flashcards returned");
       setCards(data.flashcards);
+      setActiveHistoryId(data.generation_id ?? null);
       setKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["generations", "flashcards"] });
       toast.success(`${data.flashcards.length} flashcards created!`);
     } catch (err) {
       toast.error(err.message || "Flashcard generation failed.");
@@ -72,6 +82,7 @@ export default function FlashcardsPage() {
 
   function exportCSV() {
     if (!cards.length) return;
+    // Escape quotes so the generated CSV stays valid for flashcard importers.
     const header = "Front,Back,Hint\n";
     const rows = cards.map(c => `"${c.front.replace(/"/g, '""')}","${c.back.replace(/"/g, '""')}","${(c.hint || '').replace(/"/g, '""')}"`).join("\n");
     const csvContent = "data:text/csv;charset=utf-8," + header + rows;
@@ -170,6 +181,18 @@ export default function FlashcardsPage() {
           <p className="text-slate-600 text-sm">Enter a topic to generate your flashcard deck</p>
         </div>
       )}
+
+      <ToolHistory
+        type="flashcards"
+        activeId={activeHistoryId}
+        onSelect={(item) => {
+          // Reopened decks reuse the stored payload and remount cards unflipped.
+          setTopic(item.topic);
+          setCards(item.result.flashcards || []);
+          setActiveHistoryId(item.id);
+          setKey((k) => k + 1);
+        }}
+      />
     </div>
   );
 }

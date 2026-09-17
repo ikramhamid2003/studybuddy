@@ -11,6 +11,7 @@ jest.mock("../context/AuthContext", () => ({
 }));
 
 function renderLayout(path) {
+  // MemoryRouter lets each test choose the active route without a browser.
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Layout>

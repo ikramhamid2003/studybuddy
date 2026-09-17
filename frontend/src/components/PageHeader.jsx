@@ -11,10 +11,13 @@ const accentLines = {
 
 export default function PageHeader({ icon, title, subtitle }) {
   const location = useLocation();
+  // The underline follows the current route, giving each tool a recognizable
+  // accent while keeping the header component reusable.
   const activeLine = accentLines[location.pathname] || "from-amber-500/50 via-amber-500/10 to-transparent";
 
   return (
     <div className="mb-10 animate-fade-up">
+      {/* Header content is supplied by each page; color is inferred from route. */}
       <div className="flex items-center gap-4 mb-3">
         <div className="w-12 h-12 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-center text-2xl shadow-inner backdrop-blur-md">
           {icon}

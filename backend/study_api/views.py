@@ -88,6 +88,8 @@ CHAT_SYSTEM = (
 def _cached_json_response(prefix, user_msg, system, llm_call):
     """Cache-wrapped LLM call shared by all JSON-returning tools."""
     try:
+        # The full prompt text is the cache key input so different options do
+        # not accidentally share the same model response.
         cache_key = prefix + hashlib.md5(user_msg.encode()).hexdigest()
         cached_data = cache.get(cache_key)
         if cached_data:
@@ -109,6 +111,8 @@ def _cached_json_response(prefix, user_msg, system, llm_call):
 
 
 def _explain_response(validated):
+    """Build the explain prompt and return a cached JSON tool response."""
+
     topic = validated["topic"]
     level = validated["level"]
 
@@ -124,6 +128,8 @@ def _explain_response(validated):
 
 
 def _summarize_response(validated):
+    """Build the summarizer prompt and return a cached JSON tool response."""
+
     notes = validated["notes"]
     fmt = validated["format"]
 
@@ -140,6 +146,8 @@ def _summarize_response(validated):
 
 
 def _quiz_response(validated):
+    """Build the quiz prompt and return validated structured questions."""
+
     topic = validated["topic"]
     num_questions = validated["num_questions"]
     difficulty = validated["difficulty"]
@@ -158,6 +166,8 @@ def _quiz_response(validated):
 
 
 def _flashcards_response(validated):
+    """Build the flashcard prompt and return validated structured cards."""
+
     topic = validated["topic"]
     num_cards = validated["num_cards"]
 
@@ -218,6 +228,7 @@ class GenerateView(APIView):
         topic = validated["topic"]
         gen_type = validated["type"]
 
+        # Fan out to the same tool helpers used by the dedicated legacy views.
         if gen_type == "explain":
             response = _explain_response({"topic": topic, "level": validated["level"]})
         elif gen_type == "summarize":
@@ -240,6 +251,8 @@ class GenerateView(APIView):
             response = _chat_reply_response(topic, validated.get("history", [])[-6:])
 
         if response.status_code == status.HTTP_200_OK:
+            # Save the exact payload returned to the user so history hydration
+            # never needs to regenerate AI content.
             generation = Generation.objects.create(
                 user=request.user, type=gen_type, topic=topic, result=response.data
             )
@@ -257,6 +270,7 @@ class GenerationListView(APIView):
         generations = Generation.objects.filter(user=request.user)
         gen_type = request.query_params.get("type")
         if gen_type:
+            # Dedicated tool pages request only their own saved generations.
             generations = generations.filter(type=gen_type)
         return Response(GenerationModelSerializer(generations[:50], many=True).data)
 
@@ -278,6 +292,7 @@ class ChatStreamView(APIView):
 
         session = None
         if session_id is not None:
+            # Persisted sessions use server-side history as the source of truth.
             session = get_object_or_404(ChatSession, id=session_id, user=request.user)
             history = [
                 {"role": m.role, "content": m.content} for m in session.messages.all()
@@ -289,6 +304,8 @@ class ChatStreamView(APIView):
             full_reply_parts = []
             try:
                 for chunk in stream_chat_groq(CHAT_SYSTEM, history, message, max_tokens=600):
+                    # Send valid SSE frames that the React reader can parse one
+                    # at a time as the model streams.
                     full_reply_parts.append(chunk)
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n".encode()
 
@@ -413,6 +430,8 @@ class UnifiedAPIView(APIView):
 
         handler = ACTION_MAP[action]
         try:
+            # Handlers own their response shape so streaming actions can return
+            # StreamingHttpResponse while JSON actions return normal Response.
             result = handler(request.data, request)
             return result
         except Exception as exc:  # noqa: BLE001

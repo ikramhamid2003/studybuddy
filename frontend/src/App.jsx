@@ -18,6 +18,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
+// Keeps private study tools behind authentication while the current session is
+// still being restored from local storage.
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
@@ -33,6 +35,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Prevents signed-in users from seeing login/register screens again.
 function GuestRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
@@ -50,6 +53,7 @@ function GuestRoute({ children }) {
 
 export default function App() {
   useEffect(() => {
+    // CSS variables drive the ambient cursor glow used by the app shell.
     const handleMouseMove = (e) => {
       document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
       document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
@@ -62,9 +66,11 @@ export default function App() {
     <div className="cursor-glow-container relative min-h-screen">
       <div className="pointer-events-none fixed inset-0 z-0 cursor-glow-element" />
       <div className="relative z-10">
+        {/* Providers wrap routing so every page can share auth, cache, and toasts. */}
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <BrowserRouter>
+          {/* Toast styling is centralized so every page uses the same feedback UI. */}
           <Toaster
             position="top-right"
             toastOptions={{

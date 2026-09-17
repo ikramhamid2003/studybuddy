@@ -5,6 +5,7 @@ from django.db import models
 class ChatSession(models.Model):
     """A single named conversation thread, like a ChatGPT sidebar entry."""
 
+    # Sessions are owned per user so chat history never leaks across accounts.
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_sessions"
     )
@@ -22,6 +23,7 @@ class ChatSession(models.Model):
 class ChatMessage(models.Model):
     """A single turn within a ChatSession."""
 
+    # Restrict roles to the two message types LangChain expects downstream.
     ROLE_CHOICES = [("user", "user"), ("assistant", "assistant")]
 
     session = models.ForeignKey(
@@ -59,6 +61,7 @@ class Generation(models.Model):
         on_delete=models.CASCADE,
         related_name="generations",
     )
+    # `type` lets the same table back every tool's history view.
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, db_index=True)
     topic = models.CharField(max_length=8000)
     result = models.JSONField(default=dict)

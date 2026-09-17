@@ -10,11 +10,15 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def api_client():
+    """Unauthenticated client for auth-required endpoint checks."""
+
     return APIClient()
 
 
 @pytest.fixture
 def auth_client():
+    """Primary authenticated chat owner."""
+
     client = APIClient()
     user = User.objects.create_user(username="alice", password="testpassword")
     client.force_authenticate(user=user)
@@ -24,6 +28,8 @@ def auth_client():
 
 @pytest.fixture
 def other_auth_client():
+    """Different user used to verify session isolation."""
+
     client = APIClient()
     user = User.objects.create_user(username="bob", password="testpassword")
     client.force_authenticate(user=user)
@@ -73,6 +79,7 @@ def test_delete_session(auth_client):
 
 @patch("study_api.views.stream_chat_groq")
 def test_chat_stream_with_session_persists_full_reply(mock_stream, auth_client):
+    # Streaming chunks are joined before saving the assistant's final message.
     mock_stream.return_value = ["hello", " world"]
     session = ChatSession.objects.create(user=auth_client.user)
 

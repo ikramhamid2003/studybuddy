@@ -1,4 +1,5 @@
 export function Input({ label, className = "", inputClassName = "", ...props }) {
+  // Props are forwarded so pages can attach value, handlers, aria labels, etc.
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -20,6 +21,7 @@ export function Input({ label, className = "", inputClassName = "", ...props }) 
 }
 
 export function Textarea({ label, className = "", textareaClassName = "", ...props }) {
+  // Shares the same visual language as Input, with vertical resizing enabled.
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -41,6 +43,7 @@ export function Textarea({ label, className = "", textareaClassName = "", ...pro
 }
 
 export function Select({ label, children, className = "", selectClassName = "", ...props }) {
+  // Children remain explicit so each page controls its own option labels.
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (

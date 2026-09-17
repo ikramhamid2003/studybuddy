@@ -8,6 +8,7 @@ export default function HomePage() {
   const { user } = useAuth();
 
   function handleCTA() {
+    // Send signed-in users directly to the workspace; guests start registration.
     if (user) {
       navigate("/explain");
     } else {
@@ -17,7 +18,7 @@ export default function HomePage() {
 
   return (
     <div className="relative space-y-28 pb-24 overflow-hidden min-h-screen">
-      {/* Dynamic Animated Atmospheric Blur Dots */}
+      {/* Decorative background layers stay pointer-events-none so cards remain clickable. */}
       <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[140px] animate-float opacity-50 pointer-events-none" />
       <div className="absolute top-[20%] right-[-100px] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[160px] animate-float-reverse opacity-40 pointer-events-none" />
       <div className="absolute bottom-[20%] left-[-150px] w-[550px] h-[550px] bg-emerald-500/5 rounded-full blur-[130px] animate-float opacity-30 pointer-events-none" />
@@ -45,6 +46,7 @@ export default function HomePage() {
             <ArrowRight size={18} className="ml-2 animate-bounce-horizontal" />
           </Button>
           {!user && (
+            // Guests get a secondary path for existing accounts.
             <Button onClick={() => navigate("/login")} variant="outline" size="lg" className="px-10 py-4 border-slate-800 hover:border-slate-600 hover:bg-slate-900/60 text-slate-300 hover:text-white backdrop-blur-md transition-all duration-300 transform hover:scale-[1.04] rounded-2xl">
               Sign In
             </Button>
@@ -52,7 +54,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Bento Grid Features Section */}
+      {/* Feature grid doubles as navigation into the primary study tools. */}
       <section className="space-y-16 animate-fade-up relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto space-y-4">
           <h2 className="text-4xl md:text-5xl font-extrabold text-white font-display tracking-tight">MAANG-Grade Study Suite</h2>
@@ -240,6 +242,7 @@ export default function HomePage() {
             </div>
           </div>
           <Button onClick={handleCTA} size="lg" className="px-12 py-4 shadow-xl bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-200 border-none transition-all duration-300 transform hover:scale-[1.03] font-bold rounded-2xl mt-4">
+            {/* Reuses the same auth-aware CTA behavior as the hero button. */}
             Initialize Free Workspace
           </Button>
         </div>

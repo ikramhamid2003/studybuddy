@@ -1,4 +1,5 @@
 export default function Card({ children, className = "", accent = null, hover = false, onClick }) {
+  // Accent keys match the app's tool colors and add a subtle left border.
   const accentMap = {
     amber: "border-l-amber-500 hover:border-amber-500/50 hover:shadow-[0_0_25px_rgba(245,158,11,0.12)]",
     emerald: "border-l-emerald-500 hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.12)]",
@@ -8,6 +9,7 @@ export default function Card({ children, className = "", accent = null, hover = 
   };
 
   return (
+    // Card is intentionally visual-only; callers decide whether it is clickable.
     <div
       onClick={onClick}
       className={`

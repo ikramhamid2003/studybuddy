@@ -5,6 +5,8 @@ from .models import ChatMessage, ChatSession, Generation
 
 
 class ChatMessageSerializer(serializers.Serializer):
+    """Inbound chat turn used before messages are persisted."""
+
     role = serializers.ChoiceField(choices=["user", "assistant"])
     content = serializers.CharField(max_length=4000)
 
@@ -16,6 +18,8 @@ class ChatSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """Registration payload that delegates password hashing to create_user."""
+
     password = serializers.CharField(write_only=True, min_length=6)
 
     class Meta:
@@ -71,6 +75,8 @@ class GenerateChatTurnSerializer(serializers.Serializer):
 
 
 class GenerateSerializer(serializers.Serializer):
+    """Shared request shape for every AI tool on the unified endpoint."""
+
     topic = serializers.CharField(max_length=8000, required=True)
     type = serializers.ChoiceField(
         choices=["explain", "summarize", "quiz", "flashcards", "chat"],
@@ -93,6 +99,8 @@ class GenerateSerializer(serializers.Serializer):
 
 
 class GenerationModelSerializer(serializers.ModelSerializer):
+    """Serialized saved result shown in tool history panels."""
+
     class Meta:
         model = Generation
         fields = ("id", "type", "topic", "result", "created_at")

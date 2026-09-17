@@ -63,6 +63,7 @@ const TOOL_OPTIONS = [
 ];
 
 function SectionTitle({ color, children }) {
+  // Small repeated heading used inside every result card.
   return (
     <div className={`text-xs font-mono uppercase tracking-widest mb-3 ${color}`}>
       {children}
@@ -71,6 +72,7 @@ function SectionTitle({ color, children }) {
 }
 
 function TypeBadge({ type }) {
+  // History rows and result headers share this badge for quick tool scanning.
   const option = TOOL_OPTIONS.find((o) => o.value === type);
   const Icon = option ? option.icon : Sparkles;
   return (
@@ -86,6 +88,8 @@ function TypeBadge({ type }) {
 }
 
 function SpeakButton({ text }) {
+  // Speech state is local so multiple result cards can render independent
+  // controls while the browser still owns one global speech queue.
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef(null);
 
@@ -122,6 +126,7 @@ function SpeakButton({ text }) {
 }
 
 function Flashcard({ card, index }) {
+  // Individual cards manage their own flip state; deck reset remounts them.
   const [flipped, setFlipped] = useState(false);
 
   return (
@@ -157,6 +162,7 @@ function Flashcard({ card, index }) {
 }
 
 function ScoreCard({ score, total, onRetry }) {
+  // Score color and progress bar are derived from the final percentage.
   const pct = Math.round((score / total) * 100);
   const color =
     pct >= 80 ? "text-emerald-450 font-black" : pct >= 50 ? "text-amber-450 font-semibold" : "text-rose-450";
@@ -188,6 +194,7 @@ function ScoreCard({ score, total, onRetry }) {
 }
 
 function ChatBubble({ msg }) {
+  // The same bubble component handles user and assistant layout variants.
   const isUser = msg.role === "user";
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
@@ -234,6 +241,8 @@ function ChatTyping() {
 }
 
 function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, onRetryQuiz, onExportCSV, onResetCards, deckKey }) {
+  // Central render switch keeps the All page's five tools sharing one result
+  // surface instead of duplicating entire page implementations.
   const { type, result } = active;
 
   if (type === "explain") {
@@ -464,6 +473,8 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
 }
 
 export default function AllPage() {
+  // Shared tool controls live here because the All page switches between every
+  // generation type without unmounting the whole screen.
   const [type, setType] = useState("explain");
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
@@ -481,6 +492,7 @@ export default function AllPage() {
   const chatBottomRef = useRef(null);
 
   const { data: history, isLoading: historyLoading } = useQuery({
+    // No type filter here: the All page intentionally shows every saved tool.
     queryKey: ["generations"],
     queryFn: () => listGenerations(),
   });
@@ -488,6 +500,8 @@ export default function AllPage() {
   const { mutate, isPending: loading } = useMutation({
     mutationFn: (vars) => generateAll(vars.topic, vars.type, vars.options),
     onSuccess: (data, vars) => {
+      // Store a normalized active object so ResultView can render any tool from
+      // the same shape, whether freshly generated or reopened from history.
       setActive({ type: vars.type, topic: vars.topic, result: data });
       setAnswers({});
       setSubmitted(false);
@@ -511,6 +525,7 @@ export default function AllPage() {
   }, [chatTurns, chatLoading]);
 
   function optionsFor() {
+    // Convert the currently visible control values into backend option names.
     if (type === "explain") return { level };
     if (type === "summarize") return { format };
     if (type === "quiz") return { num_questions: parseInt(numQ), difficulty };
@@ -527,6 +542,8 @@ export default function AllPage() {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput("");
+    // Keep a short client-side transcript for the All-page chat UI while the
+    // backend also persists each assistant reply as a saved generation.
     const history = chatTurns.slice(-6);
     setChatTurns((t) => [...t, { role: "user", content: msg }]);
     sendChatMsg({ msg, history });
@@ -547,6 +564,7 @@ export default function AllPage() {
   function handleExportCSV() {
     const cards = active?.result?.flashcards || [];
     if (!cards.length) return;
+    // Quote escaping keeps commas/quotes inside flashcards import-safe.
     const header = "Front,Back,Hint\n";
     const rows = cards
       .map(

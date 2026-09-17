@@ -11,11 +11,15 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def api_client():
+    """Unauthenticated client used to verify protected endpoints."""
+
     return APIClient()
 
 
 @pytest.fixture
 def auth_client():
+    """Primary authenticated user for generation ownership tests."""
+
     client = APIClient()
     user = User.objects.create_user(username="carol", password="testpassword")
     client.force_authenticate(user=user)
@@ -25,6 +29,8 @@ def auth_client():
 
 @pytest.fixture
 def other_auth_client():
+    """Second authenticated user used to prove data is scoped by account."""
+
     client = APIClient()
     user = User.objects.create_user(username="dave", password="testpassword")
     client.force_authenticate(user=user)
@@ -49,6 +55,7 @@ def test_generate_rejects_unknown_type(auth_client):
 
 @patch("study_api.views.query_groq_json")
 def test_generate_explain_persists_generation(mock_query, auth_client):
+    # Mock the LLM call so the test focuses on persistence and response shape.
     mock_query.return_value = {
         "explanation": "test explanation",
         "key_points": ["point 1"],
@@ -150,6 +157,7 @@ def test_generate_chat_persists_generation(mock_chat, auth_client):
 
 @patch("study_api.views.query_groq_json")
 def test_failed_generation_is_not_persisted(mock_query, auth_client):
+    # Failed model calls should not leave partial history records behind.
     mock_query.side_effect = Exception("groq down")
 
     resp = auth_client.post(

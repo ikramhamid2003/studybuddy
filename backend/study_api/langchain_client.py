@@ -6,7 +6,9 @@ from pydantic import BaseModel
 
 
 def _get_llm(streaming: bool = False, max_tokens: int = 800):
+    """Create a Groq chat model with the mode/token budget requested by caller."""
     if not settings.GROQ_API_KEY:
+        # Fail early with a setup hint before LangChain attempts a network call.
         raise ValueError(
             "GROQ_API_KEY is not set. Add it to your .env file.\n"
             "Get a FREE key at: https://console.groq.com"
@@ -23,6 +25,7 @@ def _get_llm(streaming: bool = False, max_tokens: int = 800):
 def query_groq(system: str, user: str, max_tokens: int = 800) -> str:
     """Drop-in replacement: plain text response."""
     llm = _get_llm(max_tokens=max_tokens)
+    # System + user messages keep instructions separate from student content.
     result = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
     return result.content.strip()
 
@@ -31,6 +34,7 @@ def query_groq_json(system: str, user: str, max_tokens: int = 800) -> dict:
     """Drop-in replacement: parsed JSON response, using LangChain's JsonOutputParser
     instead of your hand-rolled regex extract_json()."""
     llm = _get_llm(max_tokens=max_tokens)
+    # JsonOutputParser asks LangChain to parse the model response into a dict.
     parser = JsonOutputParser()
     chain = llm | parser
     return chain.invoke([SystemMessage(content=system), HumanMessage(content=user)])
@@ -40,6 +44,7 @@ def stream_groq(system: str, user: str, max_tokens: int = 800):
     """Drop-in replacement: yields text chunks for your SSE endpoint."""
     llm = _get_llm(streaming=True, max_tokens=max_tokens)
     for chunk in llm.stream([SystemMessage(content=system), HumanMessage(content=user)]):
+        # Streaming may include metadata-only chunks; skip those for SSE output.
         if chunk.content:
             yield chunk.content
 
@@ -73,6 +78,8 @@ def build_message_history(system: str, history: list[dict], message: str):
     "content": ...}, ...]) into LangChain message objects."""
     messages = [SystemMessage(content=system)]
     for turn in history:
+        # Preserve roles so the model sees a real conversation, not a flattened
+        # transcript string.
         if turn["role"] == "user":
             messages.append(HumanMessage(content=turn["content"]))
         else:
@@ -97,5 +104,6 @@ def stream_chat_groq(
     llm = _get_llm(streaming=True, max_tokens=max_tokens)
     messages = build_message_history(system, history, message)
     for chunk in llm.stream(messages):
+        # LangChain may emit empty structural chunks; only forward visible text.
         if chunk.content:
             yield chunk.content

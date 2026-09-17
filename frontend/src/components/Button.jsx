@@ -14,6 +14,8 @@ export default function Button({
   const location = useLocation();
   const path = location.pathname;
 
+  // Primary buttons inherit the current tool's color so actions feel tied to
+  // the page the user is working in.
   const primaryThemes = {
     "/all": "bg-gradient-to-r from-fuchsia-500 to-fuchsia-400 hover:from-fuchsia-400 hover:to-fuchsia-300 text-slate-950 shadow-[0_4px_20px_rgba(217,70,239,0.18)] hover:shadow-[0_4px_28px_rgba(217,70,239,0.3)]",
     "/explain": "bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-250 text-slate-950 shadow-[0_4px_20px_rgba(245,158,11,0.18)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.3)]",
@@ -25,6 +27,7 @@ export default function Button({
 
   const selectedPrimary = primaryThemes[path] || "bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-250 text-slate-950 shadow-[0_4px_20px_rgba(245,158,11,0.18)]";
 
+  // Variant and size maps keep call sites small and consistent.
   const variants = {
     primary: `${selectedPrimary} font-bold border-none transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.99]`,
     secondary:
@@ -54,6 +57,7 @@ export default function Button({
         ${variants[variant]} ${sizes[size]} ${className}
       `}
     >
+      {/* Loading state keeps the button width/content stable while a request runs. */}
       {loading && <Loader2 className="w-4 h-4 animate-spin" />}
       {children}
     </button>

@@ -10,6 +10,7 @@ jest.mock("../utils/api", () => ({
 }));
 
 function renderPage() {
+  // A fresh QueryClient keeps React Query cache isolated per test.
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -23,6 +24,7 @@ function renderPage() {
 }
 
 const QUIZ_RESULT = {
+  // Shared fixture mirrors the backend quiz payload shape.
   questions: [
     {
       id: 1,

@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
+from study_api.models import ChatMessage, ChatSession
 
 # Enable DB access for throttling, database cache, and users
 pytestmark = pytest.mark.django_db
@@ -10,14 +11,19 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def api_client():
+    """Unauthenticated client for public endpoints."""
+
     return APIClient()
 
 
 @pytest.fixture
 def auth_client():
+    """Authenticated client with the user attached for ownership assertions."""
+
     client = APIClient()
     user = User.objects.create_user(username="testuser", password="testpassword")
     client.force_authenticate(user=user)
+    client.user = user
     return client
 
 
@@ -63,3 +69,64 @@ def test_chat_stream_view(mock_stream, auth_client):
     chunks = b"".join(resp.streaming_content).decode("utf-8")
     assert "hello" in chunks
     assert "stream" in chunks
+
+
+@patch("study_api.dispatchers.stream_chat_groq")
+def test_unified_chat_stream_uses_session_history(mock_stream, auth_client):
+    # Existing session messages should be sent back to the model as chat history.
+    mock_stream.return_value = ["remembered"]
+    session = ChatSession.objects.create(user=auth_client.user)
+    ChatMessage.objects.create(session=session, role="user", content="what is inertia?")
+    ChatMessage.objects.create(
+        session=session,
+        role="assistant",
+        content="Inertia resists motion changes.",
+    )
+
+    resp = auth_client.post(
+        "/api/unified/",
+        {"action": "chat_stream", "message": "say that again", "session_id": session.id},
+        format="json",
+    )
+
+    assert resp.status_code == 200
+    chunks = b"".join(resp.streaming_content).decode("utf-8")
+    assert "remembered" in chunks
+    assert mock_stream.call_args[0][1] == [
+        {"role": "user", "content": "what is inertia?"},
+        {"role": "assistant", "content": "Inertia resists motion changes."},
+    ]
+
+
+@patch("study_api.dispatchers.stream_chat_groq")
+def test_unified_chat_stream_includes_other_session_context(mock_stream, auth_client):
+    # A new session can still receive compact memory from older sessions.
+    mock_stream.return_value = ["remembered"]
+    old_session = ChatSession.objects.create(user=auth_client.user, title="Physics")
+    ChatMessage.objects.create(
+        session=old_session,
+        role="user",
+        content="I am studying inertia.",
+    )
+    ChatMessage.objects.create(
+        session=old_session,
+        role="assistant",
+        content="Inertia is resistance to motion changes.",
+    )
+    new_session = ChatSession.objects.create(user=auth_client.user)
+
+    resp = auth_client.post(
+        "/api/unified/",
+        {
+            "action": "chat_stream",
+            "message": "what was I studying?",
+            "session_id": new_session.id,
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 200
+    b"".join(resp.streaming_content)
+    history = mock_stream.call_args[0][1]
+    assert "previous chat sessions" in history[0]["content"]
+    assert "I am studying inertia." in history[0]["content"]

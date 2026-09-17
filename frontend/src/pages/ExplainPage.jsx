@@ -1,20 +1,32 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Lightbulb, ArrowRight, BookMarked, Puzzle } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
 
 export default function ExplainPage() {
+  const queryClient = useQueryClient();
+  // Local state mirrors the form controls and the currently displayed result.
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
-  const { mutate, data: result, isPending: loading } = useMutation({
+  const [result, setResult] = useState(null);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
+  const { mutate, isPending: loading } = useMutation({
     mutationFn: () => generateAll(topic.trim(), "explain", { level }),
-    onSuccess: () => toast.success("Explanation ready!"),
+    onSuccess: (data) => {
+      // Store the generated payload locally and refresh the filtered history
+      // list so this result appears immediately below the tool.
+      setResult(data);
+      setActiveHistoryId(data.generation_id ?? null);
+      queryClient.invalidateQueries({ queryKey: ["generations", "explain"] });
+      toast.success("Explanation ready!");
+    },
     onError: (err) => toast.error(err.message || "Failed to explain. Try again.")
   });
 
@@ -138,6 +150,18 @@ export default function ExplainPage() {
           </div>
         </div>
       )}
+
+      <ToolHistory
+        type="explain"
+        activeId={activeHistoryId}
+        onSelect={(item) => {
+          // Saved generations already contain the structured result shape that
+          // the page renders, so selecting history only needs to hydrate state.
+          setTopic(item.topic);
+          setResult(item.result);
+          setActiveHistoryId(item.id);
+        }}
+      />
     </div>
   );
 }

@@ -5,7 +5,7 @@ services:
     region: ohio
     healthCheckPath: /api/health/
     buildCommand: "cd backend && chmod +x build.sh && ./build.sh"
-    startCommand: "cd backend && gunicorn studybuddy.wsgi:application"
+    startCommand: "cd backend && gunicorn studybuddy.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -13,7 +13,13 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: PYTHON_VERSION
+        value: "3.12.8"
       - key: ALLOWED_HOSTS
-        value: "studybuddy-api-hkgx.onrender.com"
+        value: "studybuddy-api-hkgx.onrender.com,.onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://studybuddy-omega-gray.vercel.app"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.vercel.app,https://*.onrender.com"
       - key: GROQ_API_KEY
         sync: false

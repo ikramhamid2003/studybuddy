@@ -1,14 +1,18 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle, Trophy, RefreshCw } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
 
 function ScoreCard({ score, total, onRetry }) {
+  // Score display is derived only after submission so generation and answering
+  // can share the same question data.
   const pct = Math.round((score / total) * 100);
   const color = pct >= 80 ? "text-emerald-450 font-black" : pct >= 50 ? "text-amber-450 font-semibold" : "text-rose-450";
   const barColor = pct >= 80 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" : pct >= 50 ? "bg-gradient-to-r from-amber-500 to-amber-400" : "bg-gradient-to-r from-rose-500 to-rose-400";
@@ -35,6 +39,9 @@ function ScoreCard({ score, total, onRetry }) {
 }
 
 export default function QuizPage() {
+  const queryClient = useQueryClient();
+  // Quiz state is split between generated questions, selected answers, and the
+  // submission flag so users can answer freely before grading.
   const [topic, setTopic] = useState("");
   const [numQ, setNumQ] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
@@ -42,10 +49,12 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
 
   async function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
     setLoading(true);
+    // Reset old quiz state before requesting a new set of questions.
     setQuestions([]); setAnswers({}); setSubmitted(false);
     try {
       const data = await generateAll(topic.trim(), "quiz", {
@@ -54,6 +63,8 @@ export default function QuizPage() {
       });
       if (!data.questions?.length) throw new Error("No questions returned");
       setQuestions(data.questions);
+      setActiveHistoryId(data.generation_id ?? null);
+      queryClient.invalidateQueries({ queryKey: ["generations", "quiz"] });
       toast.success(`${data.questions.length} questions ready!`);
     } catch (err) {
       toast.error(err.message || "Quiz generation failed.");
@@ -64,6 +75,7 @@ export default function QuizPage() {
 
   function selectAnswer(qId, option) {
     if (submitted) return;
+    // Answers are keyed by question id to survive rendering/order changes.
     setAnswers((a) => ({ ...a, [qId]: option }));
   }
 
@@ -207,6 +219,20 @@ export default function QuizPage() {
           </span>
         </div>
       )}
+
+      <ToolHistory
+        type="quiz"
+        activeId={activeHistoryId}
+        onSelect={(item) => {
+          // History reopens saved questions but intentionally clears previous
+          // answers so the quiz can be retaken.
+          setTopic(item.topic);
+          setQuestions(item.result.questions || []);
+          setAnswers({});
+          setSubmitted(false);
+          setActiveHistoryId(item.id);
+        }}
+      />
     </div>
   );
 }

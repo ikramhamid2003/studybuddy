@@ -1,19 +1,31 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Tag, BookOpen, Lightbulb } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { Textarea } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
 
 export default function SummarizePage() {
+  const queryClient = useQueryClient();
+  // The textarea content is sent as the "topic" field to the shared generation
+  // endpoint, then persisted as the saved-history label.
   const [notes, setNotes] = useState("");
-  const { mutate, data: result, isPending: loading } = useMutation({
+  const [result, setResult] = useState(null);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
+  const { mutate, isPending: loading } = useMutation({
     mutationFn: () => generateAll(notes.trim(), "summarize", { format: "bullets" }),
-    onSuccess: () => toast.success("Summary ready!"),
+    onSuccess: (data) => {
+      // Refresh this tool's history cache after a successful saved generation.
+      setResult(data);
+      setActiveHistoryId(data.generation_id ?? null);
+      queryClient.invalidateQueries({ queryKey: ["generations", "summarize"] });
+      toast.success("Summary ready!");
+    },
     onError: (err) => toast.error(err.message || "Failed to summarize.")
   });
 
@@ -138,6 +150,17 @@ export default function SummarizePage() {
           )}
         </div>
       )}
+
+      <ToolHistory
+        type="summarize"
+        activeId={activeHistoryId}
+        onSelect={(item) => {
+          // Reopen the exact saved summary without making another AI request.
+          setNotes(item.topic);
+          setResult(item.result);
+          setActiveHistoryId(item.id);
+        }}
+      />
     </div>
   );
 }

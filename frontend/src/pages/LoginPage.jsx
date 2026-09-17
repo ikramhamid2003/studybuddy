@@ -29,12 +29,15 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Validate client-side first so the user gets immediate feedback before a
+    // network request is made.
     if (!username.trim() || !password.trim()) {
       return toast.error("Please fill in all fields");
     }
 
     setLoading(true);
     try {
+      // AuthProvider stores the token and exposes the signed-in user to routes.
       await login(username, password);
       toast.success("Welcome back!");
       navigate("/explain");
@@ -104,6 +107,7 @@ export default function LoginPage() {
           </Button>
 
           {wakingUp && (
+            // Render's free tier can delay the first auth response after idle.
             <p className="text-amber-400/80 text-xs text-center font-mono animate-fade-in">
               Free-tier server is waking up — this can take up to a minute…
             </p>

@@ -1,6 +1,7 @@
 export default function LoadingSkeleton({ lines = 3, message = "Thinking..." }) {
   return (
     <div className="animate-fade-in space-y-4">
+      {/* Animated dots communicate active AI work before content is available. */}
       <div className="flex items-center gap-3 text-slate-400 text-sm">
         <div className="flex gap-1">
           {[0, 1, 2].map((i) => (
@@ -14,6 +15,7 @@ export default function LoadingSkeleton({ lines = 3, message = "Thinking..." }) 
         <span className="font-mono text-xs text-slate-500">{message}</span>
       </div>
 
+      {/* Widths shrink per row to mimic varied text lines. */}
       {Array.from({ length: lines }).map((_, i) => (
         <div
           key={i}

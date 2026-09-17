@@ -1,8 +1,15 @@
-const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const DEFAULT_API_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://studybuddy-api-hkgx.onrender.com/api"
+    : "http://localhost:8000/api";
+
+const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
 
 // ── Core request → POST /unified/ ───────────────────────────────────────────
 
 async function _request(action, body = {}) {
+  // Centralizes auth headers and unified-response handling for every JSON API
+  // call, so pages only deal with successful `data` payloads or thrown errors.
   const token = localStorage.getItem("token");
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -25,9 +32,11 @@ async function _request(action, body = {}) {
 // ── Generation tools ────────────────────────────────────────────────────────
 
 export const generateAll = async (topic, type, options = {}) =>
+  // Every AI tool persists through the backend's unified generate action.
   _request("generate", { topic, type, ...options });
 
 export const listGenerations = async (type) =>
+  // Undefined filters are ignored by the backend, giving the All page all tools.
   _request("generations_list", { query_type: type ?? undefined });
 
 // ── Chat sessions ───────────────────────────────────────────────────────────
@@ -56,6 +65,8 @@ export const sendChatStream = async (
   onError,
 ) => {
   try {
+    // Streaming chat uses raw fetch instead of _request because the response is
+    // an SSE byte stream, not a single JSON payload.
     const token = localStorage.getItem("token");
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -81,10 +92,13 @@ export const sendChatStream = async (
     let buffer = "";
     let resultSessionId = null;
 
+    // Read the stream manually so the UI can render tokens as they arrive.
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
+      // SSE events can arrive split across chunks, so keep the unfinished tail
+      // in `buffer` until the next read completes it.
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n\n");
       buffer = lines.pop(); // keep partial line
@@ -104,7 +118,7 @@ export const sendChatStream = async (
       }
     }
 
-    // flush any remaining data
+    // Flush any final SSE event that did not end with a double newline.
     if (buffer.trim()) {
       const cleanLine = buffer.trim();
       if (cleanLine.startsWith("data: ")) {
@@ -121,6 +135,7 @@ export const sendChatStream = async (
 
     onDone(resultSessionId);
   } catch (error) {
+    // Surface streaming failures to the page when it supplied an error handler.
     if (onError) onError(error);
     else console.error("Streaming chat error:", error);
   }

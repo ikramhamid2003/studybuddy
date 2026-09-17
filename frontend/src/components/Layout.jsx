@@ -21,6 +21,8 @@ const navItems = [
   { to: "/chat", label: "Chat", icon: MessageSquare, color: "text-rose-400" },
 ];
 
+// Each tool owns an accent color so navigation, buttons, and page chrome feel
+// connected without every page redefining the same palette.
 const glowColors = {
   "/all": "bg-fuchsia-500/10 shadow-[0_0_160px_rgba(217,70,239,0.12)]",
   "/explain": "bg-amber-500/10 shadow-[0_0_160px_rgba(245,158,11,0.12)]",
@@ -36,11 +38,12 @@ export default function Layout({ children }) {
   const location = useLocation();
 
   const activeGlow = glowColors[location.pathname] || "bg-amber-500/10";
+  // Mobile header uses this to show the active tool name in the dropdown.
   const currentItem = navItems.find((item) => item.to === location.pathname);
 
   return (
     <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
-      {/* Dynamic Ambient Background Glow & Grid */}
+      {/* Dynamic ambient background glow and grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
       {/* ── Sidebar (desktop only) ── */}
@@ -58,7 +61,7 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        {/* Nav */}
+        {/* Desktop navigation */}
         <nav className="flex-1 px-3 py-6 space-y-1">
           <p className="text-slate-600 text-xs font-mono uppercase tracking-widest px-3 mb-3">
             Tools
@@ -94,7 +97,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* User / Logout */}
+        {/* User controls */}
         {user ? (
           <div className="px-6 py-4 border-t border-slate-800 flex flex-col gap-2">
             <div className="flex items-center gap-3">
@@ -134,7 +137,7 @@ export default function Layout({ children }) {
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
-        {/* Mobile header with dropdown nav */}
+        {/* Mobile header with dropdown navigation */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center">

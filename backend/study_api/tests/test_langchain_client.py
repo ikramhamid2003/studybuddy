@@ -58,6 +58,7 @@ class _FakeLLM:
 
 
 def test_get_llm_raises_without_api_key():
+    # Missing configuration should fail before trying to reach Groq.
     with (
         patch.object(settings, "GROQ_API_KEY", ""),
         pytest.raises(ValueError, match="GROQ_API_KEY"),
@@ -110,6 +111,7 @@ def test_query_groq_structured(mock_get_llm):
 
 
 def test_build_message_history_role_mapping():
+    # The model receives typed LangChain messages, not a flattened transcript.
     history = [
         {"role": "user", "content": "hi"},
         {"role": "assistant", "content": "hello!"},

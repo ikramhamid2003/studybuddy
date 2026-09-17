@@ -3,6 +3,7 @@ module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"],
   theme: {
     extend: {
+      // Shared brand fonts used by the app shell and study tool surfaces.
       fontFamily: {
         display: ["'Outfit'", "sans-serif"],
         body: ["'Plus Jakarta Sans'", "sans-serif"],
@@ -17,6 +18,7 @@ module.exports = {
         },
       },
       animation: {
+        // Named animations keep JSX utility strings short and reusable.
         "fade-up": "fadeUp 0.4s ease forwards",
         "fade-in": "fadeIn 0.3s ease forwards",
         "slide-in": "slideIn 0.35s ease forwards",
@@ -39,6 +41,7 @@ module.exports = {
         },
       },
       backgroundImage: {
+        // Reusable subtle textures/glows for the dark study workspace.
         "grid-pattern":
           "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
         "amber-glow":

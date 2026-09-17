@@ -9,25 +9,35 @@ from dotenv import load_dotenv
 from sentry_sdk.integrations.django import DjangoIntegration
 
 load_dotenv()
-print("DIAGNOSTIC: after dotenv", flush=True)
-
-# Sentry SDK disabled locally — blocks on network call during module init.
-# Replaced with sys.modules stub so `import sentry_sdk` always returns None instantly.
-sys.modules["sentry_sdk"] = None
-sys.modules["sentry_sdk.integrations.django"] = None
 
 # Detect if we are testing
 IS_TESTING = "pytest" in sys.modules or "test" in sys.argv
 
+# BASE_DIR anchors database/static paths regardless of where manage.py runs.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _env_bool(name, default=False):
+    """Read common truthy env values without being case-sensitive."""
+
+    return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_list(name, default):
+    """Parse comma-separated environment values, dropping blank entries."""
+
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
+# Production deployments should set SECRET_KEY/DEBUG/ALLOWED_HOSTS in the env.
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-change-this-before-production-please"
 )
-DEBUG = os.getenv("DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS]
-print("DIAGNOSTIC: after ALLOWED_HOSTS", flush=True)
+DEBUG = _env_bool("DEBUG", True)
+ALLOWED_HOSTS = _env_list(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,.onrender.com",
+)
 
 
 INSTALLED_APPS = [
@@ -77,6 +87,7 @@ WSGI_APPLICATION = "studybuddy.wsgi.application"
 
 # Determine if we are testing (defined earlier in settings)
 if IS_TESTING:
+    # Use an isolated local database so tests do not mutate dev/prod data.
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -84,8 +95,9 @@ if IS_TESTING:
         }
     }
 else:
+    # Render/Postgres can provide DATABASE_URL; local dev falls back to sqlite.
     db_url = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
-    DATABASES = {"default": dj_database_url.parse(db_url)}
+    DATABASES = {"default": dj_database_url.parse(db_url, conn_max_age=600, ssl_require=not DEBUG)}
 
 
 CACHES = {
@@ -96,10 +108,12 @@ CACHES = {
 }
 
 CORS_ALLOWED_ORIGINS = [
+    # Local React dev servers.
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://studybuddy-omega-gray.vercel.app",
 ]
+CORS_ALLOWED_ORIGINS += _env_list("CORS_ALLOWED_ORIGINS", "")
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
@@ -107,8 +121,13 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = _env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://*.vercel.app,https://*.onrender.com",
+)
 
 REST_FRAMEWORK = {
+    # The frontend expects JSON-only responses and bearer-token auth.
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -131,6 +150,14 @@ SIMPLE_JWT = {
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Groq API — free at https://console.groq.com

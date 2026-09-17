@@ -14,6 +14,8 @@ from .views import (
 
 
 def health(_request):
+    """Small unauthenticated probe for deploy/platform health checks."""
+
     return JsonResponse({"status": "ok"})
 
 
