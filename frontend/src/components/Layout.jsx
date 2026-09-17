@@ -47,7 +47,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
+    <div className="min-h-screen bg-success-950 flex relative overflow-hidden">
       {/* Dynamic ambient background glow and grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
@@ -230,7 +230,7 @@ export default function Layout({ children }) {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-5 lg:px-6 py-6">
             {children}
           </div>
         </main>
