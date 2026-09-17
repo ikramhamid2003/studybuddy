@@ -10,6 +10,7 @@ export default function Button({
   size = "md",
   className = "",
   type = "button",
+  ...props
 }) {
   const location = useLocation();
   const path = location.pathname;
@@ -57,6 +58,7 @@ export default function Button({
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
         ${variants[variant]} ${sizes[size]} ${className}
       `}
+      {...props}
     >
       {/* Loading state keeps the button width/content stable while a request runs. */}
       {loading && <Loader2 className="w-4 h-4 animate-spin" />}

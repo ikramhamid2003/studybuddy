@@ -537,7 +537,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
             const utterance = new SpeechSynthesisUtterance(result.reply);
             window.speechSynthesis.speak(utterance);
           }
-        }} className="h-7 w-7 p-0" aria-label="Read aloud">
+        }} className="h-7 w-7 p-0" aria-label="Read aloud" title="Read aloud">
           <Volume2 size={14} />
         </Button>
       </div>
