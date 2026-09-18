@@ -87,6 +87,7 @@ export default function FlashcardsPage() {
             value={numCards}
             onChange={(e) => setNumCards(e.target.value)}
             className="sm:w-44"
+            color="sky"
           >
             <option value="5">5 cards</option>
             <option value="8">8 cards</option>

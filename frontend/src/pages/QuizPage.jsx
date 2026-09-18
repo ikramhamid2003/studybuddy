@@ -81,12 +81,12 @@ export default function QuizPage() {
             className="flex-1"
             leftIcon={<Trophy className="w-4 h-4" />}
           />
-          <Select label="Questions" value={numQ} onChange={(e) => setNumQ(e.target.value)} className="sm:w-36">
+          <Select label="Questions" value={numQ} onChange={(e) => setNumQ(e.target.value)} className="sm:w-36" color="violet">
             <option value="3">3</option>
             <option value="5">5</option>
             <option value="8">8</option>
           </Select>
-          <Select label="Difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="sm:w-40">
+          <Select label="Difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="sm:w-40" color="violet">
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>

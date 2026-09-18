@@ -71,6 +71,7 @@ export default function ExplainPage() {
             value={level}
             onChange={(e) => setLevel(e.target.value)}
             className="sm:w-40"
+            color="amber"
           >
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>

@@ -540,6 +540,7 @@ export default function AllPage() {
               value={level}
               onChange={(e) => setLevel(e.target.value)}
               className="sm:w-40"
+              color="amber"
             >
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
@@ -553,6 +554,7 @@ export default function AllPage() {
               value={format}
               onChange={(e) => setFormat(e.target.value)}
               className="sm:w-40"
+              color="emerald"
             >
               <option value="bullets">Bullets</option>
               <option value="paragraph">Paragraph</option>
@@ -567,6 +569,7 @@ export default function AllPage() {
                 value={numQ}
                 onChange={(e) => setNumQ(e.target.value)}
                 className="sm:w-32"
+                color="violet"
               >
                 <option value="3">3</option>
                 <option value="5">5</option>
@@ -578,6 +581,7 @@ export default function AllPage() {
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
                 className="sm:w-36"
+                color="violet"
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -592,6 +596,7 @@ export default function AllPage() {
               value={numCards}
               onChange={(e) => setNumCards(e.target.value)}
               className="sm:w-40"
+              color="sky"
             >
               <option value="5">5 cards</option>
               <option value="8">8 cards</option>
@@ -605,6 +610,7 @@ export default function AllPage() {
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="sm:w-40"
+            color="rose"
           >
             {TOOL_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
