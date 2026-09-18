@@ -522,13 +522,6 @@ export default function ChatPage() {
             </Button>
           </div>
 
-          <div className="p-3 border-b border-slate-800">
-            <Button variant="secondary" size="sm" onClick={() => { startNewChat(); setSidebarOpen(false); }} className="w-full justify-center">
-              <Plus size={14} />
-              New Chat
-            </Button>
-          </div>
-
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {sessionsLoading ? (
               <div className="text-center py-4">
