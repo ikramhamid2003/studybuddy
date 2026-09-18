@@ -394,7 +394,7 @@ export default function AllPage() {
 
   function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
-    if (topic.trim().length < 30) return toast.error("Topic too short — add more content (at least 30 characters)");
+    if (type === "summarize" && topic.trim().length < 30) return toast.error("Topic too short — add more content (at least 30 characters)");
     mutate({ topic: topic.trim(), type, options: optionsFor() });
   }
 
@@ -506,8 +506,8 @@ export default function AllPage() {
               onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               className="flex-1"
               leftIcon={<Sparkles className="w-4 h-4" />}
-              hint={`${topic.length} characters${topic.length > 0 && topic.length < 30 ? " — need at least 30" : ""}`}
-              error={topic.length > 0 && topic.length < 30 ? "Topic too short — add more content" : undefined}
+              hint={type === "summarize" ? `${topic.length} characters${topic.length > 0 && topic.length < 30 ? " — need at least 30" : ""}` : "Any topic, concept, or study material"}
+              error={type === "summarize" && topic.length > 0 && topic.length < 30 ? "Topic too short — add more content" : undefined}
             />
             {type === "explain" && (
               <Select
@@ -590,7 +590,7 @@ export default function AllPage() {
             </Select>
           </div>
           <div className="mt-4">
-            <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim() || topic.trim().length < 30} size="lg">
+            <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim() || (type === "summarize" && topic.trim().length < 30)} size="lg">
               <ArrowRight size={16} />
               Generate
             </Button>
