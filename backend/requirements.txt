@@ -7,6 +7,8 @@ psycopg2-binary==2.9.11
 dj-database-url==3.1.2
 python-dotenv==1.2.2
 requests==2.32.5
+beautifulsoup4==4.13.4
+lxml==5.4.0
 gunicorn==25.1.0
 sentry-sdk[django]
 langchain-core

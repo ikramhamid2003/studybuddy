@@ -13,6 +13,7 @@ from rest_framework_simplejwt.serializers import (
 
 from .models import ChatMessage, ChatSession, Generation
 from .schemas import FlashcardsResponse, QuizResponse
+from .content_fetcher import process_topic_with_url
 
 try:
     from .langchain_client import (
@@ -33,37 +34,42 @@ except Exception:  # noqa: BLE001
 PUBLIC_ACTIONS = frozenset(["register", "login", "refresh", "health"])
 
 EXPLAIN_SYSTEM = (
-    "You are an expert tutor. Your task is to explain a concept clearly. "
+    "You are an expert tutor. Your task is to explain a concept clearly based on the provided content. "
+    "If the user provides a URL, base your explanation on the actual content from that webpage. "
     "Always respond with ONLY a valid JSON object — no markdown fences, no extra text. "
     "Use exactly this format: "
-    '{"explanation":"clear explanation text","key_points":["point 1","point 2","point 3"],'
+    '{"explanation":"clear explanation text based on the provided content","key_points":["point 1","point 2","point 3"],'
     '"analogy":"a simple real-world analogy","example":"a concrete example"}'
 )
 SUMMARIZE_SYSTEM = (
     "You are an expert at condensing academic study material. "
+    "If the user provides a URL or web content, summarize the actual content from that page. "
     "Always respond with ONLY a valid JSON object — no markdown fences, no extra text. "
     "Use exactly this format: "
-    '{"summary":"concise summary paragraph","key_concepts":["concept 1","concept 2","concept 3"],'
+    '{"summary":"concise summary of the provided content","key_concepts":["concept 1","concept 2","concept 3"],'
     '"important_terms":[{"term":"term name","definition":"brief definition"}],'
     '"study_tips":["tip 1","tip 2"]}'
 )
 QUIZ_SYSTEM = (
     "You are a quiz generator for students. "
+    "If the user provides a URL or web content, generate questions based on the actual content from that page. "
     "Always respond with ONLY a valid JSON object — no markdown, no extra text. "
     "Use exactly this format: "
-    '{"questions":[{"id":1,"question":"question text",'
+    '{"questions":[{"id":1,"question":"question text based on the provided content",'
     '"options":["A) option","B) option","C) option","D) option"],'
     '"answer":"A) option","explanation":"why this is correct"}]}'
 )
 FLASHCARDS_SYSTEM = (
     "You are a study flashcard creator. "
+    "If the user provides a URL or web content, create flashcards based on the actual content from that page. "
     "Always respond with ONLY a valid JSON object — no markdown, no extra text. "
     "Use exactly this format: "
-    '{"flashcards":[{"id":1,"front":"term or question","back":"definition or answer","hint":"short memory hint"}]}'
+    '{"flashcards":[{"id":1,"front":"term or question from the content","back":"definition or answer","hint":"short memory hint"}]}'
 )
 CHAT_SYSTEM = (
     "You are a friendly, knowledgeable study buddy AI assistant. "
     "Help students understand concepts, answer questions, and guide their learning. "
+    "If the user shares a URL or web content, use that content to provide specific, relevant answers. "
     "Be encouraging, clear, and concise. Use examples when helpful. "
     "Format responses in plain text — no JSON needed."
 )
@@ -211,6 +217,12 @@ def _action_generate(data, request):
     if not topic or not gen_type:
         return _error("topic and type required")
 
+    # Process topic - fetch URL content if applicable
+    topic_info = process_topic_with_url(topic)
+    content = topic_info["combined_content"]
+    has_url = topic_info["has_url"]
+    url_title = topic_info["fetched_content"]["title"] if topic_info["fetched_content"] else ""
+
     chat_history = []
     if gen_type == "chat":
         chat_history = (
@@ -219,12 +231,18 @@ def _action_generate(data, request):
             + data.get("history", [])[-CHAT_CONTEXT_TURNS:]
         )
 
+    # Build user message with URL context if available
+    def build_user_msg(base_msg):
+        if has_url and topic_info["fetched_content"] and topic_info["fetched_content"]["success"]:
+            return f"{base_msg}\n\n--- Web Content from {topic_info['original_topic']} ---\n{topic_info['fetched_content']['content']}"
+        return base_msg
+
     handlers = {
-        "explain": lambda: query_groq_json(EXPLAIN_SYSTEM, f'Explain "{topic}" at {data.get("level","beginner")} level.', max_tokens=700),
-        "summarize": lambda: query_groq_json(SUMMARIZE_SYSTEM, f'Summarize: {topic}', max_tokens=800),
-        "quiz": lambda: query_groq_structured(QUIZ_SYSTEM, f'Generate {data.get("num_questions",5)} quiz Qs about "{topic}" ({data.get("difficulty","medium")}).', QuizResponse, max_tokens=1000).model_dump(),
-        "flashcards": lambda: query_groq_structured(FLASHCARDS_SYSTEM, f'Create {data.get("num_cards",8)} flashcards about "{topic}".', FlashcardsResponse, max_tokens=900).model_dump(),
-        "chat": lambda: {"reply": chat_groq(CHAT_SYSTEM, chat_history, topic, max_tokens=600)},
+        "explain": lambda: query_groq_json(EXPLAIN_SYSTEM, build_user_msg(f'Explain "{topic}" at {data.get("level","beginner")} level.'), max_tokens=700),
+        "summarize": lambda: query_groq_json(SUMMARIZE_SYSTEM, build_user_msg(f'Summarize the following content:\n{content}'), max_tokens=800),
+        "quiz": lambda: query_groq_structured(QUIZ_SYSTEM, build_user_msg(f'Generate {data.get("num_questions",5)} quiz Qs about "{topic}" ({data.get("difficulty","medium")}).'), QuizResponse, max_tokens=1000).model_dump(),
+        "flashcards": lambda: query_groq_structured(FLASHCARDS_SYSTEM, build_user_msg(f'Create {data.get("num_cards",8)} flashcards about "{topic}".'), FlashcardsResponse, max_tokens=900).model_dump(),
+        "chat": lambda: {"reply": chat_groq(CHAT_SYSTEM, chat_history, build_user_msg(topic), max_tokens=600)},
     }
     handler = handlers.get(gen_type)
     if not handler:
@@ -236,6 +254,10 @@ def _action_generate(data, request):
 
     generation = Generation.objects.create(user=request.user, type=gen_type, topic=topic, result=result)
     result["generation_id"] = generation.id
+    if has_url:
+        result["source_url"] = topic_info["original_topic"]
+        if url_title:
+            result["source_title"] = url_title
     return _ok(result)
 
 
@@ -324,6 +346,10 @@ def _action_chat_stream(data, request):
     history = data.get("history", [])[-CHAT_CONTEXT_TURNS:]
     session_id = data.get("session_id")
 
+    # Process message for URLs
+    msg_info = process_topic_with_url(message)
+    processed_message = msg_info["combined_content"]
+
     full_reply_parts = []
     session = None
     if session_id:
@@ -341,7 +367,7 @@ def _action_chat_stream(data, request):
         try:
             # Forward each model chunk immediately while saving pieces for the
             # final persisted assistant message.
-            for chunk in stream_chat_groq(CHAT_SYSTEM, history, message, max_tokens=600):
+            for chunk in stream_chat_groq(CHAT_SYSTEM, history, processed_message, max_tokens=600):
                 full_reply_parts.append(chunk)
                 yield f"data: {{\"chunk\": {json.dumps(chunk)}}}\n\n".encode()
 
