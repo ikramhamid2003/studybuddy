@@ -120,6 +120,7 @@ export default function FlashcardsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={exportCSV}
+                color="sky"
               >
                 <Download size={13} />
                 Export CSV
@@ -128,6 +129,7 @@ export default function FlashcardsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleReset}
+                color="sky"
               >
                 <RotateCcw size={13} />
                 Reset All

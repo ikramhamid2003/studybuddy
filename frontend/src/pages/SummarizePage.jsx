@@ -114,6 +114,7 @@ export default function SummarizePage() {
                 onClick={() => copyToClipboard(fullText, setCopied)}
                 className="h-8 w-8 p-0"
                 aria-label={copied ? "Copied!" : "Copy summary"}
+                color="emerald"
               >
                 {copied ? <Check className="text-emerald-400" size={14} /> : <Copy className="text-slate-400" size={14} />}
               </Button>

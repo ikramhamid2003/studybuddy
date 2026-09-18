@@ -637,7 +637,7 @@ export default function AllPage() {
                 <MessageSquare size={14} className="text-slate-500" />
                 <span className="text-slate-500 text-xs font-mono uppercase tracking-wider">Chat Sessions</span>
               </div>
-              <Button variant="secondary" size="sm" onClick={startNewChatSession}>
+              <Button variant="secondary" size="sm" onClick={startNewChatSession} color="rose">
                 <Plus size={14} />
                 New Chat
               </Button>
@@ -697,7 +697,7 @@ export default function AllPage() {
                       leftIcon={<MessageSquare className="w-4 h-4" />}
                       disabled={chatLoading}
                     />
-                    <Button onClick={handleChatSend} loading={chatLoading} disabled={!chatInput.trim()} size="md">
+                    <Button onClick={handleChatSend} loading={chatLoading} disabled={!chatInput.trim()} size="md" color="rose">
                       <Send size={15} />
                     </Button>
                   </div>

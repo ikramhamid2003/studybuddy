@@ -120,6 +120,7 @@ export default function ExplainPage() {
                   onClick={() => copyToClipboard(fullText, setCopied)}
                   className="h-8 w-8 p-0"
                   aria-label={copied ? "Copied!" : "Copy explanation"}
+                  color="amber"
                 >
                   {copied ? <Check className="text-emerald-400" size={14} /> : <Copy className="text-slate-400" size={14} />}
                 </Button>

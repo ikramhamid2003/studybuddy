@@ -118,11 +118,26 @@ export function Textarea({
 }
 
 const SELECT_COLORS = {
-  amber: "focus:ring-amber-400/30 focus:border-amber-400",
-  emerald: "focus:ring-emerald-400/30 focus:border-emerald-400",
-  violet: "focus:ring-violet-400/30 focus:border-violet-400",
-  sky: "focus:ring-sky-400/30 focus:border-sky-400",
-  rose: "focus:ring-rose-400/30 focus:border-rose-400",
+  amber: {
+    focus: "focus:ring-amber-400/30 focus:border-amber-400",
+    option: "bg-slate-800 text-white hover:bg-amber-500/20",
+  },
+  emerald: {
+    focus: "focus:ring-emerald-400/30 focus:border-emerald-400",
+    option: "bg-slate-800 text-white hover:bg-emerald-500/20",
+  },
+  violet: {
+    focus: "focus:ring-violet-400/30 focus:border-violet-400",
+    option: "bg-slate-800 text-white hover:bg-violet-500/20",
+  },
+  sky: {
+    focus: "focus:ring-sky-400/30 focus:border-sky-400",
+    option: "bg-slate-800 text-white hover:bg-sky-500/20",
+  },
+  rose: {
+    focus: "focus:ring-rose-400/30 focus:border-rose-400",
+    option: "bg-slate-800 text-white hover:bg-rose-500/20",
+  },
 };
 
 export function Select({
@@ -138,7 +153,7 @@ export function Select({
   // Children remain explicit so each page controls its own option labels.
   const hasError = Boolean(error);
   const hasHint = Boolean(hint);
-  const colorClasses = SELECT_COLORS[color] || SELECT_COLORS.amber;
+  const colorTheme = SELECT_COLORS[color] || SELECT_COLORS.amber;
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -153,7 +168,7 @@ export function Select({
           focus:outline-none focus:ring-1 transition-colors duration-150 cursor-pointer
           ${hasError
             ? "border-rose-500/50 focus:border-rose-400 focus:ring-rose-400/30"
-            : `border-slate-700 ${colorClasses}`}
+            : `border-slate-700 ${colorTheme.focus}`}
           ${selectClassName}
         `}
         aria-invalid={hasError}

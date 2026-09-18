@@ -197,7 +197,7 @@ export default function QuizPage() {
 
       {questions.length > 0 && !submitted && (
         <div className="flex items-center gap-4 mt-4 animate-fade-up">
-          <Button onClick={submitQuiz} size="md">
+          <Button onClick={submitQuiz} size="md" color="violet">
             Submit Quiz ({answeredCount}/{questions.length})
           </Button>
           <span className="text-slate-500 text-xs font-mono">
