@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,6 +14,8 @@ import {
   Copy,
   CheckCircle,
   XCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
@@ -25,7 +27,7 @@ import ChatBubble from "../components/shared/ChatBubble";
 import ScoreCard from "../components/shared/ScoreCard";
 import SectionTitle from "../components/shared/SectionTitle";
 import TypeBadge from "../components/shared/TypeBadge";
-import { generateAll, listGenerations } from "../utils/api";
+import { generateAll, listGenerations, listChatSessions, getChatSession, deleteChatSession } from "../utils/api";
 
 const TOOL_OPTIONS = [
   { value: "explain", label: "Explain" },
@@ -348,8 +350,64 @@ export default function AllPage() {
   const [chatTurns, setChatTurns] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [historyTab, setHistoryTab] = useState("all");
+  const [chatSessions, setChatSessions] = useState([]);
+  const [activeChatSessionId, setActiveChatSessionId] = useState(null);
+  const [chatStarted, setChatStarted] = useState(false);
   const queryClient = useQueryClient();
   const chatBottomRef = useRef(null);
+
+  const refreshChatSessions = useCallback(async () => {
+    try {
+      const data = await listChatSessions();
+      setChatSessions(data);
+    } catch (err) {
+      toast.error("Couldn't load chat sessions");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (type === "chat") {
+      refreshChatSessions();
+    }
+  }, [type, refreshChatSessions]);
+
+  const openChatSession = useCallback(async (sessionId) => {
+    if (sessionId === activeChatSessionId) return;
+    try {
+      const data = await getChatSession(sessionId);
+      setActiveChatSessionId(sessionId);
+      setChatTurns(
+        data.messages.length
+          ? data.messages.map((m) => ({ role: m.role, content: m.content }))
+          : []
+      );
+      setChatStarted(data.messages.length > 0);
+    } catch (err) {
+      toast.error("Couldn't open that chat");
+    }
+  }, [activeChatSessionId]);
+
+  const startNewChatSession = useCallback(() => {
+    setActiveChatSessionId(null);
+    setChatTurns([]);
+    setChatStarted(false);
+    setChatInput("");
+  }, []);
+
+  const deleteChatSessionHandler = useCallback(async (sessionId) => {
+    try {
+      await deleteChatSession(sessionId);
+      setChatSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      if (activeChatSessionId === sessionId) {
+        setActiveChatSessionId(null);
+        setChatTurns([]);
+        setChatStarted(false);
+      }
+      toast.success("Chat deleted");
+    } catch (err) {
+      toast.error("Couldn't delete chat");
+    }
+  }, [activeChatSessionId]);
 
   const { data: history, isLoading: historyLoading } = useQuery({
     // No type filter here: the All page intentionally shows every saved tool.
@@ -376,6 +434,7 @@ export default function AllPage() {
     onSuccess: (data) => {
       setChatTurns((t) => [...t, { role: "assistant", content: data.reply }]);
       queryClient.invalidateQueries({ queryKey: ["generations"] });
+      refreshChatSessions();
     },
     onError: (err) => toast.error(err.message || "Message failed."),
   });
@@ -398,9 +457,9 @@ export default function AllPage() {
     if (type === "summarize" && topic.trim().length < 30) return toast.error("Topic too short — add more content (at least 30 characters)");
     if (type === "chat") {
       // For chat, send the topic as the first message to start the conversation
-      const history = [];
+      setChatStarted(true);
       setChatTurns([{ role: "user", content: topic.trim() }]);
-      sendChatMsg({ msg: topic.trim(), history });
+      sendChatMsg({ msg: topic.trim(), history: [] });
       return;
     }
     mutate({ topic: topic.trim(), type, options: optionsFor() });
@@ -410,6 +469,7 @@ export default function AllPage() {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput("");
+    setChatStarted(true);
     // Keep a short client-side transcript for the All-page chat UI while the
     // backend also persists each assistant reply as a saved generation.
     const history = chatTurns.slice(-6);
@@ -563,47 +623,84 @@ export default function AllPage() {
 
       {/* ── Chat conversation panel (shown when chat is selected) ── */}
       {type === "chat" && (
-        <Card variant="elevated" className="mb-6">
-          <div className="h-[420px] flex flex-col">
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-              {chatTurns.length === 0 && (
-                <Card variant="outlined" className="mx-4 mt-8 text-center py-8">
-                  <div className="w-12 h-12 rounded-xl bg-slate-800/60 flex items-center justify-center mx-auto mb-3 border border-slate-800">
-                    <MessageSquare className="text-slate-500" size={24} />
-                  </div>
-                  <p className="text-slate-400 text-sm font-medium mb-1">No messages yet</p>
-                  <p className="text-slate-600 text-xs font-light max-w-xs mx-auto">
-                    Ask anything — every reply is saved to your history too.
-                  </p>
-                </Card>
-              )}
-              {chatTurns.map((m, i) => (
-                <ChatBubble key={i} msg={m} />
-              ))}
-              {chatLoading && <ChatTyping />}
-              <div ref={chatBottomRef} />
-            </div>
-            <div className="border-t border-slate-800 px-4 py-3">
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="text"
-                  aria-label="Chat message"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value.slice(0, 2000))}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSend()}
-                  placeholder="Ask a question, request an explanation..."
-                  className="flex-1"
-                  leftIcon={<MessageSquare className="w-4 h-4" />}
-                  disabled={chatLoading}
-                />
-                <Button onClick={handleChatSend} loading={chatLoading} disabled={!chatInput.trim()} size="md">
-                  <Send size={15} />
-                </Button>
+        <div className="mb-6 space-y-4">
+          {/* Chat sessions list */}
+          <Card variant="elevated">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={14} className="text-slate-500" />
+                <span className="text-slate-500 text-xs font-mono uppercase tracking-wider">Chat Sessions</span>
               </div>
-              <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
+              <Button variant="secondary" size="sm" onClick={startNewChatSession}>
+                <Plus size={14} />
+                New Chat
+              </Button>
             </div>
-          </div>
-        </Card>
+            {chatSessions.length === 0 ? (
+              <p className="text-slate-600 text-xs">No saved chats yet. Start a conversation above.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {chatSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    onClick={() => openChatSession(session.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                      activeChatSessionId === session.id
+                        ? "bg-slate-800 text-white"
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-300"
+                    }`}
+                  >
+                    <MessageSquare size={12} className="flex-shrink-0" />
+                    <span className="text-sm truncate flex-1">{session.title}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteChatSessionHandler(session.id);
+                      }}
+                      className="p-1 rounded hover:bg-slate-700 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Chat panel - only show when chat has started */}
+          {chatStarted && (
+            <Card variant="elevated">
+              <div className="h-[420px] flex flex-col">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                  {chatTurns.map((m, i) => (
+                    <ChatBubble key={i} msg={m} />
+                  ))}
+                  {chatLoading && <ChatTyping />}
+                  <div ref={chatBottomRef} />
+                </div>
+                <div className="border-t border-slate-800 px-4 py-3">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="text"
+                      aria-label="Chat message"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value.slice(0, 2000))}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSend()}
+                      placeholder="Ask a question, request an explanation..."
+                      className="flex-1"
+                      leftIcon={<MessageSquare className="w-4 h-4" />}
+                      disabled={chatLoading}
+                    />
+                    <Button onClick={handleChatSend} loading={chatLoading} disabled={!chatInput.trim()} size="md">
+                      <Send size={15} />
+                    </Button>
+                  </div>
+                  <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Loading */}

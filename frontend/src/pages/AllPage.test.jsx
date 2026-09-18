@@ -78,12 +78,13 @@ test("shows the matching option controls when switching tools", () => {
   });
   expect(screen.getByLabelText("Number of cards")).toBeDefined();
 
-  // chat mode shows topic input (for context) and chat panel below
+  // chat mode shows topic input (for context) and sessions list, but chat panel is hidden until started
   fireEvent.change(screen.getByLabelText("Tool type"), {
     target: { value: "chat" },
   });
   expect(screen.getByLabelText("Topic")).toBeDefined();
-  expect(screen.getByLabelText("Chat message")).toBeDefined();
+  expect(screen.getByText("Chat Sessions")).toBeDefined();
+  expect(screen.queryByLabelText("Chat message")).toBeNull();
 });
 
 test("generate quiz posts selected options and supports interactive answering", async () => {
