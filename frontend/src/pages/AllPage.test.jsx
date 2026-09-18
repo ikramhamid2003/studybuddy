@@ -78,12 +78,12 @@ test("shows the matching option controls when switching tools", () => {
   });
   expect(screen.getByLabelText("Number of cards")).toBeDefined();
 
-  // chat replaces the topic form with a conversation panel
+  // chat mode shows topic input (for context) and chat panel below
   fireEvent.change(screen.getByLabelText("Tool type"), {
     target: { value: "chat" },
   });
+  expect(screen.getByLabelText("Topic")).toBeDefined();
   expect(screen.getByLabelText("Chat message")).toBeDefined();
-  expect(screen.queryByLabelText("Topic")).toBeNull();
 });
 
 test("generate quiz posts selected options and supports interactive answering", async () => {
@@ -135,16 +135,18 @@ test("chat mode sends message with history and appends replies", async () => {
     target: { value: "chat" },
   });
 
-  fireEvent.change(screen.getByLabelText("Chat message"), {
+  // Type a topic and click Start Chat to begin the conversation
+  fireEvent.change(screen.getByLabelText("Topic"), {
     target: { value: "hello" },
   });
-  fireEvent.keyDown(screen.getByLabelText("Chat message"), { key: "Enter" });
+  fireEvent.click(screen.getByRole("button", { name: /start chat/i }));
 
   await waitFor(() =>
     expect(generateAll).toHaveBeenCalledWith("hello", "chat", { history: [] })
   );
   await screen.findByText("first reply");
 
+  // Continue chatting in the chat panel
   fireEvent.change(screen.getByLabelText("Chat message"), {
     target: { value: "more" },
   });

@@ -395,6 +395,13 @@ export default function AllPage() {
   function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
     if (type === "summarize" && topic.trim().length < 30) return toast.error("Topic too short — add more content (at least 30 characters)");
+    if (type === "chat") {
+      // For chat, send the topic as the first message to start the conversation
+      const history = [];
+      setChatTurns([{ role: "user", content: topic.trim() }]);
+      sendChatMsg({ msg: topic.trim(), history });
+      return;
+    }
     mutate({ topic: topic.trim(), type, options: optionsFor() });
   }
 
@@ -450,8 +457,111 @@ export default function AllPage() {
         subtitle="Every tool with its full options — interactive results, saved history"
       />
 
-      {type === "chat" ? (
-        /* ── Chat conversation panel ── */
+      {/* ── Topic + per-type option controls ── */}
+      <Card variant="elevated" className="mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            label="Topic or Question"
+            aria-label="Topic"
+            placeholder={type === "chat" ? "What would you like to chat about?" : "e.g. Photosynthesis, The French Revolution, your study notes..."}
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+            className="flex-1"
+            leftIcon={<Sparkles className="w-4 h-4" />}
+            hint={type === "summarize" ? `${topic.length} characters${topic.length > 0 && topic.length < 30 ? " — need at least 30" : ""}` : type === "chat" ? "Topic context for chat history" : "Any topic, concept, or study material"}
+            error={type === "summarize" && topic.length > 0 && topic.length < 30 ? "Topic too short — add more content" : undefined}
+          />
+          {type === "explain" && (
+            <Select
+              label="Level"
+              aria-label="Level"
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="sm:w-40"
+            >
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </Select>
+          )}
+          {type === "summarize" && (
+            <Select
+              label="Format"
+              aria-label="Format"
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+              className="sm:w-40"
+            >
+              <option value="bullets">Bullets</option>
+              <option value="paragraph">Paragraph</option>
+              <option value="outline">Outline</option>
+            </Select>
+          )}
+          {type === "quiz" && (
+            <>
+              <Select
+                label="Questions"
+                aria-label="Questions"
+                value={numQ}
+                onChange={(e) => setNumQ(e.target.value)}
+                className="sm:w-32"
+              >
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="8">8</option>
+              </Select>
+              <Select
+                label="Difficulty"
+                aria-label="Difficulty"
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="sm:w-36"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </Select>
+            </>
+          )}
+          {type === "flashcards" && (
+            <Select
+              label="Number of Cards"
+              aria-label="Number of cards"
+              value={numCards}
+              onChange={(e) => setNumCards(e.target.value)}
+              className="sm:w-40"
+            >
+              <option value="5">5 cards</option>
+              <option value="8">8 cards</option>
+              <option value="10">10 cards</option>
+              <option value="15">15 cards</option>
+            </Select>
+          )}
+          <Select
+            label="Tool Type"
+            aria-label="Tool type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="sm:w-40"
+          >
+            {TOOL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="mt-4">
+          <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim() || (type === "summarize" && topic.trim().length < 30)} size="lg">
+            <ArrowRight size={16} />
+            {type === "chat" ? "Start Chat" : "Generate"}
+          </Button>
+        </div>
+      </Card>
+
+      {/* ── Chat conversation panel (shown when chat is selected) ── */}
+      {type === "chat" && (
         <Card variant="elevated" className="mb-6">
           <div className="h-[420px] flex flex-col">
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -491,109 +601,6 @@ export default function AllPage() {
               </div>
               <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
             </div>
-          </div>
-        </Card>
-      ) : (
-        /* ── Topic + per-type option controls ── */
-        <Card variant="elevated" className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              label="Topic or Question"
-              aria-label="Topic"
-              placeholder="e.g. Photosynthesis, The French Revolution, your study notes..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-              className="flex-1"
-              leftIcon={<Sparkles className="w-4 h-4" />}
-              hint={type === "summarize" ? `${topic.length} characters${topic.length > 0 && topic.length < 30 ? " — need at least 30" : ""}` : "Any topic, concept, or study material"}
-              error={type === "summarize" && topic.length > 0 && topic.length < 30 ? "Topic too short — add more content" : undefined}
-            />
-            {type === "explain" && (
-              <Select
-                label="Level"
-                aria-label="Level"
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-                className="sm:w-40"
-              >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </Select>
-            )}
-            {type === "summarize" && (
-              <Select
-                label="Format"
-                aria-label="Format"
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-                className="sm:w-40"
-              >
-                <option value="bullets">Bullets</option>
-                <option value="paragraph">Paragraph</option>
-                <option value="outline">Outline</option>
-              </Select>
-            )}
-            {type === "quiz" && (
-              <>
-                <Select
-                  label="Questions"
-                  aria-label="Questions"
-                  value={numQ}
-                  onChange={(e) => setNumQ(e.target.value)}
-                  className="sm:w-32"
-                >
-                  <option value="3">3</option>
-                  <option value="5">5</option>
-                  <option value="8">8</option>
-                </Select>
-                <Select
-                  label="Difficulty"
-                  aria-label="Difficulty"
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="sm:w-36"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </Select>
-              </>
-            )}
-            {type === "flashcards" && (
-              <Select
-                label="Number of Cards"
-                aria-label="Number of cards"
-                value={numCards}
-                onChange={(e) => setNumCards(e.target.value)}
-                className="sm:w-40"
-              >
-                <option value="5">5 cards</option>
-                <option value="8">8 cards</option>
-                <option value="10">10 cards</option>
-                <option value="15">15 cards</option>
-              </Select>
-            )}
-            <Select
-              label="Tool Type"
-              aria-label="Tool type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="sm:w-40"
-            >
-              {TOOL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="mt-4">
-            <Button onClick={handleGenerate} loading={loading} disabled={!topic.trim() || (type === "summarize" && topic.trim().length < 30)} size="lg">
-              <ArrowRight size={16} />
-              Generate
-            </Button>
           </div>
         </Card>
       )}
