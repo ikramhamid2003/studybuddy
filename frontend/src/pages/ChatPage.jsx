@@ -486,23 +486,24 @@ export default function ChatPage() {
         className="flex gap-4 relative"
         style={{ height: "calc(100vh - 280px)", minHeight: 400 }}
       >
-        {/* Mobile sidebar overlay backdrop */}
+        {/* Mobile sidebar backdrop - clicking outside closes sidebar */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* Sessions sidebar */}
+        {/* Sessions sidebar - responsive: fixed on desktop, block/hidden on mobile */}
         <div
           className={`
-            fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200
-            lg:relative lg:translate-x-0 lg:z-auto lg:w-56 lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
+            lg:relative lg:z-auto lg:w-56 lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
+            lg:block lg:hover:bg-slate-800/50
+            ${sidebarOpen ? "block" : "hidden"}
           `}
         >
-          {/* Mobile close header */}
+          {/* Mobile close header visible only on mobile */}
           <div className="p-3 border-b border-slate-800 flex items-center justify-between lg:hidden">
             <span className="text-white text-sm font-semibold">Chats</span>
             <button
@@ -514,14 +515,14 @@ export default function ChatPage() {
             </button>
           </div>
 
-          <div className="p-3 border-b border-slate-800 hidden lg:block">
+          <div className="p-3 border-b border-slate-800">
             <Button variant="secondary" size="sm" onClick={startNewChat} className="w-full justify-center">
               <Plus size={14} />
               New Chat
             </Button>
           </div>
-          {/* Mobile new chat button */}
-          <div className="p-3 border-b border-slate-800 lg:hidden">
+
+          <div className="p-3 border-b border-slate-800">
             <Button variant="secondary" size="sm" onClick={() => { startNewChat(); setSidebarOpen(false); }} className="w-full justify-center">
               <Plus size={14} />
               New Chat
