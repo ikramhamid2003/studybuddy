@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 from pydantic import BaseModel
+
 from study_api.langchain_client import (
     build_message_history,
     chat_groq,

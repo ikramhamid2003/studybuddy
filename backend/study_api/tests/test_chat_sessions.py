@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
+
 from study_api.models import ChatSession
 
 pytestmark = pytest.mark.django_db
