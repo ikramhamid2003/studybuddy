@@ -101,13 +101,14 @@ test("generate quiz posts selected options and supports interactive answering", 
   fireEvent.change(screen.getByLabelText("Difficulty"), {
     target: { value: "hard" },
   });
+  const topic = "Newton's Law of Universal Gravitation";
   fireEvent.change(screen.getByLabelText("Topic"), {
-    target: { value: "gravity" },
+    target: { value: topic },
   });
   fireEvent.click(screen.getByRole("button", { name: /generate/i }));
 
   await waitFor(() =>
-    expect(generateAll).toHaveBeenCalledWith("gravity", "quiz", {
+    expect(generateAll).toHaveBeenCalledWith(topic, "quiz", {
       num_questions: 8,
       difficulty: "hard",
     })
