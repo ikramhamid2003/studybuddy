@@ -347,6 +347,7 @@ export default function AllPage() {
   const [deckKey, setDeckKey] = useState(0);
   const [chatTurns, setChatTurns] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const [historyTab, setHistoryTab] = useState("all");
   const queryClient = useQueryClient();
   const chatBottomRef = useRef(null);
 
@@ -659,51 +660,69 @@ export default function AllPage() {
             </p>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(
-              history.reduce((groups, item) => {
-                const t = item.type || "other";
-                if (!groups[t]) groups[t] = [];
-                groups[t].push(item);
-                return groups;
-              }, {})
-            ).map(([type, items]) => (
-              <div key={type}>
-                <div className="flex items-center gap-2 mb-2">
-                  <TypeBadge type={type} />
-                  <span className="text-slate-600 text-xs font-mono">
-                    {items.length} {items.length === 1 ? "item" : "items"}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {items.map((item, index) => (
-                    <Card
-                      key={item.id}
-                      variant={active?.result === item.result ? "elevated" : "default"}
-                      hover
-                      onClick={() => {
-                        setActive({ type: item.type, topic: item.topic, result: item.result });
-                        setAnswers({});
-                        setSubmitted(false);
-                      }}
-                      className={`transition-all duration-200 ${
-                        active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
-                      }`}
-                      style={{ animationDelay: `${index * 30}ms` }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
-                        <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                        <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            {/* Tab navbar */}
+            <div className="flex gap-1 p-1 bg-slate-900/50 rounded-xl mb-4 border border-slate-800/50 overflow-x-auto">
+              {[
+                { key: "all", label: "All" },
+                ...TOOL_OPTIONS.map((o) => ({ key: o.value, label: o.label })),
+              ].map((tab) => {
+                const count = tab.key === "all"
+                  ? history.length
+                  : history.filter((h) => h.type === tab.key).length;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setHistoryTab(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                      historyTab === tab.key
+                        ? "bg-slate-800 text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                      historyTab === tab.key ? "bg-slate-700 text-slate-300" : "bg-slate-800 text-slate-600"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filtered history list */}
+            <div className="space-y-2">
+              {history
+                .filter((item) => historyTab === "all" || item.type === historyTab)
+                .map((item, index) => (
+                  <Card
+                    key={item.id}
+                    variant={active?.result === item.result ? "elevated" : "default"}
+                    hover
+                    onClick={() => {
+                      setActive({ type: item.type, topic: item.topic, result: item.result });
+                      setAnswers({});
+                      setSubmitted(false);
+                    }}
+                    className={`transition-all duration-200 ${
+                      active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
+                    }`}
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <TypeBadge type={item.type} />
+                      <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
+                      <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                      <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
+                    </div>
+                  </Card>
+                ))}
+            </div>
+          </>
+        )}
         )}
         )}
       </div>
