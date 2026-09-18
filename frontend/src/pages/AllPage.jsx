@@ -659,33 +659,52 @@ export default function AllPage() {
             </p>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {history.map((item, index) => (
-              <Card
-                key={item.id}
-                variant={active?.result === item.result ? "elevated" : "default"}
-                hover
-                onClick={() => {
-                  setActive({ type: item.type, topic: item.topic, result: item.result });
-                  setAnswers({});
-                  setSubmitted(false);
-                }}
-                className={`transition-all duration-200 ${
-                  active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
-                }`}
-                style={{ animationDelay: `${index * 30}ms` }}
-              >
-                <div className="flex items-center gap-3">
-                  <TypeBadge type={item.type} />
-                  <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
-                  <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
-                    {new Date(item.created_at).toLocaleDateString()}
+          <div className="space-y-6">
+            {Object.entries(
+              history.reduce((groups, item) => {
+                const t = item.type || "other";
+                if (!groups[t]) groups[t] = [];
+                groups[t].push(item);
+                return groups;
+              }, {})
+            ).map(([type, items]) => (
+              <div key={type}>
+                <div className="flex items-center gap-2 mb-2">
+                  <TypeBadge type={type} />
+                  <span className="text-slate-600 text-xs font-mono">
+                    {items.length} {items.length === 1 ? "item" : "items"}
                   </span>
-                  <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
                 </div>
-              </Card>
+                <div className="space-y-2">
+                  {items.map((item, index) => (
+                    <Card
+                      key={item.id}
+                      variant={active?.result === item.result ? "elevated" : "default"}
+                      hover
+                      onClick={() => {
+                        setActive({ type: item.type, topic: item.topic, result: item.result });
+                        setAnswers({});
+                        setSubmitted(false);
+                      }}
+                      className={`transition-all duration-200 ${
+                        active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
+                      }`}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
+                        <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                        <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
+        )}
         )}
       </div>
     </div>
