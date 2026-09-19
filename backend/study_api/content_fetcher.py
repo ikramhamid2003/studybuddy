@@ -11,8 +11,6 @@ import requests
 from bs4 import BeautifulSoup
 
 
-
-
 URL_PATTERN = re.compile(
     r"https?://(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)"
 )
@@ -64,14 +62,14 @@ def _is_safe_url(url):
         if hostname in BLOCKED_DOMAINS:
             return False, f"This website ({hostname}) blocks external access. Try copying the content directly."
         for pattern in BLOCKED_IP_PATTERNS:
-            if re.match(pattern, hostname, re.I):
+            if re.match(pattern, hostname, re.IGNORECASE):
                 return False, "Private/local URLs are not allowed"
         path = parsed.path.lower()
         for pattern in BLOCKED_PATHS:
-            if re.search(pattern, path, re.I):
+            if re.search(pattern, path, re.IGNORECASE):
                 return False, "This URL path is not accessible"
         return True, ""
-    except Exception:
+    except ValueError:
         return False, "Invalid URL format"
 
 
@@ -112,9 +110,9 @@ def fetch_url_content(url, timeout=15):
     except requests.exceptions.ConnectionError:
         return {"success": False, "url": url, "title": "", "content": "", "error": "Could not connect to this website."}
     except requests.exceptions.RequestException as e:
-        return {"success": False, "url": url, "title": "", "content": "", "error": f"Failed to fetch URL: {str(e)}"}
-    except Exception as e:
-        return {"success": False, "url": url, "title": "", "content": "", "error": f"Unexpected error: {str(e)}"}
+        return {"success": False, "url": url, "title": "", "content": "", "error": f"Failed to fetch URL: {e!s}"}
+    except RuntimeError as e:
+        return {"success": False, "url": url, "title": "", "content": "", "error": f"Unexpected error: {e!s}"}
 
 
 def process_topic_with_url(topic):

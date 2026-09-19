@@ -11,9 +11,9 @@ from rest_framework_simplejwt.serializers import (
     TokenRefreshSerializer,
 )
 
+from .content_fetcher import process_topic_with_url
 from .models import ChatMessage, ChatSession, Generation
 from .schemas import FlashcardsResponse, QuizResponse
-from .content_fetcher import process_topic_with_url
 
 try:
     from .langchain_client import (
