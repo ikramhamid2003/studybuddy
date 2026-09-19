@@ -94,8 +94,7 @@ export default function Button({
       {...props}
     >
       {/* Loading state keeps the button width/content stable while a request runs. */}
-      {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-      {children}
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : children}
       {/* Shimmer overlay for primary variant */}
       {variant === "primary" && !loading && !disabled && (
         <span className="absolute inset-0 overflow-hidden rounded-inherit pointer-events-none btn-shimmer" aria-hidden="true" />
