@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .content_fetcher import process_topic_with_url
 from .dispatchers import ACTION_MAP, PUBLIC_ACTIONS
 
 # pyrefly: ignore [missing-import]
@@ -157,10 +158,13 @@ def _quiz_response(validated):
     num_questions = validated["num_questions"]
     difficulty = validated["difficulty"]
 
+    topic_info = process_topic_with_url(topic)
+    content = topic_info["combined_content"]
+
     user_msg = (
-        f'Generate exactly {num_questions} multiple-choice quiz questions about "{topic}" '
+        f'Generate exactly {num_questions} multiple-choice quiz questions about the following content '
         f"at {difficulty} difficulty level. Each question must have 4 options (A, B, C, D), "
-        "one correct answer, and a brief explanation."
+        f"one correct answer, and a brief explanation.\n\nTOPIC/CONTENT:\n{content}"
     )
 
     def call(system, msg):
@@ -176,10 +180,13 @@ def _flashcards_response(validated):
     topic = validated["topic"]
     num_cards = validated["num_cards"]
 
+    topic_info = process_topic_with_url(topic)
+    content = topic_info["combined_content"]
+
     user_msg = (
-        f'Create exactly {num_cards} study flashcards for the topic: "{topic}". '
+        f'Create exactly {num_cards} study flashcards for the following content. '
         "Mix definitions, concepts, and application-type questions. "
-        "Each card should have a short hint to help with memorization."
+        f"Each card should have a short hint to help with memorization.\n\nTOPIC/CONTENT:\n{content}"
     )
 
     def call(system, msg):

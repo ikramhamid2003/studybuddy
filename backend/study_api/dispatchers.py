@@ -235,6 +235,8 @@ def _action_generate(data, request):
     def build_user_msg(base_msg):
         if has_url and topic_info["fetched_content"] and topic_info["fetched_content"]["success"]:
             return f"{base_msg}\n\n--- Web Content from {topic_info['original_topic']} ---\n{topic_info['fetched_content']['content']}"
+        if has_url and topic_info["fetched_content"] and not topic_info["fetched_content"]["success"]:
+            return f"{base_msg}\n\n[Note: Could not fetch content from the URL: {topic_info['fetched_content']['error']} Please generate content based on the URL title/topic instead.]"
         return base_msg
 
     handlers = {
