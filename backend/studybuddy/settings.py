@@ -162,7 +162,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Groq API — free at https://console.groq.com
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "groq/compound-mini")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # GlitchTip Error Tracking (Sentry-compatible) — DISABLED for local dev
 # Set GLITCHTIP_DSN env var to enable in production. Local dev never needs error tracking.

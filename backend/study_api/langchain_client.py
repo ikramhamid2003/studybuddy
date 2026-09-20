@@ -58,9 +58,8 @@ def query_groq_structured(
     """Query Groq and parse the response directly into the given Pydantic schema.
     Returns a validated instance of `schema`, not a raw dict.
 
-    Uses JSON prompting + parsing instead of Groq's native tool-calling,
-    because tool calling is not supported by models like groq/compound-mini
-    (it 400s with "'tool calling' is not supported with this model"). The
+    Uses JSON prompting + parsing instead of native tool-calling,
+    because tool calling is not supported by all Groq models. The
     prompts for quiz/flashcards already specify the exact JSON shape, so the
     output is parsed and validated against the schema instead.
     """
