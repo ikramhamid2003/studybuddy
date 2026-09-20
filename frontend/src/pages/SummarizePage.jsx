@@ -36,15 +36,6 @@ export default function SummarizePage() {
     mutate();
   }
 
-  const fullText = result
-    ? [
-        result.summary,
-        result.key_concepts?.length ? `\n\nKey Concepts:\n${result.key_concepts.map(c => `• ${c}`).join("\n")}` : "",
-        result.important_terms?.length ? `\n\nImportant Terms:\n${result.important_terms.map(t => `${t.term}: ${t.definition}`).join("\n")}` : "",
-        result.study_tips?.length ? `\n\nStudy Tips:\n${result.study_tips.map(t => `• ${t}`).join("\n")}` : "",
-      ].filter(Boolean).join("")
-    : "";
-
   return (
     <div>
       <PageHeader
