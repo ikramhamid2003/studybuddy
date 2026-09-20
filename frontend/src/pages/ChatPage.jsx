@@ -15,6 +15,10 @@ import {
   Copy,
   Check as CheckIcon,
   MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
@@ -305,6 +309,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const initialSessionOpenedRef = useRef(false);
@@ -498,9 +503,10 @@ export default function ChatPage() {
         <div
           className={`
             fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
-            lg:relative lg:z-auto lg:w-56 lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
+            lg:relative lg:z-auto lg:w-${sidebarCollapsed ? "20" : "56"} lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
             lg:block lg:hover:bg-slate-800/50
             ${sidebarOpen ? "block" : "hidden"}
+            transition-colors
           `}
         >
           {/* Mobile close header visible only on mobile */}
@@ -573,6 +579,13 @@ export default function ChatPage() {
                 </span>
               )}
             </div>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="lg:block p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <RotateCw size={16} /> : <RotateCcw size={16} />}
+            </button>
             <Button variant="ghost" size="sm" onClick={startNewChat}>
               <Trash2 size={13} />
               Clear
