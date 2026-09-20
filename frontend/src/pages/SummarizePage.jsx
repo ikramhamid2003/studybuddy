@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Tag, BookOpen, Lightbulb, Copy, Check, ArrowRight } from "lucide-react";
+import { Tag, BookOpen, Lightbulb, ArrowRight } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -9,7 +9,6 @@ import { Textarea, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import { generateAll } from "../utils/api";
-import { copyToClipboard } from "../utils/clipboard";
 
 export default function SummarizePage() {
   const queryClient = useQueryClient();
@@ -19,7 +18,6 @@ export default function SummarizePage() {
   const [format, setFormat] = useState("bullets");
   const [result, setResult] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
-  const [copied, setCopied] = useState(false);
   const { mutate, isPending: loading } = useMutation({
     mutationFn: () => generateAll(notes.trim(), "summarize", { format }),
     onSuccess: (data) => {
@@ -108,16 +106,6 @@ export default function SummarizePage() {
                   Summary
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(fullText, setCopied)}
-                className="h-8 w-8 p-0"
-                aria-label={copied ? "Copied!" : "Copy summary"}
-                color="emerald"
-              >
-                {copied ? <Check className="text-emerald-400" size={14} /> : <Copy className="text-slate-400" size={14} />}
-              </Button>
             </div>
             <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
           </Card>
