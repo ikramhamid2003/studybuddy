@@ -93,8 +93,13 @@ export default function Button({
       `}
       {...props}
     >
-      {/* Loading state keeps the button width/content stable while a request runs. */}
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : children}
+{/* Loading state shows "Logging in" text with spinner, or custom loadingText */}
+  {loading ? (
+    <span className="flex items-center gap-2">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      <span className="text-sm font-medium">Logging in</span>
+    </span>
+  ) : children}
       {/* Shimmer overlay for primary variant */}
       {variant === "primary" && !loading && !disabled && (
         <span className="absolute inset-0 overflow-hidden rounded-inherit pointer-events-none btn-shimmer" aria-hidden="true" />
