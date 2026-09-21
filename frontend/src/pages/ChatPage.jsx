@@ -15,8 +15,6 @@ import {
   Copy,
   Check as CheckIcon,
   MoreHorizontal,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
   RotateCw,
 } from "lucide-react";
