@@ -2,12 +2,17 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AllPage from "./AllPage";
-import { generateAll, listGenerations } from "../utils/api";
+import { generateAll, listGenerations, deleteGeneration } from "../utils/api";
 
 jest.mock("../utils/api", () => ({
   generateAll: jest.fn(),
   listGenerations: jest.fn(),
+  deleteGeneration: jest.fn(),
 }));
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 function renderPage() {
   // A fresh QueryClient keeps React Query cache isolated per test.
@@ -182,4 +187,74 @@ test("clicking a saved history item reopens its stored result", async () => {
 
   await screen.findByText("stored reply");
   expect(screen.getByTitle("Read aloud")).toBeDefined(); // TTS available
+});
+
+test("deleting a saved generation removes it from saved history", async () => {
+  // `rows` stands in for the server table so the refetch after deletion
+  // returns the shrunken list, exactly like the real endpoint.
+  let rows = [
+    {
+      id: 1,
+      type: "explain",
+      topic: "gravity",
+      result: { explanation: "old result" },
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ];
+  listGenerations.mockImplementation(() => Promise.resolve(rows));
+  deleteGeneration.mockImplementation(async (id) => {
+    rows = rows.filter((r) => r.id !== id);
+  });
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+
+  renderPage();
+  await screen.findByText("gravity");
+
+  fireEvent.click(screen.getByRole("button", { name: /delete saved explain generation/i }));
+
+  await waitFor(() => expect(deleteGeneration).toHaveBeenCalledWith(1));
+  await waitFor(() => expect(screen.queryByText("gravity")).toBeNull());
+  expect(screen.getByText(/No saved generations yet/i)).toBeDefined();
+});
+
+test("dismissing the delete confirmation keeps the generation", async () => {
+  listGenerations.mockResolvedValue([
+    {
+      id: 1,
+      type: "explain",
+      topic: "gravity",
+      result: { explanation: "old result" },
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ]);
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+
+  renderPage();
+  await screen.findByText("gravity");
+
+  fireEvent.click(screen.getByRole("button", { name: /delete saved explain generation/i }));
+
+  expect(deleteGeneration).not.toHaveBeenCalled();
+  expect(screen.getByText("gravity")).toBeDefined();
+});
+
+test("delete control does not open the generation behind it", async () => {
+  listGenerations.mockResolvedValue([
+    {
+      id: 1,
+      type: "quiz",
+      topic: "gravity",
+      result: { questions: [{ id: 1, question: "Q?", options: [], answer: "A", explanation: "e" }] },
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ]);
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+
+  renderPage();
+  await screen.findByText("gravity");
+
+  fireEvent.click(screen.getByRole("button", { name: /delete saved quiz generation/i }));
+
+  // The Card's own click handler must not fire, so no result panel appears.
+  expect(screen.queryByText("Q?")).toBeNull();
 });

@@ -188,6 +188,13 @@ export default function ExplainPage() {
           setResult(item.result);
           setActiveHistoryId(item.id);
         }}
+        onDeleted={(id) => {
+          // Clear the open explanation when the entry backing it is removed.
+          if (activeHistoryId === id) {
+            setResult(null);
+            setActiveHistoryId(null);
+          }
+        }}
       />
     </div>
   );

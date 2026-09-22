@@ -1,7 +1,8 @@
-import { History, RotateCcw, BookOpen, FileText, Zap, Layers, MessageSquare } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { History, RotateCcw, BookOpen, FileText, Zap, Layers, MessageSquare, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import LoadingSkeleton from "./LoadingSkeleton";
-import { listGenerations } from "../utils/api";
+import { deleteGeneration, listGenerations } from "../utils/api";
 import PropTypes from "prop-types";
 
 const TITLES = {
@@ -20,15 +21,29 @@ const ICONS = {
   chat: MessageSquare,
 };
 
-export default function ToolHistory({ type, activeId, onSelect }) {
+export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
   // Each tool page receives only its own saved generations by passing a type
   // filter to the shared history endpoint.
   const { data: history, isLoading, error, refetch } = useQuery({
     queryKey: ["generations", type],
     queryFn: () => listGenerations(type),
   });
+  const queryClient = useQueryClient();
 
   const Icon = ICONS[type] || BookOpen;
+
+  async function handleDelete(item) {
+    if (!window.confirm("Delete this saved generation? This can't be undone.")) return;
+    try {
+      await deleteGeneration(item.id);
+      // Invalidate the unfiltered key too, so the All page's list stays in sync.
+      queryClient.invalidateQueries({ queryKey: ["generations"] });
+      if (onDeleted) onDeleted(item.id);
+      toast.success("Deleted from history");
+    } catch (err) {
+      toast.error(err.message || "Couldn't delete that generation");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -107,34 +122,46 @@ export default function ToolHistory({ type, activeId, onSelect }) {
 
       <div className="space-y-2">
         {history.map((item, index) => (
-          <button
+          <div
             key={item.id}
-            // Parent pages know how to hydrate their own result UI from the
-            // stored generation payload.
-            onClick={() => onSelect(item)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-200 group ${
+            className={`w-full flex items-center gap-1 pr-2 rounded-xl border transition-all duration-200 group ${
               activeId === item.id
                 ? "border-amber-400/40 bg-slate-800 shadow-[0_0_20px_rgba(245,158,11,0.05)]"
                 : "border-slate-800 bg-slate-900/60 hover:bg-slate-800/60 hover:border-slate-700"
             }`}
             style={{ animationDelay: `${index * 30}ms` }}
-            aria-current={activeId === item.id ? "true" : undefined}
           >
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${
-                activeId === item.id ? "bg-amber-500/20 text-amber-400" : "bg-slate-800/60 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-400"
-              } transition-colors`}>
-                <Icon size={14} />
+            {/* Reopening and deleting are sibling controls so the row does not
+                nest one button inside another. */}
+            <button
+              onClick={() => onSelect(item)}
+              className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 text-left"
+              aria-current={activeId === item.id ? "true" : undefined}
+            >
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${
+                  activeId === item.id ? "bg-amber-500/20 text-amber-400" : "bg-slate-800/60 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-400"
+                } transition-colors`}>
+                  <Icon size={14} />
+                </div>
               </div>
-            </div>
-            <span className="text-slate-300 text-sm truncate flex-1">
-              {item.topic}
-            </span>
-            <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
-              {new Date(item.created_at).toLocaleDateString()}
-            </span>
-            <RotateCcw size={14} className="text-slate-600 flex-shrink-0 group-hover:text-amber-400 transition-colors" />
-          </button>
+              <span className="text-slate-300 text-sm truncate flex-1">
+                {item.topic}
+              </span>
+              <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
+                {new Date(item.created_at).toLocaleDateString()}
+              </span>
+              <RotateCcw size={14} className="text-slate-600 flex-shrink-0 group-hover:text-amber-400 transition-colors" />
+            </button>
+            <button
+              onClick={() => handleDelete(item)}
+              className="p-2 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex-shrink-0"
+              title="Delete from history"
+              aria-label={`Delete saved ${type} generation "${item.topic}"`}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         ))}
       </div>
     </div>
@@ -145,4 +172,5 @@ ToolHistory.propTypes = {
   type: PropTypes.oneOf(["explain", "summarize", "quiz", "flashcards", "chat"]).isRequired,
   activeId: PropTypes.number,
   onSelect: PropTypes.func.isRequired,
+  onDeleted: PropTypes.func,
 };

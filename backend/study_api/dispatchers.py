@@ -274,6 +274,21 @@ def _action_generations_list(data, request):
     return _ok([{"id": g.id, "type": g.type, "topic": g.topic, "result": g.result, "created_at": g.created_at.isoformat()} for g in qs])
 
 
+def _action_generation_delete(data, request):
+    """Delete one saved generation owned by the current user."""
+
+    generation_id = data.get("generation_id")
+    if not generation_id:
+        return _error("generation_id required")
+    # Filtering by user keeps one account from deleting another account's
+    # history, and returns a real 404 instead of a generic server error.
+    generation = Generation.objects.filter(id=generation_id, user=request.user).first()
+    if generation is None:
+        return _error("Generation not found", code=status.HTTP_404_NOT_FOUND)
+    generation.delete()
+    return _ok({})
+
+
 def _action_sessions_list(data, request):
     """List chat sessions for the authenticated sidebar."""
 
@@ -400,6 +415,7 @@ ACTION_MAP = {
     "refresh": _action_refresh,
     "generate": _action_generate,
     "generations_list": _action_generations_list,
+    "generation_delete": _action_generation_delete,
     "sessions_list": _action_sessions_list,
     "session_create": _action_session_create,
     "sessions_detail": _action_sessions_detail,

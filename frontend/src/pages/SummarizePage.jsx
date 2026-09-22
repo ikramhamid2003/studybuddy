@@ -175,6 +175,13 @@ export default function SummarizePage() {
           setResult(item.result);
           setActiveHistoryId(item.id);
         }}
+        onDeleted={(id) => {
+          // Clear the open summary when the entry backing it is removed.
+          if (activeHistoryId === id) {
+            setResult(null);
+            setActiveHistoryId(null);
+          }
+        }}
       />
     </div>
   );

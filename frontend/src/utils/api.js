@@ -39,6 +39,10 @@ export const listGenerations = async (type) =>
   // Undefined filters are ignored by the backend, giving the All page all tools.
   _request("generations_list", { query_type: type ?? undefined });
 
+export const deleteGeneration = async (generationId) =>
+  // Removes one saved history entry; the backend scopes it to the signed-in user.
+  _request("generation_delete", { generation_id: generationId });
+
 // ── Chat sessions ───────────────────────────────────────────────────────────
 
 export const listChatSessions = () => _request("sessions_list");

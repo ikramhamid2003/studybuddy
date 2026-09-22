@@ -218,6 +218,15 @@ export default function QuizPage() {
           setSubmitted(false);
           setActiveHistoryId(item.id);
         }}
+        onDeleted={(id) => {
+          // Clear the open quiz when the entry backing it is removed.
+          if (activeHistoryId === id) {
+            setQuestions([]);
+            setAnswers({});
+            setSubmitted(false);
+            setActiveHistoryId(null);
+          }
+        }}
       />
     </div>
   );

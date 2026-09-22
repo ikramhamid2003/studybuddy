@@ -247,3 +247,67 @@ def test_generations_list_filter_by_type(auth_client):
 def test_generations_require_auth(api_client):
     resp = api_client.get("/api/generations/")
     assert resp.status_code == 401
+
+
+# ── Deleting saved history (unified endpoint) ───────────────────────────────
+
+
+def test_unified_generation_delete_removes_only_that_row(auth_client):
+    keep = Generation.objects.create(
+        user=auth_client.user, type="explain", topic="keep", result={}
+    )
+    drop = Generation.objects.create(
+        user=auth_client.user, type="quiz", topic="drop", result={}
+    )
+
+    resp = auth_client.post(
+        "/api/unified/", {"action": "generation_delete", "generation_id": drop.id}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.data["ok"] is True
+    assert not Generation.objects.filter(id=drop.id).exists()
+    assert Generation.objects.filter(id=keep.id).exists()
+
+
+def test_unified_generation_delete_is_scoped_to_user(auth_client, other_auth_client):
+    theirs = Generation.objects.create(
+        user=other_auth_client.user, type="explain", topic="theirs", result={}
+    )
+
+    resp = auth_client.post(
+        "/api/unified/", {"action": "generation_delete", "generation_id": theirs.id}, format="json"
+    )
+    assert resp.status_code == 404
+    assert resp.data["ok"] is False
+    # The other account's history survives the attempt.
+    assert Generation.objects.filter(id=theirs.id).exists()
+
+
+def test_unified_generation_delete_requires_auth(api_client):
+    resp = api_client.post(
+        "/api/unified/", {"action": "generation_delete", "generation_id": 1}, format="json"
+    )
+    assert resp.status_code == 401
+
+
+def test_unified_generation_delete_requires_id(auth_client):
+    resp = auth_client.post(
+        "/api/unified/", {"action": "generation_delete"}, format="json"
+    )
+    assert resp.status_code == 400
+    assert resp.data["ok"] is False
+
+
+def test_deleted_generation_disappears_from_list(auth_client):
+    generation = Generation.objects.create(
+        user=auth_client.user, type="explain", topic="gone soon", result={}
+    )
+    auth_client.post(
+        "/api/unified/", {"action": "generation_delete", "generation_id": generation.id}, format="json"
+    )
+
+    resp = auth_client.post(
+        "/api/unified/", {"action": "generations_list"}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.data["data"] == []

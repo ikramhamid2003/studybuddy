@@ -418,9 +418,9 @@ class UnifiedAPIView(APIView):
     Response  : ``{"ok": true/false, "data": ..., "error": ...}``
 
     Public actions (no JWT needed): register, login, refresh, health
-    Authenticated actions: generate, generations_list, sessions_list,
-    session_create, sessions_detail, session_rename, session_delete,
-    unregister, chat_stream
+    Authenticated actions: generate, generations_list, generation_delete,
+    sessions_list, session_create, sessions_detail, session_rename,
+    session_delete, unregister, chat_stream
     """
 
     permission_classes = (AllowAny,)

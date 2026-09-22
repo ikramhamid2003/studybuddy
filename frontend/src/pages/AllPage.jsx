@@ -27,7 +27,7 @@ import ChatBubble from "../components/shared/ChatBubble";
 import ScoreCard from "../components/shared/ScoreCard";
 import SectionTitle from "../components/shared/SectionTitle";
 import TypeBadge from "../components/shared/TypeBadge";
-import { generateAll, listGenerations, listChatSessions, getChatSession, deleteChatSession } from "../utils/api";
+import { generateAll, listGenerations, deleteGeneration, listChatSessions, getChatSession, deleteChatSession } from "../utils/api";
 
 const TOOL_OPTIONS = [
   { value: "explain", label: "Explain" },
@@ -414,6 +414,19 @@ export default function AllPage() {
     queryKey: ["generations"],
     queryFn: () => listGenerations(),
   });
+
+  const deleteGenerationHandler = useCallback(async (item) => {
+    if (!window.confirm("Delete this saved generation? This can't be undone.")) return;
+    try {
+      await deleteGeneration(item.id);
+      queryClient.invalidateQueries({ queryKey: ["generations"] });
+      // Close the result panel if it was showing the entry that just vanished.
+      setActive((current) => (current?.result === item.result ? null : current));
+      toast.success("Deleted from history");
+    } catch (err) {
+      toast.error(err.message || "Couldn't delete that generation");
+    }
+  }, [queryClient]);
 
   const { mutate, isPending: loading } = useMutation({
     mutationFn: (vars) => generateAll(vars.topic, vars.type, vars.options),
@@ -820,6 +833,20 @@ export default function AllPage() {
                         {new Date(item.created_at).toLocaleDateString()}
                       </span>
                       <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteGenerationHandler(item);
+                        }}
+                        // The Card opens the generation on click/keypress, so the
+                        // delete control keeps its events to itself.
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="p-1.5 -mr-1 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex-shrink-0"
+                        title="Delete from history"
+                        aria-label={`Delete saved ${item.type} generation "${item.topic}"`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </Card>
                 ))}

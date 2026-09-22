@@ -169,6 +169,13 @@ export default function FlashcardsPage() {
           setActiveHistoryId(item.id);
           setKey((k) => k + 1);
         }}
+        onDeleted={(id) => {
+          // Clear the open deck when the entry backing it is removed.
+          if (activeHistoryId === id) {
+            setCards([]);
+            setActiveHistoryId(null);
+          }
+        }}
       />
     </div>
   );
