@@ -15,8 +15,8 @@ import {
   Copy,
   Check as CheckIcon,
   MoreHorizontal,
-  RotateCcw,
-  RotateCw,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
@@ -152,11 +152,15 @@ const SUGGESTIONS = [
 
 const LAST_CHAT_SESSION_KEY = "studybuddy:lastChatSessionId";
 
-function SessionRow({ session, active, onSelect, onRename, onDelete }) {
+function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }) {
   // Inline rename state stays local to each sidebar row.
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // `collapsed` only affects the desktop rail (the mobile drawer is always wide),
+  // so text is hidden at `lg` rather than removed from the DOM.
+  const hideWhenCollapsed = collapsed ? "lg:hidden" : "";
 
   function startEdit(e) {
     e.stopPropagation();
@@ -200,7 +204,8 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
     <div className="relative">
       <div
         onClick={handleSelectRow}
-        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-colors
+        className={`flex items-center gap-2 py-2.5 rounded-xl cursor-pointer transition-colors
+          ${collapsed ? "lg:justify-center lg:px-2" : "px-3"}
           ${active ? "bg-amber-400/10 border border-amber-400/30" : "hover:bg-slate-800/60 border border-transparent"}`}
       >
         <MessageSquare
@@ -218,18 +223,18 @@ function SessionRow({ session, active, onSelect, onRename, onDelete }) {
               if (e.key === "Enter") commitEdit(e);
               if (e.key === "Escape") cancelEdit(e);
             }}
-            className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400"
+            className={`${hideWhenCollapsed} flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400`}
           />
         ) : (
           <span
-            className={`flex-1 min-w-0 truncate text-xs ${active ? "text-amber-300 font-medium" : "text-slate-400"}`}
+            className={`${hideWhenCollapsed} flex-1 min-w-0 truncate text-xs ${active ? "text-amber-300 font-medium" : "text-slate-400"}`}
           >
             {session.title}
           </span>
         )}
 
         {/* Action menu button - always visible */}
-        <div className="relative">
+        <div className={`relative ${hideWhenCollapsed}`}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -499,12 +504,14 @@ export default function ChatPage() {
 
         {/* Sessions sidebar - responsive: fixed on desktop, block/hidden on mobile */}
         <div
+          role="complementary"
+          aria-label="Chat sessions"
           className={`
             fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
-            lg:relative lg:z-auto lg:w-${sidebarCollapsed ? "20" : "56"} lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
+            lg:relative lg:z-auto ${sidebarCollapsed ? "lg:w-20" : "lg:w-56"} lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
             lg:block lg:hover:bg-slate-800/50
             ${sidebarOpen ? "block" : "hidden"}
-            transition-colors
+            transition-[width] duration-200
           `}
         >
           {/* Mobile close header visible only on mobile */}
@@ -519,25 +526,38 @@ export default function ChatPage() {
             </button>
           </div>
 
-          <div className="p-3 border-b border-slate-800">
-            <Button variant="secondary" size="sm" onClick={startNewChat} className="w-full justify-center">
+          <div className={sidebarCollapsed ? "p-3 border-b border-slate-800 lg:px-2" : "p-3 border-b border-slate-800"}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={startNewChat}
+              className="w-full justify-center"
+              aria-label="New Chat"
+              title="New Chat"
+            >
               <Plus size={14} />
-              New Chat
+              <span className={sidebarCollapsed ? "lg:hidden" : ""}>New Chat</span>
             </Button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {sessionsLoading ? (
               <div className="text-center py-4">
-                <LoadingSkeleton lines={2} message="Loading chats..." variant="inline" />
+                <LoadingSkeleton
+                  lines={2}
+                  message={sidebarCollapsed ? "" : "Loading chats..."}
+                  variant="inline"
+                />
               </div>
             ) : sessions.length === 0 ? (
               <div className="text-center py-8 px-2">
                 <div className="w-10 h-10 rounded-xl bg-slate-800/60 flex items-center justify-center mx-auto mb-2 border border-slate-800">
                   <MessageSquare className="text-slate-500" size={20} />
                 </div>
-                <p className="text-slate-500 text-xs font-mono mb-1">No chats yet</p>
-                <p className="text-slate-600 text-[10px] font-light max-w-xs mx-auto">
+                <p className={`${sidebarCollapsed ? "lg:hidden" : ""} text-slate-500 text-xs font-mono mb-1`}>
+                  No chats yet
+                </p>
+                <p className={`${sidebarCollapsed ? "lg:hidden" : ""} text-slate-600 text-[10px] font-light max-w-xs mx-auto`}>
                   Send a message to start your first conversation.
                 </p>
               </div>
@@ -547,6 +567,7 @@ export default function ChatPage() {
                   key={s.id}
                   session={s}
                   active={s.id === activeSessionId}
+                  collapsed={sidebarCollapsed}
                   onSelect={(id) => { openSession(id); setSidebarOpen(false); }}
                   onRename={handleRename}
                   onDelete={handleDelete}
@@ -569,6 +590,16 @@ export default function ChatPage() {
               >
                 <MessageSquare size={16} />
               </button>
+              {/* Desktop collapse toggle for the sessions rail */}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:inline-flex p-1.5 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-expanded={!sidebarCollapsed}
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              </button>
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
               <span className="text-slate-500 text-xs font-mono">AI Online</span>
               {activeSessionId && (
@@ -577,13 +608,6 @@ export default function ChatPage() {
                 </span>
               )}
             </div>
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="lg:block p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <RotateCw size={16} /> : <RotateCcw size={16} />}
-            </button>
             <Button variant="ghost" size="sm" onClick={startNewChat}>
               <Trash2 size={13} />
               Clear

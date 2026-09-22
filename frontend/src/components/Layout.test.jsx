@@ -60,3 +60,28 @@ test("dropdown opens with nav items and user section, closes on navigation", () 
   // trigger label follows the new current page after navigation
   expect(screen.getByRole("button", { name: /summarize/i })).toBeDefined();
 });
+
+test("desktop sidebar collapses to an icon rail and the content margin follows", () => {
+  renderLayout("/explain");
+  const aside = screen.getByRole("complementary");
+  const main = screen.getByRole("main");
+
+  expect(aside.className).toContain("w-64");
+  expect(main.className).toContain("lg:ml-64");
+
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+
+  // static width classes, so Tailwind actually emits them
+  expect(aside.className).toContain("w-20");
+  expect(aside.className).not.toContain("w-64");
+  expect(main.className).toContain("lg:ml-20");
+  expect(main.className).not.toContain("lg:ml-64");
+  // labels leave the DOM so the rail is icons-only
+  expect(screen.queryByText("Summarize")).toBeNull();
+  expect(screen.queryByText("Tools")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: /expand sidebar/i }));
+
+  expect(aside.className).toContain("w-64");
+  expect(screen.getByText("Summarize")).toBeDefined();
+});
