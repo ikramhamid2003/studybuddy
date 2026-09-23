@@ -342,7 +342,10 @@ export default function Layout({ children }) {
             sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
           }`}
         >
-          <div className="max-w-6xl mx-auto px-4 sm:px-5 lg:px-6 py-6">
+          {/* The workspace fills the viewport: a capped column left large dead
+              margins once the sidebar was collapsed, so the only inset now is a
+              small gutter against the window edges. */}
+          <div className="w-full px-3 sm:px-4 py-6">
             {children}
           </div>
         </main>

@@ -28,7 +28,7 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-rose-500/5 pointer-events-none" />
 
       {/* Hero Section */}
-      <section className="text-center py-20 space-y-8 max-w-4xl mx-auto animate-fade-in relative z-10">
+      <section className="text-center py-20 space-y-8 w-full px-3 sm:px-4 animate-fade-in relative z-10">
         <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-slate-900/60 border border-slate-700/80 rounded-full text-xs text-amber-300 font-semibold font-mono uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.1)] backdrop-blur-md">
           <Sparkles size={14} className="text-amber-400 animate-pulse" />
           The Future of Learning is Here
@@ -52,7 +52,7 @@ export default function HomePage() {
       </section>
 
       {/* Feature grid doubles as navigation into the primary study tools. */}
-      <section className="space-y-16 animate-fade-up relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
+      <section className="space-y-16 animate-fade-up relative z-10 w-full px-3 sm:px-4">
         <div className="text-center max-w-2xl mx-auto space-y-4">
           <h2 className="text-4xl md:text-5xl font-extrabold text-white font-display tracking-tight">Study Suite</h2>
           <p className="text-slate-300 text-base font-light">Explore a unified toolkit engineered to maximize active recall and cognitive retention.</p>
@@ -217,7 +217,7 @@ export default function HomePage() {
       </section>
 
       {/* Bottom Premium Callout */}
-      <section className="relative z-10 max-w-4xl mx-auto px-4">
+      <section className="relative z-10 w-full px-3 sm:px-4">
         <div className="bg-gradient-to-br from-amber-500/20 via-violet-500/10 to-rose-500/20 border border-amber-500/30 rounded-[36px] p-12 md:p-16 text-center space-y-8 backdrop-blur-xl shadow-[0_0_60px_rgba(251,191,36,0.15)] relative overflow-hidden">
           {/* Vibrant decoration elements */}
           <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern bg-grid opacity-[0.05] pointer-events-none" />
