@@ -493,7 +493,9 @@ export default function ChatPage() {
   }
 
   return (
-    <div>
+    // Fills the leftover viewport height so the transcript scrolls internally
+    // and the composer sits at the bottom instead of ending mid-screen.
+    <div className="flex flex-1 flex-col min-h-0">
       <PageHeader
         icon="💬"
         title="Study Chat"
@@ -501,8 +503,7 @@ export default function ChatPage() {
       />
 
       <div
-        className="flex gap-4 relative"
-        style={{ height: "calc(100vh - 280px)", minHeight: 400 }}
+        className="flex gap-4 relative flex-1 min-h-[320px]"
       >
         {/* Mobile sidebar backdrop - clicking outside closes sidebar */}
         {sidebarOpen && (

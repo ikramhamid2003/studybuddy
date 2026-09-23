@@ -108,7 +108,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
+    <div className="app-height bg-slate-950 flex relative overflow-hidden">
       {/* Dynamic ambient background glow and grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
@@ -251,7 +251,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* ── Main ── */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10">
         {/* Mobile header with dropdown navigation */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
           <div className="flex items-center gap-2">
@@ -338,14 +338,14 @@ export default function Layout({ children }) {
 
         {/* Page content */}
         <main
-          className={`flex-1 overflow-y-auto transition-[margin] duration-200 ${
+          className={`flex flex-1 flex-col overflow-y-auto transition-[margin] duration-200 ${
             sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
           }`}
         >
-          {/* The workspace fills the viewport: a capped column left large dead
-              margins once the sidebar was collapsed, so the only inset now is a
-              small gutter against the window edges. */}
-          <div className="w-full px-3 sm:px-4 py-6">
+          {/* The wrapper is a flex column so a page can claim the leftover
+              viewport height (the chat workspace does) instead of guessing it
+              with a hardcoded 100vh offset. */}
+          <div className="flex w-full flex-1 flex-col min-h-0 px-3 py-6 sm:px-4">
             {children}
           </div>
         </main>

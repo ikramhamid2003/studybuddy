@@ -207,6 +207,19 @@
     background-color: #0f172a;
     color: #e2e8f0;
   }
+
+  /* The app shell needs a DEFINITE viewport height, not a minimum: the chat
+     workspace derives its own height from this chain so the transcript can
+     scroll inside it. `dvh` keeps the composer clear of mobile browser chrome
+     where supported, with `vh` as the fallback. */
+  .app-height {
+    height: 100vh;
+  }
+  @supports (height: 100dvh) {
+    .app-height {
+      height: 100dvh;
+    }
+  }
 }
 
 @layer utilities {
