@@ -502,9 +502,10 @@ export default function ChatPage() {
         subtitle="Ask anything — your AI tutor is ready to help"
       />
 
-      <div
-        className="flex gap-4 relative flex-1 min-h-[320px]"
-      >
+      {/* One surface holds both columns: the session rail and the transcript
+          are regions of a single card divided by a border, rather than two
+          floating panels with a gap between them. */}
+      <div className="flex relative flex-1 min-h-[320px] rounded-2xl border border-slate-800 bg-slate-900 shadow-card overflow-hidden">
         {/* Mobile sidebar backdrop - clicking outside closes sidebar */}
         {sidebarOpen && (
           <div
@@ -513,14 +514,15 @@ export default function ChatPage() {
           />
         )}
 
-        {/* Sessions sidebar - responsive: fixed on desktop, block/hidden on mobile */}
+        {/* Sessions rail - a region of the shared surface. It keeps its own
+            drawer styling on mobile, where it slides over the transcript. */}
         <div
           role="complementary"
           aria-label="Chat sessions"
           className={`
             fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
-            lg:relative lg:z-auto ${sidebarCollapsed ? "lg:w-20" : "lg:w-56"} lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
-            lg:flex lg:hover:bg-slate-800/50
+            lg:relative lg:z-auto ${sidebarCollapsed ? "lg:w-20" : "lg:w-56"}
+            lg:flex lg:border-slate-700/70
             ${sidebarOpen ? "block" : "hidden"}
             transition-[width] duration-200
           `}
@@ -588,8 +590,9 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Chat window */}
-        <div className="flex-1 min-w-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-card">
+        {/* Transcript region of the same surface: its chrome now comes from the
+            shared card, so it carries no border, radius or shadow of its own. */}
+        <div className="flex-1 min-w-0 flex flex-col">
           {/* Toolbar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
