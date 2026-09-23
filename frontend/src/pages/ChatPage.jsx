@@ -240,7 +240,7 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
               e.stopPropagation();
               setMenuOpen(!menuOpen);
             }}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition-colors flex-shrink-0"
+            className="icon-button flex-shrink-0"
             title="More actions"
             aria-label="Session actions"
             aria-expanded={menuOpen}
@@ -248,29 +248,26 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
             <MoreHorizontal size={14} />
           </button>
 
-          {/* Dropdown menu */}
+          {/* Actions menu */}
           {menuOpen && (
             <>
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full mt-1 w-40 z-50 rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden animate-fade-in">
-                <div className="p-1 space-y-0.5">
+              <div className="menu-panel absolute right-0 top-full mt-1 w-44 z-50 animate-fade-in">
+                <div className="p-2 space-y-0.5">
                   {!editing && (
                     <>
-                      <button
-                        onClick={handleRename}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                      >
-                        <Pencil size={14} />
+                      <button onClick={handleRename} className="menu-item">
+                        <Pencil size={14} className="flex-shrink-0" />
                         Rename
                       </button>
                       <button
                         onClick={handleDelete}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+                        className="menu-item menu-item--danger"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={14} className="flex-shrink-0" />
                         Delete
                       </button>
                     </>
@@ -279,16 +276,16 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
                     <>
                       <button
                         onClick={commitEdit}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        className="menu-item menu-item--confirm"
                       >
-                        <Check size={14} />
+                        <Check size={14} className="flex-shrink-0" />
                         Save
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-300 transition-colors"
+                        className="menu-item menu-item--quiet"
                       >
-                        <X size={14} />
+                        <X size={14} className="flex-shrink-0" />
                         Cancel
                       </button>
                     </>
@@ -519,7 +516,7 @@ export default function ChatPage() {
             <span className="text-white text-sm font-semibold">Chats</span>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="icon-button"
               aria-label="Close sidebar"
             >
               <X size={16} />
@@ -585,7 +582,7 @@ export default function ChatPage() {
               {/* Mobile sidebar toggle */}
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="icon-button lg:hidden -ml-1"
                 aria-label="Open sessions"
               >
                 <MessageSquare size={16} />
@@ -593,7 +590,7 @@ export default function ChatPage() {
               {/* Desktop collapse toggle for the sessions rail */}
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="hidden lg:inline-flex p-1.5 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="icon-button hidden lg:inline-flex -ml-1"
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 aria-expanded={!sidebarCollapsed}
                 title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}

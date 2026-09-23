@@ -155,7 +155,7 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
             </button>
             <button
               onClick={() => handleDelete(item)}
-              className="p-2 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex-shrink-0"
+              className="icon-button icon-button--danger flex-shrink-0"
               title="Delete from history"
               aria-label={`Delete saved ${type} generation "${item.topic}"`}
             >

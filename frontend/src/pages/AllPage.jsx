@@ -841,7 +841,7 @@ export default function AllPage() {
                         // The Card opens the generation on click/keypress, so the
                         // delete control keeps its events to itself.
                         onKeyDown={(e) => e.stopPropagation()}
-                        className="p-1.5 -mr-1 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex-shrink-0"
+                        className="icon-button icon-button--danger -mr-1 flex-shrink-0"
                         title="Delete from history"
                         aria-label={`Delete saved ${item.type} generation "${item.topic}"`}
                       >

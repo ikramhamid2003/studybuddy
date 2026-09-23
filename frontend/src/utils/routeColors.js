@@ -4,34 +4,38 @@
  * its own map. Add a new tool in one place and it propagates everywhere.
  */
 
+// Primary action fills. Each tool owns a bright -400 → -500 ramp carrying
+// near-black ink. White text on these accents measured 2.1–4.2:1, under the
+// 4.5:1 floor for button text; near-black ink on the same fills measures
+// 4.5–11.4:1. The glow stays light so the fill, not a halo, carries the weight.
 export const ROUTE_PRIMARY = {
   "/all": {
-    gradient: "bg-gradient-to-r from-fuchsia-600 to-fuchsia-500 hover:from-fuchsia-500 hover:to-fuchsia-400 text-white shadow-[0_4px_20px_rgba(217,70,239,0.35)] hover:shadow-[0_4px_28px_rgba(217,70,239,0.5)]",
+    gradient: "bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 hover:from-fuchsia-300 hover:to-fuchsia-400 text-slate-950 shadow-md shadow-fuchsia-500/25 hover:shadow-lg hover:shadow-fuchsia-500/35",
   },
   "/explain": {
-    gradient: "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
+    gradient: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35",
   },
   "/summarize": {
-    gradient: "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-[0_4px_20px_rgba(16,185,129,0.35)] hover:shadow-[0_4px_28px_rgba(16,185,129,0.5)]",
+    gradient: "bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-300 hover:to-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/35",
   },
   "/quiz": {
-    gradient: "bg-gradient-to-r from-violet-700 to-violet-600 hover:from-violet-600 hover:to-violet-500 text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.5)]",
+    gradient: "bg-gradient-to-r from-violet-400 to-violet-500 hover:from-violet-300 hover:to-violet-400 text-slate-950 shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/35",
   },
   "/flashcards": {
-    gradient: "bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white shadow-[0_4px_20px_rgba(14,165,233,0.35)] hover:shadow-[0_4px_28px_rgba(14,165,233,0.5)]",
+    gradient: "bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-slate-950 shadow-md shadow-sky-500/25 hover:shadow-lg hover:shadow-sky-500/35",
   },
   "/chat": {
-    gradient: "bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-[0_4px_20px_rgba(244,63,94,0.35)] hover:shadow-[0_4px_28px_rgba(244,63,94,0.5)]",
+    gradient: "bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-300 hover:to-rose-400 text-slate-950 shadow-md shadow-rose-500/25 hover:shadow-lg hover:shadow-rose-500/35",
   },
   "/login": {
-    gradient: "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
+    gradient: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35",
   },
   "/register": {
-    gradient: "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
+    gradient: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35",
   },
 };
 
-const DEFAULT_GRADIENT = "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]";
+const DEFAULT_GRADIENT = "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35";
 
 export function getPrimaryGradient(path) {
   return (ROUTE_PRIMARY[path] || ROUTE_PRIMARY["/explain"]).gradient || DEFAULT_GRADIENT;

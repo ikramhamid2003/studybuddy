@@ -117,26 +117,23 @@ export function Textarea({
   );
 }
 
+// Only focus colour lives here: the native option popup is painted by the OS,
+// so it is styled once globally in index.css instead of per colour.
 const SELECT_COLORS = {
   amber: {
     focus: "focus:ring-amber-400/30 focus:border-amber-400",
-    option: "bg-slate-800 text-white hover:bg-amber-500/20",
   },
   emerald: {
     focus: "focus:ring-emerald-400/30 focus:border-emerald-400",
-    option: "bg-slate-800 text-white hover:bg-emerald-500/20",
   },
   violet: {
     focus: "focus:ring-violet-400/30 focus:border-violet-400",
-    option: "bg-slate-800 text-white hover:bg-violet-500/20",
   },
   sky: {
     focus: "focus:ring-sky-400/30 focus:border-sky-400",
-    option: "bg-slate-800 text-white hover:bg-sky-500/20",
   },
   rose: {
     focus: "focus:ring-rose-400/30 focus:border-rose-400",
-    option: "bg-slate-800 text-white hover:bg-rose-500/20",
   },
 };
 

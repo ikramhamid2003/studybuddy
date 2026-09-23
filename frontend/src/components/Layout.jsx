@@ -91,7 +91,7 @@ export default function Layout({ children }) {
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+              className="icon-button"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-expanded={!sidebarCollapsed}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -219,21 +219,10 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-56 z-50 rounded-xl border border-slate-800 bg-slate-900 shadow-card overflow-hidden">
-                  <nav className="p-2 space-y-1">
+                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50">
+                  <nav className="p-2 space-y-0.5" aria-label="Tools menu">
                     {navItems.map(({ to, label, icon: Icon, color }) => (
-                      <NavLink
-                        key={to}
-                        to={to}
-                        onClick={() => setDropdownOpen(false)}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                            isActive
-                              ? "bg-slate-800 text-white"
-                              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                          }`
-                        }
-                      >
+                      <NavLink key={to} to={to} onClick={() => setDropdownOpen(false)} className="menu-item">
                         {({ isActive }) => (
                           <>
                             <Icon
@@ -242,7 +231,10 @@ export default function Layout({ children }) {
                             />
                             {label}
                             {isActive && (
-                              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span
+                                className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400"
+                                aria-hidden="true"
+                              />
                             )}
                           </>
                         )}
@@ -251,23 +243,27 @@ export default function Layout({ children }) {
                   </nav>
 
                   {user && (
-                    <div className="border-t border-slate-800 p-3">
-                      <div className="flex items-center gap-2 px-1">
-                        <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-xs">
-                          S
+                    <>
+                      <div className="menu-divider" />
+                      <div className="p-2">
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-xs">
+                            S
+                          </div>
+                          <p className="text-white text-sm font-semibold">Student</p>
                         </div>
-                        <p className="text-white text-sm font-semibold">Student</p>
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            logout();
+                          }}
+                          className="menu-item menu-item--quiet"
+                        >
+                          <LogOut size={16} className="flex-shrink-0" />
+                          Sign Out
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          logout();
-                        }}
-                        className="mt-2 w-full px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
               </>

@@ -20,10 +20,19 @@ async function _request(action, body = {}) {
     body: JSON.stringify({ action, ...body }),
   });
 
-  const json = await resp.json();
+  // Parse defensively: a platform error page or an HTML error response would
+  // make resp.json() throw and mask the real status behind a parse error.
+  let json = null;
+  try {
+    json = await resp.json();
+  } catch {
+    json = null;
+  }
 
-  if (!resp.ok || !json.ok) {
-    const msg = json.error || resp.statusText || "Request failed";
+  if (!resp.ok || !json || !json.ok) {
+    // Surface the server's own message when there is one, and always include
+    // the action and HTTP status so failures are diagnosable from the UI.
+    const msg = json?.error || `${action} failed (HTTP ${resp.status})`;
     throw new Error(msg);
   }
   return json.data;

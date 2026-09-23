@@ -118,9 +118,93 @@
     transition: all 0.6s ease;
     opacity: 0;
   }
-  .btn-shimmer:hover::after {
-    left: 130%;
-    opacity: 1;
+  /* The sweep is driven by the owning button, not the overlay itself: the
+     overlay is pointer-events-none, so it can never match :hover on its own.
+     It is decoration, so it only runs for users who asked for motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    .group:hover .btn-shimmer::after {
+      left: 130%;
+      opacity: 1;
+    }
+  }
+
+  /* ── Menu system ─────────────────────────────────────────────────────────
+     Popovers sit one step above the working surface. This is a dark theme, so
+     elevation reads through surface lightness plus a hairline border rather
+     than a heavy shadow, which would only mud. */
+  .menu-panel {
+    @apply rounded-xl border border-slate-800 bg-slate-900 overflow-hidden;
+    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  /* One item recipe for every popover, so a menu action looks the same
+     wherever it appears. */
+  .menu-item {
+    @apply w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg
+           text-left text-sm text-slate-300
+           transition-[background-color,color] duration-150 ease-out
+           hover:bg-slate-800 hover:text-white
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
+           focus-visible:ring-slate-400/70
+           motion-safe:active:scale-[0.98];
+  }
+
+  /* The item backing the current page. The dot in the markup carries the same
+     state without relying on colour alone. */
+  .menu-item[aria-current="page"] {
+    @apply bg-slate-800 text-white;
+  }
+
+  .menu-item--quiet {
+    @apply text-slate-400 hover:bg-slate-800 hover:text-slate-200;
+  }
+
+  .menu-item--confirm {
+    @apply text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300
+           focus-visible:ring-emerald-400/70;
+  }
+
+  .menu-item--danger {
+    @apply text-rose-400 hover:bg-rose-500/10 hover:text-rose-300
+           focus-visible:ring-rose-400/70;
+  }
+
+  .menu-divider {
+    @apply my-1 h-px bg-slate-800;
+  }
+
+  /* ── Icon-only controls ──────────────────────────────────────────────────
+     One treatment for every icon button, so hover, press, and focus behave
+     identically whether the control sits in a toolbar, a row, or a panel.
+     The 8px padding keeps the hit area above the 24px floor for a 14-16px
+     glyph. */
+  .icon-button {
+    @apply inline-flex items-center justify-center rounded-lg p-2
+           text-slate-400
+           transition-[background-color,color,transform] duration-150 ease-out
+           hover:bg-slate-800 hover:text-white
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70
+           focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+           motion-safe:active:scale-95
+           disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  /* Destructive icon actions stay quiet until pointed at, then turn rose. */
+  .icon-button--danger {
+    @apply text-slate-500 hover:bg-rose-500/10 hover:text-rose-300
+           focus-visible:ring-rose-400/70;
+  }
+
+  /* The control that owns an open panel stays lit while the panel is open. */
+  .icon-button[aria-expanded="true"] {
+    @apply bg-slate-800 text-white;
+  }
+
+  /* Native select popups are painted by the OS, not by Tailwind. Without this
+     the options inherit white text on a white popup surface. */
+  select option {
+    background-color: #0f172a;
+    color: #e2e8f0;
   }
 }
 

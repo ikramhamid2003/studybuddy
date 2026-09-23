@@ -3,43 +3,53 @@ import { useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
 import { getPrimaryGradient } from "../utils/routeColors";
 
+// Every primary fill is a bright -400 → -500 ramp carrying near-black ink.
+// White text on these accents measured 2.1–4.2:1, under the 4.5:1 floor for
+// button text; near-black ink on the same fills measures 4.5–11.4:1. The tinted
+// variants use the -300 text step for the same reason.
 const BUTTON_COLORS = {
   amber: {
-    primary: "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_28px_rgba(245,158,11,0.5)]",
-    secondary: "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20",
-    ghost: "bg-transparent hover:bg-amber-500/10 text-amber-400/70 hover:text-amber-400",
-    focus: "focus-visible:ring-amber-400/50",
+    primary: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35",
+    secondary: "bg-amber-500/10 hover:bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:border-amber-400/50",
+    ghost: "text-amber-300/80 hover:text-amber-200 hover:bg-amber-500/10",
+    focus: "focus-visible:ring-amber-400/70",
   },
   emerald: {
-    primary: "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-[0_4px_20px_rgba(16,185,129,0.35)] hover:shadow-[0_4px_28px_rgba(16,185,129,0.5)]",
-    secondary: "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20",
-    ghost: "bg-transparent hover:bg-emerald-500/10 text-emerald-400/70 hover:text-emerald-400",
-    focus: "focus-visible:ring-emerald-400/50",
+    primary: "bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-300 hover:to-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/35",
+    secondary: "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:border-emerald-400/50",
+    ghost: "text-emerald-300/80 hover:text-emerald-200 hover:bg-emerald-500/10",
+    focus: "focus-visible:ring-emerald-400/70",
   },
   violet: {
-    primary: "bg-gradient-to-r from-violet-700 to-violet-600 hover:from-violet-600 hover:to-violet-500 text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.5)]",
-    secondary: "bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/20",
-    ghost: "bg-transparent hover:bg-violet-500/10 text-violet-400/70 hover:text-violet-400",
-    focus: "focus-visible:ring-violet-400/50",
+    primary: "bg-gradient-to-r from-violet-400 to-violet-500 hover:from-violet-300 hover:to-violet-400 text-slate-950 shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/35",
+    secondary: "bg-violet-500/10 hover:bg-violet-500/15 text-violet-300 border border-violet-500/25 hover:border-violet-400/50",
+    ghost: "text-violet-300/80 hover:text-violet-200 hover:bg-violet-500/10",
+    focus: "focus-visible:ring-violet-400/70",
   },
   sky: {
-    primary: "bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white shadow-[0_4px_20px_rgba(14,165,233,0.35)] hover:shadow-[0_4px_28px_rgba(14,165,233,0.5)]",
-    secondary: "bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20",
-    ghost: "bg-transparent hover:bg-sky-500/10 text-sky-400/70 hover:text-sky-400",
-    focus: "focus-visible:ring-sky-400/50",
+    primary: "bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-slate-950 shadow-md shadow-sky-500/25 hover:shadow-lg hover:shadow-sky-500/35",
+    secondary: "bg-sky-500/10 hover:bg-sky-500/15 text-sky-300 border border-sky-500/25 hover:border-sky-400/50",
+    ghost: "text-sky-300/80 hover:text-sky-200 hover:bg-sky-500/10",
+    focus: "focus-visible:ring-sky-400/70",
   },
   rose: {
-    primary: "bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-[0_4px_20px_rgba(244,63,94,0.35)] hover:shadow-[0_4px_28px_rgba(244,63,94,0.5)]",
-    secondary: "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20",
-    ghost: "bg-transparent hover:bg-rose-500/10 text-rose-400/70 hover:text-rose-400",
-    focus: "focus-visible:ring-rose-400/50",
+    primary: "bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-300 hover:to-rose-400 text-slate-950 shadow-md shadow-rose-500/25 hover:shadow-lg hover:shadow-rose-500/35",
+    secondary: "bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:border-rose-400/50",
+    ghost: "text-rose-300/80 hover:text-rose-200 hover:bg-rose-500/10",
+    focus: "focus-visible:ring-rose-400/70",
   },
   fuchsia: {
-    primary: "bg-gradient-to-r from-fuchsia-600 to-fuchsia-500 hover:from-fuchsia-500 hover:to-fuchsia-400 text-white shadow-[0_4px_20px_rgba(217,70,239,0.35)] hover:shadow-[0_4px_28px_rgba(217,70,239,0.5)]",
-    secondary: "bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/20",
-    ghost: "bg-transparent hover:bg-fuchsia-500/10 text-fuchsia-400/70 hover:text-fuchsia-400",
-    focus: "focus-visible:ring-fuchsia-400/50",
+    primary: "bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 hover:from-fuchsia-300 hover:to-fuchsia-400 text-slate-950 shadow-md shadow-fuchsia-500/25 hover:shadow-lg hover:shadow-fuchsia-500/35",
+    secondary: "bg-fuchsia-500/10 hover:bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 hover:border-fuchsia-400/50",
+    ghost: "text-fuchsia-300/80 hover:text-fuchsia-200 hover:bg-fuchsia-500/10",
+    focus: "focus-visible:ring-fuchsia-400/70",
   },
+};
+
+// Semantic variants carry their own ring so focus matches what the button does.
+const SEMANTIC_FOCUS = {
+  danger: "focus-visible:ring-rose-400/70",
+  success: "focus-visible:ring-emerald-400/70",
 };
 
 export default function Button({
@@ -61,17 +71,25 @@ export default function Button({
   const colorTheme = color ? BUTTON_COLORS[color] : null;
 
   const selectedPrimary = colorTheme?.primary || getPrimaryGradient(path);
-  const focusColor = colorTheme?.focus || "focus-visible:ring-amber-400/50";
+  const focusColor =
+    colorTheme?.focus ||
+    SEMANTIC_FOCUS[variant] ||
+    "focus-visible:ring-amber-400/70";
 
   // Variant and size maps keep call sites small and consistent.
   const variants = {
-    primary: `${selectedPrimary} font-bold border-none relative overflow-hidden transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.99]`,
-    secondary: colorTheme?.secondary || "bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 hover:border-slate-700 shadow-sm",
-    ghost: colorTheme?.ghost || "bg-transparent hover:bg-slate-900 text-slate-400 hover:text-white",
+    // Primary owns the strongest treatment: bright fill, a light hue glow, and
+    // a small lift. Quieter variants change surface and text only.
+    primary: `border-none relative overflow-hidden ${selectedPrimary}`,
+    secondary:
+      colorTheme?.secondary ||
+      "bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600",
+    ghost:
+      colorTheme?.ghost || "text-slate-400 hover:text-white hover:bg-slate-800/70",
     danger:
-      "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20",
+      "bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:border-rose-400/50",
     success:
-      "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20",
+      "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:border-emerald-400/50",
   };
 
   const sizes = {
@@ -85,24 +103,32 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
+      // `aria-busy` marks the button as working while its label stays put.
+      aria-busy={loading || undefined}
       className={`
-        inline-flex items-center justify-center gap-2 transition-all duration-200 font-body
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-        focus-visible:outline-none focus-visible:ring-2 ${focusColor} focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+        group inline-flex items-center justify-center gap-2 font-body
+        transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out
+        disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none
+        disabled:shadow-none disabled:transform-none
+        focus-visible:outline-none focus-visible:ring-2 ${focusColor}
+        focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+        ${variant === "primary" ? "motion-safe:hover:-translate-y-px" : ""}
+        motion-safe:active:scale-[0.97]
         ${variants[variant]} ${sizes[size]} ${className}
       `}
       {...props}
     >
-{/* Loading state shows "Logging in" text with spinner, or custom loadingText */}
-  {loading ? (
-    <span className="flex items-center gap-2">
-      <Loader2 className="w-4 h-4 animate-spin" />
-      <span className="text-sm font-medium">Logging in</span>
-    </span>
-  ) : children}
+      {/* The label is never replaced while loading: it is what tells the user
+          (and assistive tech) which action is in flight, and keeping it stops
+          the button from changing width mid-request. */}
+      {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+      {children}
       {/* Shimmer overlay for primary variant */}
       {variant === "primary" && !loading && !disabled && (
-        <span className="absolute inset-0 overflow-hidden rounded-inherit pointer-events-none btn-shimmer" aria-hidden="true" />
+        <span
+          className="absolute inset-0 pointer-events-none btn-shimmer"
+          aria-hidden="true"
+        />
       )}
     </button>
   );
