@@ -135,7 +135,7 @@ export default function Layout({ children }) {
               <h1 className="font-display font-bold text-white text-lg leading-tight">
                 StudyBuddy
               </h1>
-              <p className="text-slate-500 text-xs font-mono">AI · Free</p>
+              <p className="text-slate-400 text-xs font-mono">AI · Free</p>
             </div>
           )}
         </div>
@@ -146,7 +146,7 @@ export default function Layout({ children }) {
             className={`flex items-center mb-3 ${sidebarCollapsed ? "justify-center" : "justify-between px-3"}`}
           >
             {!sidebarCollapsed && (
-              <p className="text-slate-600 text-xs font-mono uppercase tracking-widest">
+              <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">
                 Tools
               </p>
             )}

@@ -519,7 +519,7 @@ export default function ChatPage() {
           className={`
             fixed top-0 left-0 h-full z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
             lg:relative lg:z-auto ${sidebarCollapsed ? "lg:w-20" : "lg:w-56"} lg:rounded-2xl lg:border lg:border-slate-800 lg:bg-slate-900 lg:shadow-card
-            lg:block lg:hover:bg-slate-800/50
+            lg:flex lg:hover:bg-slate-800/50
             ${sidebarOpen ? "block" : "hidden"}
             transition-[width] duration-200
           `}

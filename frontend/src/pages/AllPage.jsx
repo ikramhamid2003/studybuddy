@@ -848,32 +848,32 @@ export default function AllPage() {
                   <Card
                     key={item.id}
                     variant={active?.result === item.result ? "elevated" : "default"}
-                    hover
-                    onClick={() => {
-                      setActive({ type: item.type, topic: item.topic, result: item.result });
-                      setAnswers({});
-                      setSubmitted(false);
-                    }}
                     className={`transition-all duration-200 ${
                       active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
                     }`}
                     style={{ animationDelay: `${index * 30}ms` }}
                   >
-                    <div className="flex items-center gap-3">
-                      <TypeBadge type={item.type} />
-                      <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
-                      <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </span>
-                      <RotateCcw size={14} className="text-slate-600 flex-shrink-0" />
+                    <div className="flex items-center gap-2">
+                      {/* The row is a real button and the delete control is its
+                          sibling: a button nested inside a role="button" card
+                          is an interactive-inside-interactive failure. */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteGenerationHandler(item);
+                        onClick={() => {
+                          setActive({ type: item.type, topic: item.topic, result: item.result });
+                          setAnswers({});
+                          setSubmitted(false);
                         }}
-                        // The Card opens the generation on click/keypress, so the
-                        // delete control keeps its events to itself.
-                        onKeyDown={(e) => e.stopPropagation()}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70"
+                      >
+                        <TypeBadge type={item.type} />
+                        <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
+                        <span className="text-slate-500 text-xs font-mono flex-shrink-0 hidden sm:inline">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                        <RotateCcw size={14} className="text-slate-500 flex-shrink-0" />
+                      </button>
+                      <button
+                        onClick={() => deleteGenerationHandler(item)}
                         className="icon-button icon-button--danger -mr-1 flex-shrink-0"
                         title="Delete from history"
                         aria-label={`Delete saved ${item.type} generation "${item.topic}"`}
