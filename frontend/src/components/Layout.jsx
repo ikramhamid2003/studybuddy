@@ -243,7 +243,7 @@ export default function Layout({ children }) {
             <div className="bg-slate-800/60 rounded-xl p-3">
               <p className="text-slate-400 text-xs leading-relaxed">
                 Powered by{" "}
-                <span className="text-amber-400 font-medium">Llama 3.3 70B</span>
+                <span className="text-amber-400 font-medium">GPT-OSS 120B</span>
               </p>
             </div>
           </div>

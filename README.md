@@ -86,7 +86,7 @@ pip install -r requirements.txt
 # Create .env file in the backend directory
 cat <<EOT > .env
 GROQ_API_KEY=gsk_your_actual_groq_api_key_here
-GROQ_MODEL=groq/compound-mini
+GROQ_MODEL=openai/gpt-oss-120b
 DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 SECRET_KEY=some-long-random-secret-key
 DEBUG=True

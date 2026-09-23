@@ -1,10 +1,16 @@
-import { deleteGeneration, listGenerations } from "./api";
+import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from "util";
+import { deleteGeneration, listGenerations, sendChatStream } from "./api";
+
+// jsdom does not provide these, but the streaming client decodes the SSE byte
+// stream with TextDecoder, so both sides of the test need them.
+if (typeof global.TextEncoder === "undefined") global.TextEncoder = NodeTextEncoder;
+if (typeof global.TextDecoder === "undefined") global.TextDecoder = NodeTextDecoder;
+
+const realFetch = global.fetch;
 
 // The unified client is the single place every API call funnels through, so its
 // error surfacing decides what users actually see when a request fails.
 describe("unified request error handling", () => {
-  const realFetch = global.fetch;
-
   afterEach(() => {
     global.fetch = realFetch;
   });
@@ -75,5 +81,75 @@ describe("unified request error handling", () => {
       action: "generation_delete",
       generation_id: 42,
     });
+  });
+});
+
+// Streaming responses are not JSON, so they need their own harness.
+describe("streaming chat frame handling", () => {
+  afterEach(() => {
+    global.fetch = realFetch;
+    jest.restoreAllMocks();
+  });
+
+  function mockStream(frames) {
+    const encoder = new TextEncoder();
+    let i = 0;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < frames.length
+              ? { value: encoder.encode(frames[i++]), done: false }
+              : { value: undefined, done: true },
+        }),
+      },
+    });
+  }
+
+  test("surfaces an error frame sent mid-stream instead of swallowing it", async () => {
+    // The regression this guards: the thrown server error was caught by the
+    // same guard that handles malformed JSON, so onError never fired and the
+    // user saw a dead chat with only a console line.
+    mockStream(['data: {"error":"model_not_found"}\n\n']);
+
+    const onError = jest.fn();
+    const onDone = jest.fn();
+
+    await sendChatStream("hi", [], 1, jest.fn(), onDone, onError);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0].message).toBe("model_not_found");
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  test("streams chunks and reports the session id on completion", async () => {
+    mockStream([
+      'data: {"chunk":"Hel"}\n\n',
+      'data: {"chunk":"lo"}\n\n',
+      'data: {"done":true,"session_id":42}\n\n',
+    ]);
+
+    const onChunk = jest.fn();
+    const onDone = jest.fn();
+
+    await sendChatStream("hi", [], null, onChunk, onDone, jest.fn());
+
+    expect(onChunk.mock.calls.map((call) => call[0])).toEqual(["Hel", "lo"]);
+    expect(onDone).toHaveBeenCalledWith(42);
+  });
+
+  test("skips a malformed frame and keeps reading the stream", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    mockStream(['data: {not json}\n\n', 'data: {"chunk":"ok"}\n\n']);
+
+    const onChunk = jest.fn();
+    const onError = jest.fn();
+
+    await sendChatStream("hi", [], null, onChunk, jest.fn(), onError);
+
+    expect(onChunk).toHaveBeenCalledWith("ok");
+    expect(onError).not.toHaveBeenCalled();
   });
 });

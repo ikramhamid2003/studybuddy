@@ -232,7 +232,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center gap-4 text-slate-300 text-xs font-mono pt-3">
             <div className="flex items-center gap-2 bg-slate-900/80 border border-amber-500/30 px-4 py-2 rounded-full">
               <Zap size={14} className="text-amber-400 animate-pulse" />
-              Llama 3.3 Streaming Inference
+              GPT-OSS Streaming Inference
             </div>
             <div className="flex items-center gap-2 bg-slate-900/80 border border-emerald-500/30 px-4 py-2 rounded-full">
               <ShieldCheck size={14} className="text-emerald-400" />
