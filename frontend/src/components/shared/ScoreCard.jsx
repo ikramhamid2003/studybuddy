@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 export default function ScoreCard({ score, total, onRetry }) {
   const pct = Math.round((score / total) * 100);
   const color =
-    pct >= 80 ? "text-emerald-450 font-black" : pct >= 50 ? "text-amber-450 font-semibold" : "text-rose-450";
+    pct >= 80 ? "text-emerald-400 font-black" : pct >= 50 ? "text-amber-400 font-semibold" : "text-rose-400";
   const barColor =
     pct >= 80
       ? "bg-gradient-to-r from-emerald-500 to-emerald-400"

@@ -86,7 +86,7 @@ function MessageBubble({ msg, onCopy }) {
         <div
           className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
             ${isUser
-              ? "bg-gradient-to-r from-rose-500 to-rose-450 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
+              ? "bg-gradient-to-r from-rose-500 to-rose-400 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
               : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
             }`}
         >
@@ -98,7 +98,7 @@ function MessageBubble({ msg, onCopy }) {
               variant="ghost"
               size="sm"
               onClick={() => toggleSpeech(msg.content)}
-              className={`h-7 w-7 p-0 transition-colors ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-slate-500 hover:text-rose-400'}`}
+              className={`h-7 w-7 p-0 transition-colors ${isSpeaking ? 'text-rose-300 bg-rose-500/20 animate-pulse' : 'text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/15'}`}
               title={isSpeaking ? "Stop reading" : "Read aloud"}
               aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
             >
@@ -108,7 +108,7 @@ function MessageBubble({ msg, onCopy }) {
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-7 w-7 p-0 text-slate-500 hover:text-amber-400 transition-colors"
+              className="h-7 w-7 p-0 text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
               title={copied ? "Copied!" : "Copy message"}
               aria-label={copied ? "Copied!" : "Copy message"}
             >
@@ -126,7 +126,7 @@ function TypingIndicator() {
   return (
     <div className="flex gap-3 animate-fade-in">
       <div className="w-8 h-8 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center flex-shrink-0">
-        <Bot size={15} className="text-rose-455" />
+        <Bot size={15} className="text-rose-400" />
       </div>
       <div className="backdrop-blur-md bg-slate-900/40 border border-slate-800/80 rounded-2xl rounded-tl-sm px-4 py-3.5 flex items-center gap-1.5 shadow-sm">
         <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
@@ -269,7 +269,10 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
                 <div className="p-2 space-y-0.5">
                   {!editing && (
                     <>
-                      <button onClick={handleRename} className="menu-item">
+                      <button
+                        onClick={handleRename}
+                        className="menu-item text-sky-300 hover:text-sky-100 hover:bg-sky-500/20"
+                      >
                         <Pencil size={14} className="flex-shrink-0" />
                         Rename
                       </button>

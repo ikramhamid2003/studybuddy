@@ -37,6 +37,35 @@ const TOOL_OPTIONS = [
   { value: "chat", label: "Chat" },
 ];
 
+// History filter tabs take the hue of the tool they filter, so the selected
+// filter is readable at a glance instead of a grey pill among grey pills.
+const TAB_COLORS = {
+  all: {
+    active: "bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-100",
+    idle: "border-transparent text-slate-400 hover:text-fuchsia-100 hover:bg-fuchsia-500/10",
+  },
+  explain: {
+    active: "bg-amber-500/20 border-amber-400/40 text-amber-100",
+    idle: "border-transparent text-slate-400 hover:text-amber-100 hover:bg-amber-500/10",
+  },
+  summarize: {
+    active: "bg-emerald-500/20 border-emerald-400/40 text-emerald-100",
+    idle: "border-transparent text-slate-400 hover:text-emerald-100 hover:bg-emerald-500/10",
+  },
+  quiz: {
+    active: "bg-violet-500/20 border-violet-400/40 text-violet-100",
+    idle: "border-transparent text-slate-400 hover:text-violet-100 hover:bg-violet-500/10",
+  },
+  flashcards: {
+    active: "bg-sky-500/20 border-sky-400/40 text-sky-100",
+    idle: "border-transparent text-slate-400 hover:text-sky-100 hover:bg-sky-500/10",
+  },
+  chat: {
+    active: "bg-rose-500/20 border-rose-400/40 text-rose-100",
+    idle: "border-transparent text-slate-400 hover:text-rose-100 hover:bg-rose-500/10",
+  },
+};
+
 function ChatTyping() {
   return (
     <div className="flex gap-3 animate-fade-in">
@@ -203,7 +232,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               className={`${submitted && isCorrect ? "animate-fade-up" : ""}`}
             >
               <div className="flex items-start gap-3 mb-4">
-                <span className="font-mono text-xs text-slate-400 bg-slate-850/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
+                <span className="font-mono text-xs text-slate-400 bg-slate-800/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
                   Q{qi + 1}
                 </span>
                 <p className="text-white font-semibold text-sm leading-relaxed mt-1 flex-1">{q.question}</p>
@@ -232,12 +261,12 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
                       className={`w-full text-left px-4 py-3 rounded-xl text-sm border transition-all duration-200
                         ${
                           isCorrectOpt
-                            ? "border-emerald-500/40 bg-emerald-550/10 text-emerald-350 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                            ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]"
                             : isWrongSelected
-                            ? "border-rose-500/40 bg-rose-550/10 text-rose-350 shadow-[0_0_15px_rgba(244,63,94,0.05)]"
+                            ? "border-rose-500/50 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_-6px_rgba(244,63,94,0.5)]"
                             : isSelected
-                            ? "border-violet-500/40 bg-violet-550/10 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.05)]"
-                            : "border-slate-800/80 bg-slate-900/40 text-slate-350 hover:border-slate-700 hover:bg-slate-800/50"
+                            ? "border-violet-500/50 bg-violet-500/15 text-violet-200 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]"
+                            : "border-slate-800/80 bg-slate-900/40 text-slate-300 hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-violet-100"
                         }
                         ${submitted ? "cursor-default" : "cursor-pointer transform hover:-translate-y-[1px] hover:shadow-sm"}`}
                     >
@@ -262,7 +291,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               </div>
 
               {submitted && (
-                <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-850/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
+                <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
                   <span className="text-amber-400 font-semibold">💡 Explanation: </span>
                   {q.explanation}
                 </div>
@@ -676,7 +705,7 @@ export default function AllPage() {
                         e.stopPropagation();
                         deleteChatSessionHandler(session.id);
                       }}
-                      className="p-1 rounded hover:bg-slate-700 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="icon-button icon-button--danger -mr-1 flex-shrink-0"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -790,16 +819,20 @@ export default function AllPage() {
                   <button
                     key={tab.key}
                     onClick={() => setHistoryTab(tab.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
                       historyTab === tab.key
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                        ? TAB_COLORS[tab.key].active
+                        : TAB_COLORS[tab.key].idle
                     }`}
                   >
                     {tab.label}
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-                      historyTab === tab.key ? "bg-slate-700 text-slate-300" : "bg-slate-800 text-slate-600"
-                    }`}>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                        historyTab === tab.key
+                          ? "bg-white/15 text-white"
+                          : "bg-slate-800 text-slate-500"
+                      }`}
+                    >
                       {count}
                     </span>
                   </button>

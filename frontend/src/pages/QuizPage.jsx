@@ -126,7 +126,7 @@ export default function QuizPage() {
           >
             {/* Question */}
             <div className="flex items-start gap-3 mb-4">
-              <span className="font-mono text-xs text-slate-400 bg-slate-850/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
+              <span className="font-mono text-xs text-slate-400 bg-slate-800/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
                 Q{qi + 1}
               </span>
               <p className="text-white font-semibold text-sm leading-relaxed mt-1 flex-1">{q.question}</p>
@@ -154,12 +154,12 @@ export default function QuizPage() {
                     className={`
                       w-full text-left px-4 py-3 rounded-xl text-sm border transition-all duration-200
                       ${isCorrectOpt
-                        ? "border-emerald-500/40 bg-emerald-550/10 text-emerald-350 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                        ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]"
                         : isWrongSelected
-                        ? "border-rose-500/40 bg-rose-550/10 text-rose-350 shadow-[0_0_15px_rgba(244,63,94,0.05)]"
+                        ? "border-rose-500/50 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_-6px_rgba(244,63,94,0.5)]"
                         : isSelected
-                        ? "border-violet-500/40 bg-violet-550/10 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.05)]"
-                        : "border-slate-800/80 bg-slate-900/40 text-slate-350 hover:border-slate-700 hover:bg-slate-800/50"
+                        ? "border-violet-500/50 bg-violet-500/15 text-violet-200 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]"
+                        : "border-slate-800/80 bg-slate-900/40 text-slate-300 hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-violet-100"
                       }
                       ${submitted ? "cursor-default" : "cursor-pointer transform hover:-translate-y-[1px] hover:shadow-sm"}
                     `}
@@ -186,7 +186,7 @@ export default function QuizPage() {
 
             {/* Explanation */}
             {submitted && (
-              <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-850/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
+              <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
                 <span className="text-amber-400 font-semibold">💡 Explanation: </span>
                 {q.explanation}
               </div>

@@ -37,7 +37,7 @@ export default function Flashcard({ card, index = 0 }) {
             <Eye size={14} className="text-sky-400 animate-pulse" />
           </div>
         </div>
-        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-850/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+        <div className="flashcard-face flashcard-back-face backdrop-blur-md bg-slate-800/80 border border-emerald-500/30 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-[0_0_25px_rgba(16,185,129,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
           <span className="text-emerald-400/80 text-[10px] font-mono uppercase tracking-widest mb-3">
             Answer
           </span>

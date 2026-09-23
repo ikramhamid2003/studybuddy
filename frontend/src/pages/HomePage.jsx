@@ -87,9 +87,9 @@ export default function HomePage() {
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <div className="text-xs px-2.5 py-1 bg-amber-500/20 border border-amber-500/30 rounded-md text-amber-300 font-semibold">Quantum Physics</div>
-                  <div className="text-xs px-2.5 py-1 bg-slate-850 border border-slate-800 rounded-md text-slate-400">Beginner Level</div>
+                  <div className="text-xs px-2.5 py-1 bg-slate-800 border border-slate-800 rounded-md text-slate-400">Beginner Level</div>
                 </div>
-                <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-850/60 text-[11px] leading-relaxed text-slate-300">
+                <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800/60 text-[11px] leading-relaxed text-slate-300">
                   <span className="text-amber-400 font-semibold font-mono">Analogy:</span> Imagine spinning a coin on a table. While it's spinning, it is both Heads and Tails at the same time. Only when you slap your hand down on the coin does it choose one state...
                 </div>
               </div>
@@ -119,14 +119,14 @@ export default function HomePage() {
             <div className="mt-8 bg-slate-950/80 border border-violet-500/20 rounded-2xl p-4 shadow-2xl space-y-3 font-body text-[11px]">
               <div className="text-slate-300 font-semibold">Q1: Which sorting algorithm is O(n log n) in the worst-case?</div>
               <div className="space-y-2">
-                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg text-slate-400 flex justify-between">
+                <div className="p-2 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-400 flex justify-between">
                   <span>A) Bubble Sort</span>
                 </div>
                 <div className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-lg text-emerald-300 flex justify-between items-center">
                   <span>B) Merge Sort</span>
                   <span className="w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center text-slate-950 font-bold text-[8px]">✓</span>
                 </div>
-                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg text-slate-400 flex justify-between">
+                <div className="p-2 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-400 flex justify-between">
                   <span>C) Quick Sort</span>
                 </div>
               </div>
@@ -190,14 +190,14 @@ export default function HomePage() {
               {/* Left Side: Summarizer Mock */}
               <div className="bg-slate-950/80 border border-emerald-500/20 rounded-2xl p-4 shadow-xl text-[10px] space-y-2">
                 <div className="font-semibold text-emerald-400 border-b border-slate-800 pb-1.5 mb-1.5 uppercase font-mono tracking-wider">Key Concepts</div>
-                <ul className="space-y-1.5 list-disc pl-3 text-slate-350 leading-relaxed font-body">
+                <ul className="space-y-1.5 list-disc pl-3 text-slate-300 leading-relaxed font-body">
                   <li><span className="font-semibold text-slate-200">Active Recall:</span> Retrieving information actively.</li>
                   <li><span className="font-semibold text-slate-200">Spaced Repetition:</span> Expanding time intervals.</li>
                 </ul>
               </div>
               {/* Right Side: Flashcard Flip Mock */}
               <div className="bg-slate-950/85 border border-emerald-500/20 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden">
-                <div className="flex justify-between items-center text-[9px] font-mono text-slate-550 border-b border-slate-800 pb-1">
+                <div className="flex justify-between items-center text-[9px] font-mono text-slate-500 border-b border-slate-800 pb-1">
                   <span>FLASHCARD #12</span>
                   <span className="text-sky-400">FRONT</span>
                 </div>

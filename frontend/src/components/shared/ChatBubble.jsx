@@ -51,7 +51,7 @@ export default function ChatBubble({ msg }) {
           className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
             ${
               isUser
-                ? "bg-gradient-to-r from-rose-500 to-rose-450 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
+                ? "bg-gradient-to-r from-rose-500 to-rose-400 text-white font-medium rounded-tr-sm shadow-[0_4px_15px_rgba(244,63,94,0.12)]"
                 : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
             }`}
         >
@@ -61,7 +61,7 @@ export default function ChatBubble({ msg }) {
           <div className="flex items-center justify-start gap-1.5 ml-1 mt-0.5">
             <button
               onClick={() => toggleSpeech(msg.content)}
-              className={`h-7 w-7 p-0 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? "text-rose-400 animate-pulse" : "text-slate-500 hover:text-rose-400 hover:bg-slate-800/50"}`}
+              className={`h-7 w-7 p-0 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? "text-rose-300 bg-rose-500/20 animate-pulse" : "text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/15"}`}
               title={isSpeaking ? "Stop reading" : "Read aloud"}
               aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
             >
@@ -69,7 +69,7 @@ export default function ChatBubble({ msg }) {
             </button>
             <button
               onClick={handleCopy}
-              className="h-7 w-7 p-0 flex items-center justify-center rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800/50 transition-colors"
+              className="h-7 w-7 p-0 flex items-center justify-center rounded-lg text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
               title={copied ? "Copied!" : "Copy message"}
               aria-label={copied ? "Copied!" : "Copy message"}
             >

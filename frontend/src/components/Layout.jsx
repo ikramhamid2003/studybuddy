@@ -30,6 +30,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-fuchsia-500/10 hover:text-fuchsia-100",
     active: "bg-fuchsia-500/15 border border-fuchsia-400/40 text-fuchsia-100",
     dot: "bg-fuchsia-400",
+    menu: "text-fuchsia-200 hover:text-fuchsia-100 hover:bg-fuchsia-500/15",
   },
   {
     to: "/explain",
@@ -40,6 +41,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-amber-500/10 hover:text-amber-100",
     active: "bg-amber-500/15 border border-amber-400/40 text-amber-100",
     dot: "bg-amber-400",
+    menu: "text-amber-200 hover:text-amber-100 hover:bg-amber-500/15",
   },
   {
     to: "/summarize",
@@ -50,6 +52,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-emerald-500/10 hover:text-emerald-100",
     active: "bg-emerald-500/15 border border-emerald-400/40 text-emerald-100",
     dot: "bg-emerald-400",
+    menu: "text-emerald-200 hover:text-emerald-100 hover:bg-emerald-500/15",
   },
   {
     to: "/quiz",
@@ -60,6 +63,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-violet-500/10 hover:text-violet-100",
     active: "bg-violet-500/15 border border-violet-400/40 text-violet-100",
     dot: "bg-violet-400",
+    menu: "text-violet-200 hover:text-violet-100 hover:bg-violet-500/15",
   },
   {
     to: "/flashcards",
@@ -70,6 +74,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-sky-500/10 hover:text-sky-100",
     active: "bg-sky-500/15 border border-sky-400/40 text-sky-100",
     dot: "bg-sky-400",
+    menu: "text-sky-200 hover:text-sky-100 hover:bg-sky-500/15",
   },
   {
     to: "/chat",
@@ -80,6 +85,7 @@ const navItems = [
     idle: "border border-transparent hover:bg-rose-500/10 hover:text-rose-100",
     active: "bg-rose-500/15 border border-rose-400/40 text-rose-100",
     dot: "bg-rose-400",
+    menu: "text-rose-200 hover:text-rose-100 hover:bg-rose-500/15",
   },
 ];
 
@@ -102,7 +108,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-success-950 flex relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
       {/* Dynamic ambient background glow and grid */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
       <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
@@ -275,12 +281,17 @@ export default function Layout({ children }) {
                 />
                 <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50 animate-fade-in">
                   <nav className="p-2 space-y-0.5" aria-label="Tools menu">
-                    {navItems.map(({ to, label, icon: Icon, color, dot }) => (
-                      <NavLink key={to} to={to} onClick={() => setDropdownOpen(false)} className="menu-item">
+                    {navItems.map(({ to, label, icon: Icon, color, dot, menu }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        onClick={() => setDropdownOpen(false)}
+                        className={`menu-item ${menu}`}
+                      >
                         {({ isActive }) => (
                           <>
                             <Icon
-                              className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? color : "text-slate-500"}`}
+                              className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? color : ""}`}
                               size={18}
                             />
                             {label}

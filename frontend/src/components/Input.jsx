@@ -48,7 +48,7 @@ export function Input({
           <button
             type="button"
             onClick={onRightIconClick}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sky-400/70 hover:text-sky-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 transition-colors"
             disabled={props.disabled}
             aria-label={rightIcon.type && rightIcon.type.displayName === "EyeOff" ? "Hide password" : "Show password"}
           >
