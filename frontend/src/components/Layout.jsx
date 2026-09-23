@@ -17,15 +17,70 @@ import {
   LogOut,
 } from "lucide-react";
 
-// Hover accents are written as complete class strings so Tailwind's compiler
-// can see them; building them at runtime from `color` produces no CSS.
+// Each tool owns a hue. Every state carries it as complete class strings, so
+// the accent is visible on hover and unmistakable when active, instead of the
+// grey-on-grey the rail used before.
 const navItems = [
-  { to: "/all", label: "All", icon: LayoutGrid, color: "text-fuchsia-400", hover: "group-hover:text-fuchsia-400" },
-  { to: "/explain", label: "Explain", icon: BookOpen, color: "text-amber-400", hover: "group-hover:text-amber-400" },
-  { to: "/summarize", label: "Summarize", icon: FileText, color: "text-emerald-400", hover: "group-hover:text-emerald-400" },
-  { to: "/quiz", label: "Quiz", icon: Zap, color: "text-violet-400", hover: "group-hover:text-violet-400" },
-  { to: "/flashcards", label: "Flashcards", icon: Layers, color: "text-sky-400", hover: "group-hover:text-sky-400" },
-  { to: "/chat", label: "Chat", icon: MessageSquare, color: "text-rose-400", hover: "group-hover:text-rose-400" },
+  {
+    to: "/all",
+    label: "All",
+    icon: LayoutGrid,
+    color: "text-fuchsia-300",
+    hover: "group-hover:text-fuchsia-300",
+    idle: "border border-transparent hover:bg-fuchsia-500/10 hover:text-fuchsia-100",
+    active: "bg-fuchsia-500/15 border border-fuchsia-400/40 text-fuchsia-100",
+    dot: "bg-fuchsia-400",
+  },
+  {
+    to: "/explain",
+    label: "Explain",
+    icon: BookOpen,
+    color: "text-amber-300",
+    hover: "group-hover:text-amber-300",
+    idle: "border border-transparent hover:bg-amber-500/10 hover:text-amber-100",
+    active: "bg-amber-500/15 border border-amber-400/40 text-amber-100",
+    dot: "bg-amber-400",
+  },
+  {
+    to: "/summarize",
+    label: "Summarize",
+    icon: FileText,
+    color: "text-emerald-300",
+    hover: "group-hover:text-emerald-300",
+    idle: "border border-transparent hover:bg-emerald-500/10 hover:text-emerald-100",
+    active: "bg-emerald-500/15 border border-emerald-400/40 text-emerald-100",
+    dot: "bg-emerald-400",
+  },
+  {
+    to: "/quiz",
+    label: "Quiz",
+    icon: Zap,
+    color: "text-violet-300",
+    hover: "group-hover:text-violet-300",
+    idle: "border border-transparent hover:bg-violet-500/10 hover:text-violet-100",
+    active: "bg-violet-500/15 border border-violet-400/40 text-violet-100",
+    dot: "bg-violet-400",
+  },
+  {
+    to: "/flashcards",
+    label: "Flashcards",
+    icon: Layers,
+    color: "text-sky-300",
+    hover: "group-hover:text-sky-300",
+    idle: "border border-transparent hover:bg-sky-500/10 hover:text-sky-100",
+    active: "bg-sky-500/15 border border-sky-400/40 text-sky-100",
+    dot: "bg-sky-400",
+  },
+  {
+    to: "/chat",
+    label: "Chat",
+    icon: MessageSquare,
+    color: "text-rose-300",
+    hover: "group-hover:text-rose-300",
+    idle: "border border-transparent hover:bg-rose-500/10 hover:text-rose-100",
+    active: "bg-rose-500/15 border border-rose-400/40 text-rose-100",
+    dot: "bg-rose-400",
+  },
 ];
 
 // Each tool owns an accent color so navigation, buttons, and page chrome feel
@@ -99,19 +154,15 @@ export default function Layout({ children }) {
               {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
           </div>
-          {navItems.map(({ to, label, icon: Icon, color, hover }) => (
+          {navItems.map(({ to, label, icon: Icon, color, hover, idle, active, dot }) => (
             <NavLink
               key={to}
               to={to}
               title={sidebarCollapsed ? label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group
+                `flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group
                 ${sidebarCollapsed ? "justify-center px-2" : "px-3"}
-                ${
-                  isActive
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                }`
+                ${isActive ? active : `text-slate-400 ${idle}`}`
               }
             >
               {({ isActive }) => (
@@ -124,7 +175,10 @@ export default function Layout({ children }) {
                   />
                   {!sidebarCollapsed && label}
                   {isActive && !sidebarCollapsed && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    <span
+                      className={`ml-auto w-1.5 h-1.5 rounded-full ${dot}`}
+                      aria-hidden="true"
+                    />
                   )}
                 </>
               )}
@@ -219,9 +273,9 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50">
+                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50 animate-fade-in">
                   <nav className="p-2 space-y-0.5" aria-label="Tools menu">
-                    {navItems.map(({ to, label, icon: Icon, color }) => (
+                    {navItems.map(({ to, label, icon: Icon, color, dot }) => (
                       <NavLink key={to} to={to} onClick={() => setDropdownOpen(false)} className="menu-item">
                         {({ isActive }) => (
                           <>
@@ -232,7 +286,7 @@ export default function Layout({ children }) {
                             {label}
                             {isActive && (
                               <span
-                                className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400"
+                                className={`ml-auto w-1.5 h-1.5 rounded-full ${dot}`}
                                 aria-hidden="true"
                               />
                             )}

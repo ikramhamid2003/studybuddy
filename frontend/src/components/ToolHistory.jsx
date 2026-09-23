@@ -124,10 +124,10 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
         {history.map((item, index) => (
           <div
             key={item.id}
-            className={`w-full flex items-center gap-1 pr-2 rounded-xl border transition-all duration-200 group ${
+            className={`w-full flex items-center gap-1 pr-2 rounded-xl border transition-all duration-150 group ${
               activeId === item.id
-                ? "border-amber-400/40 bg-slate-800 shadow-[0_0_20px_rgba(245,158,11,0.05)]"
-                : "border-slate-800 bg-slate-900/60 hover:bg-slate-800/60 hover:border-slate-700"
+                ? "border-amber-400/50 bg-amber-500/20 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]"
+                : "border-slate-800 bg-slate-900/60 hover:bg-amber-500/10 hover:border-amber-400/25"
             }`}
             style={{ animationDelay: `${index * 30}ms` }}
           >
@@ -140,7 +140,7 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
             >
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${
-                  activeId === item.id ? "bg-amber-500/20 text-amber-400" : "bg-slate-800/60 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-400"
+                  activeId === item.id ? "bg-amber-500/25 text-amber-300" : "bg-slate-800/60 text-slate-500 group-hover:bg-amber-500/20 group-hover:text-amber-300"
                 } transition-colors`}>
                   <Icon size={14} />
                 </div>

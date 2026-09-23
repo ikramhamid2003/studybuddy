@@ -204,13 +204,19 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
     <div className="relative">
       <div
         onClick={handleSelectRow}
-        className={`flex items-center gap-2 py-2.5 rounded-xl cursor-pointer transition-colors
+        className={`group flex items-center gap-2 py-2.5 rounded-xl cursor-pointer border transition-all duration-150
           ${collapsed ? "lg:justify-center lg:px-2" : "px-3"}
-          ${active ? "bg-amber-400/10 border border-amber-400/30" : "hover:bg-slate-800/60 border border-transparent"}`}
+          ${
+            active
+              ? "bg-amber-500/20 border-amber-400/50 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]"
+              : "border-transparent hover:bg-amber-500/10 hover:border-amber-400/25"
+          }`}
       >
         <MessageSquare
           size={14}
-          className={`flex-shrink-0 ${active ? "text-amber-400" : "text-slate-500"}`}
+          className={`flex-shrink-0 transition-colors ${
+            active ? "text-amber-300" : "text-slate-500 group-hover:text-amber-300"
+          }`}
         />
 
         {editing ? (
@@ -227,7 +233,11 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
           />
         ) : (
           <span
-            className={`${hideWhenCollapsed} flex-1 min-w-0 truncate text-xs ${active ? "text-amber-300 font-medium" : "text-slate-400"}`}
+            className={`${hideWhenCollapsed} flex-1 min-w-0 truncate text-xs transition-colors ${
+              active
+                ? "text-amber-200 font-semibold"
+                : "text-slate-400 group-hover:text-slate-200"
+            }`}
           >
             {session.title}
           </span>

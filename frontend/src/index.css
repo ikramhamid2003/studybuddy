@@ -133,39 +133,40 @@
      elevation reads through surface lightness plus a hairline border rather
      than a heavy shadow, which would only mud. */
   .menu-panel {
-    @apply rounded-xl border border-slate-800 bg-slate-900 overflow-hidden;
+    @apply rounded-xl border border-slate-700/80 bg-slate-900 overflow-hidden;
     box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
   }
 
   /* One item recipe for every popover, so a menu action looks the same
-     wherever it appears. */
+     wherever it appears. The hover surface is a deliberate step lighter than
+     the panel, so the pointed-at row is obvious at a glance. */
   .menu-item {
     @apply w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg
            text-left text-sm text-slate-300
-           transition-[background-color,color] duration-150 ease-out
-           hover:bg-slate-800 hover:text-white
+           transition-[background-color,color,transform] duration-150 ease-out
+           hover:bg-slate-700/70 hover:text-white
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
-           focus-visible:ring-slate-400/70
+           focus-visible:ring-slate-300/70
            motion-safe:active:scale-[0.98];
   }
 
   /* The item backing the current page. The dot in the markup carries the same
      state without relying on colour alone. */
   .menu-item[aria-current="page"] {
-    @apply bg-slate-800 text-white;
+    @apply bg-slate-700/70 text-white;
   }
 
   .menu-item--quiet {
-    @apply text-slate-400 hover:bg-slate-800 hover:text-slate-200;
+    @apply text-slate-400 hover:bg-slate-700/70 hover:text-slate-100;
   }
 
   .menu-item--confirm {
-    @apply text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300
+    @apply text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-200
            focus-visible:ring-emerald-400/70;
   }
 
   .menu-item--danger {
-    @apply text-rose-400 hover:bg-rose-500/10 hover:text-rose-300
+    @apply text-rose-400 hover:bg-rose-500/20 hover:text-rose-200
            focus-visible:ring-rose-400/70;
   }
 
@@ -182,8 +183,8 @@
     @apply inline-flex items-center justify-center rounded-lg p-2
            text-slate-400
            transition-[background-color,color,transform] duration-150 ease-out
-           hover:bg-slate-800 hover:text-white
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70
+           hover:bg-slate-700/70 hover:text-white
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70
            focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
            motion-safe:active:scale-95
            disabled:opacity-40 disabled:pointer-events-none;
@@ -191,13 +192,13 @@
 
   /* Destructive icon actions stay quiet until pointed at, then turn rose. */
   .icon-button--danger {
-    @apply text-slate-500 hover:bg-rose-500/10 hover:text-rose-300
+    @apply text-slate-500 hover:bg-rose-500/20 hover:text-rose-200
            focus-visible:ring-rose-400/70;
   }
 
   /* The control that owns an open panel stays lit while the panel is open. */
   .icon-button[aria-expanded="true"] {
-    @apply bg-slate-800 text-white;
+    @apply bg-slate-700/70 text-white;
   }
 
   /* Native select popups are painted by the OS, not by Tailwind. Without this

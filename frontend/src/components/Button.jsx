@@ -9,39 +9,39 @@ import { getPrimaryGradient } from "../utils/routeColors";
 // variants use the -300 text step for the same reason.
 const BUTTON_COLORS = {
   amber: {
-    primary: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35",
-    secondary: "bg-amber-500/10 hover:bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:border-amber-400/50",
-    ghost: "text-amber-300/80 hover:text-amber-200 hover:bg-amber-500/10",
+    primary: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/40 hover:shadow-lg hover:shadow-amber-400/55",
+    secondary: "bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-400/40 hover:border-amber-300/60",
+    ghost: "text-amber-300 hover:text-amber-200 hover:bg-amber-500/15",
     focus: "focus-visible:ring-amber-400/70",
   },
   emerald: {
-    primary: "bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-300 hover:to-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/35",
-    secondary: "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:border-emerald-400/50",
-    ghost: "text-emerald-300/80 hover:text-emerald-200 hover:bg-emerald-500/10",
+    primary: "bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-300 hover:to-emerald-400 text-slate-950 shadow-md shadow-emerald-500/40 hover:shadow-lg hover:shadow-emerald-400/55",
+    secondary: "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 hover:border-emerald-300/60",
+    ghost: "text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/15",
     focus: "focus-visible:ring-emerald-400/70",
   },
   violet: {
-    primary: "bg-gradient-to-r from-violet-400 to-violet-500 hover:from-violet-300 hover:to-violet-400 text-slate-950 shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/35",
-    secondary: "bg-violet-500/10 hover:bg-violet-500/15 text-violet-300 border border-violet-500/25 hover:border-violet-400/50",
-    ghost: "text-violet-300/80 hover:text-violet-200 hover:bg-violet-500/10",
+    primary: "bg-gradient-to-r from-violet-400 to-violet-500 hover:from-violet-300 hover:to-violet-400 text-slate-950 shadow-md shadow-violet-500/40 hover:shadow-lg hover:shadow-violet-400/55",
+    secondary: "bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-400/40 hover:border-violet-300/60",
+    ghost: "text-violet-300 hover:text-violet-200 hover:bg-violet-500/15",
     focus: "focus-visible:ring-violet-400/70",
   },
   sky: {
-    primary: "bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-slate-950 shadow-md shadow-sky-500/25 hover:shadow-lg hover:shadow-sky-500/35",
-    secondary: "bg-sky-500/10 hover:bg-sky-500/15 text-sky-300 border border-sky-500/25 hover:border-sky-400/50",
-    ghost: "text-sky-300/80 hover:text-sky-200 hover:bg-sky-500/10",
+    primary: "bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-slate-950 shadow-md shadow-sky-500/40 hover:shadow-lg hover:shadow-sky-400/55",
+    secondary: "bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-400/40 hover:border-sky-300/60",
+    ghost: "text-sky-300 hover:text-sky-200 hover:bg-sky-500/15",
     focus: "focus-visible:ring-sky-400/70",
   },
   rose: {
-    primary: "bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-300 hover:to-rose-400 text-slate-950 shadow-md shadow-rose-500/25 hover:shadow-lg hover:shadow-rose-500/35",
-    secondary: "bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:border-rose-400/50",
-    ghost: "text-rose-300/80 hover:text-rose-200 hover:bg-rose-500/10",
+    primary: "bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-300 hover:to-rose-400 text-slate-950 shadow-md shadow-rose-500/40 hover:shadow-lg hover:shadow-rose-400/55",
+    secondary: "bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border border-rose-400/40 hover:border-rose-300/60",
+    ghost: "text-rose-300 hover:text-rose-200 hover:bg-rose-500/15",
     focus: "focus-visible:ring-rose-400/70",
   },
   fuchsia: {
-    primary: "bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 hover:from-fuchsia-300 hover:to-fuchsia-400 text-slate-950 shadow-md shadow-fuchsia-500/25 hover:shadow-lg hover:shadow-fuchsia-500/35",
-    secondary: "bg-fuchsia-500/10 hover:bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 hover:border-fuchsia-400/50",
-    ghost: "text-fuchsia-300/80 hover:text-fuchsia-200 hover:bg-fuchsia-500/10",
+    primary: "bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 hover:from-fuchsia-300 hover:to-fuchsia-400 text-slate-950 shadow-md shadow-fuchsia-500/40 hover:shadow-lg hover:shadow-fuchsia-400/55",
+    secondary: "bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-fuchsia-200 border border-fuchsia-400/40 hover:border-fuchsia-300/60",
+    ghost: "text-fuchsia-300 hover:text-fuchsia-200 hover:bg-fuchsia-500/15",
     focus: "focus-visible:ring-fuchsia-400/70",
   },
 };
@@ -78,18 +78,18 @@ export default function Button({
 
   // Variant and size maps keep call sites small and consistent.
   const variants = {
-    // Primary owns the strongest treatment: bright fill, a light hue glow, and
-    // a small lift. Quieter variants change surface and text only.
+    // Primary owns the strongest treatment: bright fill, a hue glow, and a
+    // lift on hover. Quieter variants change surface, text and border only.
     primary: `border-none relative overflow-hidden ${selectedPrimary}`,
     secondary:
       colorTheme?.secondary ||
-      "bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600",
+      "bg-slate-700/60 hover:bg-slate-700 text-slate-100 border border-slate-600 hover:border-slate-400",
     ghost:
-      colorTheme?.ghost || "text-slate-400 hover:text-white hover:bg-slate-800/70",
+      colorTheme?.ghost || "text-slate-400 hover:text-white hover:bg-slate-700/70",
     danger:
-      "bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:border-rose-400/50",
+      "bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border border-rose-400/40 hover:border-rose-300/60",
     success:
-      "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:border-emerald-400/50",
+      "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 hover:border-emerald-300/60",
   };
 
   const sizes = {
@@ -112,7 +112,7 @@ export default function Button({
         disabled:shadow-none disabled:transform-none
         focus-visible:outline-none focus-visible:ring-2 ${focusColor}
         focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
-        ${variant === "primary" ? "motion-safe:hover:-translate-y-px" : ""}
+        ${variant === "primary" ? "motion-safe:hover:-translate-y-0.5" : ""}
         motion-safe:active:scale-[0.97]
         ${variants[variant]} ${sizes[size]} ${className}
       `}
