@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Sparkles, FileText, CheckSquare, MessageSquare, ArrowRight, ShieldCheck, Zap, Volume2 } from "lucide-react";
+import { BookOpen, Sparkles, FileText, CheckSquare, MessageSquare, ArrowRight, ShieldCheck, Zap } from "lucide-react";
 import Button from "../components/Button";
 import { useAuth } from "../context/AuthContext";
 
@@ -148,7 +148,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-2xl font-bold text-white font-display">Streaming AI Tutor</h3>
               <p className="text-slate-300 text-sm font-light leading-relaxed">
-                Study with a conversational assistant. Answers stream token-by-token and can be spoken out loud instantly via web Speech Tools.
+                Study with a conversational assistant. Answers stream token-by-token, and every chat is saved so you can pick it up later.
               </p>
             </div>
 
@@ -160,7 +160,6 @@ export default function HomePage() {
               <div className="flex gap-2">
                 <div className="p-2 bg-rose-950/30 border border-rose-500/20 rounded-xl rounded-tl-none text-slate-300 text-left flex-1 relative">
                   <span>It is a function that calls itself...</span>
-                  <Volume2 size={10} className="text-rose-400 absolute bottom-1 right-1.5" />
                 </div>
               </div>
             </div>

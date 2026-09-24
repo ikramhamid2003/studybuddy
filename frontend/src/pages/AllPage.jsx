@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Send,
   Bot,
-  Volume2,
   Download,
   Copy,
   CheckCircle,
@@ -346,16 +345,8 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
   // chat — single saved reply (history view)
   return (
     <Card accent="rose" variant="elevated">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <SectionTitle color="text-rose-400">Reply</SectionTitle>
-        <Button variant="ghost" size="sm" onClick={() => {
-          if ("speechSynthesis" in window) {
-            const utterance = new SpeechSynthesisUtterance(result.reply);
-            window.speechSynthesis.speak(utterance);
-          }
-        }} className="h-7 w-7 p-0" aria-label="Read aloud" title="Read aloud">
-          <Volume2 size={14} />
-        </Button>
       </div>
       <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.reply}</p>
     </Card>

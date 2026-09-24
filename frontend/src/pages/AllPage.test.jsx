@@ -186,7 +186,6 @@ test("clicking a saved history item reopens its stored result", async () => {
   fireEvent.click(screen.getByText("what is inertia"));
 
   await screen.findByText("stored reply");
-  expect(screen.getByTitle("Read aloud")).toBeDefined(); // TTS available
 });
 
 test("deleting a saved generation removes it from saved history", async () => {
