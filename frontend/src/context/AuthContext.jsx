@@ -25,7 +25,9 @@ export function AuthProvider({ children }) {
         setUser({ id: payload.user_id, username: payload.username || "Student" });
       } catch (e) {
         console.error("Failed to decode token:", e);
-        logout();
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
       }
     } else {
       localStorage.removeItem("token");
