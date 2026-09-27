@@ -65,6 +65,9 @@ class Generation(models.Model):
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, db_index=True)
     topic = models.CharField(max_length=8000)
     result = models.JSONField(default=dict)
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    cost = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
