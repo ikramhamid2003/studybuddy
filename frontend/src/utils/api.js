@@ -77,77 +77,92 @@ export const sendChatStream = async (
   onDone,
   onError,
 ) => {
-  try {
-    // Streaming chat uses raw fetch instead of _request because the response is
-    // an SSE byte stream, not a single JSON payload.
-    const token = localStorage.getItem("token");
-    const headers = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  const minDelay = 1000;
+  const maxDelay = 5000;
 
-    const response = await fetch(`${BASE_URL}/unified/`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        action: "chat_stream",
-        message,
-        history,
-        session_id: sessionId ?? null,
-      }),
-    });
+  while (reconnectAttempts < maxReconnectAttempts) {
+    try {
+      // Streaming chat uses raw fetch instead of _request because the response is
+      // an SSE byte stream, not a single JSON payload.
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
-    }
+      const response = await fetch(`${BASE_URL}/unified/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "chat_stream",
+          message,
+          history,
+          session_id: sessionId ?? null,
+        }),
+      });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-    let resultSessionId = null;
-
-    // One frame is either a token chunk, a completion marker carrying the
-    // session id, or a server-reported error. Only a malformed frame is
-    // recoverable, so it is logged and skipped. A server error is rethrown:
-    // guarding it with the same catch that handles parse failures would
-    // swallow it and the caller would never hear about it.
-    const handleFrame = (frame) => {
-      const cleanLine = frame.trim();
-      if (!cleanLine.startsWith("data: ")) return;
-
-      let data;
-      try {
-        data = JSON.parse(cleanLine.substring(6));
-      } catch (e) {
-        console.error("Malformed SSE frame:", e);
-        return;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error! status: ${response.status}`);
       }
 
-      if (data.error) throw new Error(data.error);
-      if (data.chunk) onChunk(data.chunk);
-      if (data.done) resultSessionId = data.session_id ?? null;
-    };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let resultSessionId = null;
 
-    // Read the stream manually so the UI can render tokens as they arrive.
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      // One frame is either a token chunk, a completion marker carrying the
+      // session id, or a server-reported error. Only a malformed frame is
+      // recoverable, so it is logged and skipped. A server error is rethrown:
+      const handleFrame = (frame) => {
+        const cleanLine = frame.trim();
+        if (!cleanLine.startsWith("data: ")) return;
 
-      // SSE events can arrive split across chunks, so keep the unfinished tail
-      // in `buffer` until the next read completes it.
-      buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split("\n\n");
-      buffer = frames.pop(); // keep partial line
+        let data;
+        try {
+          data = JSON.parse(cleanLine.substring(6));
+        } catch (e) {
+          console.error("Malformed SSE frame:", e);
+          return;
+        }
 
-      frames.forEach(handleFrame);
+        if (data.error) throw new Error(data.error);
+        if (data.chunk) onChunk(data.chunk);
+        if (data.done) resultSessionId = data.session_id ?? null;
+      };
+
+      // Read the stream manually so the UI can render tokens as they arrive.
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // SSE events can arrive split across chunks, so keep the unfinished tail
+        // in `buffer` until the next read completes it.
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop(); // keep partial line
+
+        frames.forEach(handleFrame);
+      }
+
+      // Flush any final SSE event that did not end with a double newline.
+      if (buffer.trim()) handleFrame(buffer);
+
+      onDone(resultSessionId);
+      return; // success — exit the reconnect loop
+    } catch (error) {
+      if (onError) onError(error);
+      else console.error("Streaming chat error:", error);
+
+      // Reconnect with exponential backoff
+      reconnectAttempts++;
+      if (reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(minDelay * Math.pow(2, reconnectAttempts - 1), maxDelay);
+        console.log(`Reconnecting in ${delay}ms... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error("Max reconnect attempts reached. Giving up.");
+      }
     }
-
-    // Flush any final SSE event that did not end with a double newline.
-    if (buffer.trim()) handleFrame(buffer);
-
-    onDone(resultSessionId);
-  } catch (error) {
-    // Surface streaming failures to the page when it supplied an error handler.
-    if (onError) onError(error);
-    else console.error("Streaming chat error:", error);
   }
 };
