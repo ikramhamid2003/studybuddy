@@ -78,7 +78,19 @@ export function AuthProvider({ children }) {
     }
   }
 
-  function logout() {
+  async function logout() {
+    // Blacklist the token on the backend before clearing local state.
+    if (token) {
+      try {
+        await fetch(`${BASE_URL}/api/token/blacklist/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+      } catch (e) {
+        // Even if the blacklist call fails, clear local state.
+      }
+    }
     // Clearing the token automatically returns the app to guest state.
     setToken(null);
     setUser(null);
