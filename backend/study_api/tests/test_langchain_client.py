@@ -5,7 +5,6 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from study_api.langchain_client import (
-    
     chat_groq,
     query_groq,
     query_groq_json,
