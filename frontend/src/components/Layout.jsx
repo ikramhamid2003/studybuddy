@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { ROUTE_GLOW } from "../utils/routeColors";
 import {
   BookOpen,
   FileText,
@@ -15,82 +14,41 @@ import {
   PanelLeftOpen,
   LogIn,
   LogOut,
+  User,
 } from "lucide-react";
 
-// Each tool owns a hue. Every state carries it as complete class strings, so
-// the accent is visible on hover and unmistakable when active, instead of the
-// grey-on-grey the rail used before.
 const navItems = [
   {
     to: "/all",
-    label: "All",
+    label: "All Tools",
     icon: LayoutGrid,
-    color: "text-fuchsia-300",
-    hover: "group-hover:text-fuchsia-300",
-    idle: "border border-transparent hover:bg-fuchsia-500/10 hover:text-fuchsia-100",
-    active: "bg-fuchsia-500/15 border border-fuchsia-400/40 text-fuchsia-100",
-    dot: "bg-fuchsia-400",
-    menu: "text-fuchsia-200 hover:text-fuchsia-100 hover:bg-fuchsia-500/15",
   },
   {
     to: "/explain",
     label: "Explain",
     icon: BookOpen,
-    color: "text-amber-300",
-    hover: "group-hover:text-amber-300",
-    idle: "border border-transparent hover:bg-amber-500/10 hover:text-amber-100",
-    active: "bg-amber-500/15 border border-amber-400/40 text-amber-100",
-    dot: "bg-amber-400",
-    menu: "text-amber-200 hover:text-amber-100 hover:bg-amber-500/15",
   },
   {
     to: "/summarize",
     label: "Summarize",
     icon: FileText,
-    color: "text-emerald-300",
-    hover: "group-hover:text-emerald-300",
-    idle: "border border-transparent hover:bg-emerald-500/10 hover:text-emerald-100",
-    active: "bg-emerald-500/15 border border-emerald-400/40 text-emerald-100",
-    dot: "bg-emerald-400",
-    menu: "text-emerald-200 hover:text-emerald-100 hover:bg-emerald-500/15",
   },
   {
     to: "/quiz",
     label: "Quiz",
     icon: Zap,
-    color: "text-violet-300",
-    hover: "group-hover:text-violet-300",
-    idle: "border border-transparent hover:bg-violet-500/10 hover:text-violet-100",
-    active: "bg-violet-500/15 border border-violet-400/40 text-violet-100",
-    dot: "bg-violet-400",
-    menu: "text-violet-200 hover:text-violet-100 hover:bg-violet-500/15",
   },
   {
     to: "/flashcards",
     label: "Flashcards",
     icon: Layers,
-    color: "text-sky-300",
-    hover: "group-hover:text-sky-300",
-    idle: "border border-transparent hover:bg-sky-500/10 hover:text-sky-100",
-    active: "bg-sky-500/15 border border-sky-400/40 text-sky-100",
-    dot: "bg-sky-400",
-    menu: "text-sky-200 hover:text-sky-100 hover:bg-sky-500/15",
   },
   {
     to: "/chat",
-    label: "Chat",
+    label: "AI Tutor",
     icon: MessageSquare,
-    color: "text-rose-300",
-    hover: "group-hover:text-rose-300",
-    idle: "border border-transparent hover:bg-rose-500/10 hover:text-rose-100",
-    active: "bg-rose-500/15 border border-rose-400/40 text-rose-100",
-    dot: "bg-rose-400",
-    menu: "text-rose-200 hover:text-rose-100 hover:bg-rose-500/15",
   },
 ];
-
-// Each tool owns an accent color so navigation, buttons, and page chrome feel
-// connected without every page redefining the same palette.
 
 export default function Layout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -99,8 +57,6 @@ export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeGlow = ROUTE_GLOW[location.pathname] || "bg-amber-500/10";
-  // Mobile header uses this to show the active tool name in the dropdown.
   const currentItem = navItems.find((item) => item.to === location.pathname);
 
   function handleLogoClick() {
@@ -108,83 +64,72 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="app-height bg-slate-950 flex relative overflow-hidden">
-      {/* Dynamic ambient background glow and grid */}
-      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full blur-[130px] transition-all duration-700 pointer-events-none ${activeGlow}`} />
-      <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-[0.03] pointer-events-none" />
-      {/* ── Sidebar (desktop only) - Fixed/Static, collapses to an icon rail ── */}
+    <div className="app-height bg-slate-50 flex relative overflow-hidden">
+      {/* ── Sidebar (desktop only) ── */}
       <aside
         aria-label="Main navigation"
-        className={`hidden lg:flex flex-col shrink-0 fixed top-0 left-0 h-screen z-30 bg-slate-900 border-r border-slate-800 transition-[width] duration-200 ${
-          sidebarCollapsed ? "w-20" : "w-64"
+        className={`hidden lg:flex flex-col shrink-0 fixed top-0 left-0 h-screen z-30 nb-sidebar transition-[width] duration-200 ${
+          sidebarCollapsed ? "w-[68px]" : "w-[240px]"
         }`}
       >
         {/* Logo */}
         <div
-          className={`flex items-center border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 rounded-xl mx-3 py-5 transition-colors ${
-            sidebarCollapsed ? "justify-center px-2" : "gap-3 px-6"
+          className={`flex items-center border-b border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors py-4 ${
+            sidebarCollapsed ? "justify-center px-4" : "gap-2.5 px-5"
           }`}
           onClick={handleLogoClick}
           title="StudyBuddy home"
         >
-          <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-slate-900" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-white" />
           </div>
           {!sidebarCollapsed && (
             <div className="min-w-0">
-              <h1 className="font-display font-bold text-white text-lg leading-tight">
+              <h1 className="font-semibold text-slate-900 text-base leading-tight tracking-tight">
                 StudyBuddy
               </h1>
-              <p className="text-slate-400 text-xs font-mono">AI · Free</p>
+              <p className="text-slate-400 text-xs">AI · Free</p>
             </div>
           )}
         </div>
 
-        {/* Desktop navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto" aria-label="Tools">
-          <div
-            className={`flex items-center mb-3 ${sidebarCollapsed ? "justify-center" : "justify-between px-3"}`}
+        {/* Collapse toggle */}
+        <div className={`flex items-center px-3 pt-4 pb-1 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+          {!sidebarCollapsed && (
+            <p className="text-slate-400 text-[11px] font-medium uppercase tracking-widest px-1">
+              Tools
+            </p>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="icon-button"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!sidebarCollapsed}
           >
-            {!sidebarCollapsed && (
-              <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">
-                Tools
-              </p>
-            )}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="icon-button"
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-expanded={!sidebarCollapsed}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-            </button>
-          </div>
-          {navItems.map(({ to, label, icon: Icon, color, hover, idle, active, dot }) => (
+            {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+        </div>
+
+        {/* Desktop navigation */}
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto" aria-label="Tools">
+          {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               title={sidebarCollapsed ? label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group
-                ${sidebarCollapsed ? "justify-center px-2" : "px-3"}
-                ${isActive ? active : `text-slate-400 ${idle}`}`
+                `nb-nav-item ${sidebarCollapsed ? "justify-center px-2" : ""}
+                 ${isActive ? "nb-nav-item--active" : ""}`
               }
             >
               {({ isActive }) => (
                 <>
                   <Icon
-                    className={`w-4.5 h-4.5 flex-shrink-0 transition-colors ${
-                      isActive ? color : `text-slate-500 ${hover}`
-                    }`}
-                    size={18}
+                    className={`flex-shrink-0 ${isActive ? "text-indigo-600" : "text-slate-500"}`}
+                    size={17}
                   />
-                  {!sidebarCollapsed && label}
-                  {isActive && !sidebarCollapsed && (
-                    <span
-                      className={`ml-auto w-1.5 h-1.5 rounded-full ${dot}`}
-                      aria-hidden="true"
-                    />
+                  {!sidebarCollapsed && (
+                    <span className={isActive ? "text-indigo-700" : ""}>{label}</span>
                   )}
                 </>
               )}
@@ -194,56 +139,63 @@ export default function Layout({ children }) {
 
         {/* User controls */}
         {user ? (
-          <div
-            className={`border-t border-slate-800 flex flex-col gap-2 ${
-              sidebarCollapsed ? "px-2 py-4 items-center" : "px-6 py-4"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-sm flex-shrink-0">
-                S
+          <div className={`border-t border-slate-200 ${sidebarCollapsed ? "px-3 py-4 flex flex-col items-center gap-2" : "px-4 py-4"}`}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <User size={15} />
               </div>
               {!sidebarCollapsed && (
-                <p className="text-white text-sm font-semibold truncate">Student</p>
+                <div className="min-w-0">
+                  <p className="text-slate-800 text-sm font-medium truncate">
+                    {user.username || "Student"}
+                  </p>
+                  <p className="text-slate-400 text-xs">Free plan</p>
+                </div>
               )}
             </div>
-            <button
-              onClick={logout}
-              aria-label="Sign Out"
-              title="Sign Out"
-              className={`rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                sidebarCollapsed ? "w-9 h-9 p-0" : "mt-2 w-full px-3 py-2"
-              }`}
-            >
-              {sidebarCollapsed ? <LogOut size={15} /> : "Sign Out"}
-            </button>
+            {!sidebarCollapsed && (
+              <button
+                onClick={logout}
+                aria-label="Sign Out"
+                className="mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+              >
+                <LogOut size={15} />
+                Sign out
+              </button>
+            )}
+            {sidebarCollapsed && (
+              <button
+                onClick={logout}
+                aria-label="Sign Out"
+                className="icon-button"
+                title="Sign out"
+              >
+                <LogOut size={15} />
+              </button>
+            )}
           </div>
         ) : (
-          <div
-            className={`border-t border-slate-800 flex flex-col gap-2 ${
-              sidebarCollapsed ? "px-2 py-4 items-center" : "px-6 py-4"
-            }`}
-          >
+          <div className={`border-t border-slate-200 ${sidebarCollapsed ? "px-3 py-4 flex flex-col items-center" : "px-4 py-4"}`}>
             <NavLink
               to="/login"
               aria-label="Log In"
-              title="Log In"
-              className={`flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold transition-colors ${
-                sidebarCollapsed ? "w-9 h-9 p-0" : "px-3 py-2 text-sm"
-              }`}
+              className={`btn-primary ${sidebarCollapsed ? "w-10 h-10 p-0" : "w-full justify-center"}`}
             >
-              {sidebarCollapsed ? <LogIn size={16} /> : "Log In"}
+              {sidebarCollapsed ? <LogIn size={16} /> : <>
+                <LogIn size={15} />
+                Sign in
+              </>}
             </NavLink>
           </div>
         )}
 
-        {/* Footer info */}
+        {/* Powered by */}
         {!sidebarCollapsed && (
-          <div className="px-6 py-4 border-t border-slate-800">
-            <div className="bg-slate-800/60 rounded-xl p-3">
+          <div className="px-4 pb-4">
+            <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
               <p className="text-slate-400 text-xs leading-relaxed">
                 Powered by{" "}
-                <span className="text-amber-400 font-medium">GPT-OSS 120B</span>
+                <span className="text-indigo-600 font-medium">Groq LLM</span>
               </p>
             </div>
           </div>
@@ -252,23 +204,23 @@ export default function Layout({ children }) {
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10">
-        {/* Mobile header with dropdown navigation */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900">
+        {/* Mobile header */}
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-slate-900" />
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-display font-bold text-white">StudyBuddy</span>
+            <span className="font-semibold text-slate-900 text-sm">StudyBuddy</span>
           </div>
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
             >
               {currentItem ? currentItem.label : "Menu"}
               <ChevronDown
-                size={16}
+                size={15}
                 className={`transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
               />
             </button>
@@ -279,28 +231,24 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50 animate-fade-in">
+                <div className="menu-panel absolute right-0 top-full mt-2 w-52 z-50 animate-fade-in">
                   <nav className="p-2 space-y-0.5" aria-label="Tools menu">
-                    {navItems.map(({ to, label, icon: Icon, color, dot, menu }) => (
+                    {navItems.map(({ to, label, icon: Icon }) => (
                       <NavLink
                         key={to}
                         to={to}
                         onClick={() => setDropdownOpen(false)}
-                        className={`menu-item ${menu}`}
+                        className={({ isActive }) =>
+                          `menu-item ${isActive ? "menu-item[aria-current='page']" : ""}`
+                        }
                       >
                         {({ isActive }) => (
                           <>
                             <Icon
-                              className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? color : ""}`}
-                              size={18}
+                              className={`flex-shrink-0 ${isActive ? "text-indigo-600" : ""}`}
+                              size={16}
                             />
                             {label}
-                            {isActive && (
-                              <span
-                                className={`ml-auto w-1.5 h-1.5 rounded-full ${dot}`}
-                                aria-hidden="true"
-                              />
-                            )}
                           </>
                         )}
                       </NavLink>
@@ -312,10 +260,12 @@ export default function Layout({ children }) {
                       <div className="menu-divider" />
                       <div className="p-2">
                         <div className="flex items-center gap-2 px-3 py-2">
-                          <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-xs">
-                            S
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                            <User size={14} />
                           </div>
-                          <p className="text-white text-sm font-semibold">Student</p>
+                          <p className="text-slate-800 text-sm font-medium">
+                            {user.username || "Student"}
+                          </p>
                         </div>
                         <button
                           onClick={() => {
@@ -324,8 +274,8 @@ export default function Layout({ children }) {
                           }}
                           className="menu-item menu-item--quiet"
                         >
-                          <LogOut size={16} className="flex-shrink-0" />
-                          Sign Out
+                          <LogOut size={15} className="flex-shrink-0" />
+                          Sign out
                         </button>
                       </div>
                     </>
@@ -339,13 +289,10 @@ export default function Layout({ children }) {
         {/* Page content */}
         <main
           className={`flex flex-1 flex-col overflow-y-auto transition-[margin] duration-200 ${
-            sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+            sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[240px]"
           }`}
         >
-          {/* The wrapper is a flex column so a page can claim the leftover
-              viewport height (the chat workspace does) instead of guessing it
-              with a hardcoded 100vh offset. */}
-          <div className="flex w-full flex-1 flex-col min-h-0 px-3 py-6 sm:px-4">
+          <div className="flex w-full flex-1 flex-col min-h-0">
             {children}
           </div>
         </main>

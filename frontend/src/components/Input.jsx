@@ -19,7 +19,7 @@ export function Input({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-400 text-xs font-mono uppercase tracking-wider">
+        <label className="text-slate-600 text-xs font-medium">
           {label}
         </label>
       )}
@@ -31,11 +31,11 @@ export function Input({
         )}
         <input
           className={`
-            w-full px-4 py-2.5 bg-slate-800 border rounded-xl text-white text-sm placeholder-slate-500
-            focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition-colors duration-150 font-body
+            w-full px-4 py-2.5 bg-white border rounded-xl text-slate-900 text-sm placeholder-slate-400
+            focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors duration-150
             ${hasError
-              ? "border-rose-500/50 focus:border-rose-400 focus:ring-rose-400/30"
-              : "border-slate-700 focus:border-amber-400"}
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-400/30"
+              : "border-slate-200 focus:border-indigo-400"}
             ${leftIcon ? "pl-10" : ""}
             ${rightIcon ? "pr-10" : ""}
             ${inputClassName}

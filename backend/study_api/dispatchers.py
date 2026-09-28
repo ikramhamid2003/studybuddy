@@ -206,6 +206,30 @@ def _action_refresh(data, request=None):
         return _error(str(e))
 
 
+def _action_usage_stats(data, request):
+    """Return cumulative token usage and estimated cost for the authenticated user."""
+    generations = Generation.objects.filter(user=request.user)
+    total_input = sum(g.input_tokens or 0 for g in generations)
+    total_output = sum(g.output_tokens or 0 for g in generations)
+    total_cost = sum(g.cost or 0 for g in generations)
+
+    # Also include UsageLog entries if they exist
+    try:
+        from .models import UsageLog
+        usage_logs = UsageLog.objects.filter(user=request.user)
+        total_input += sum(ul.input_tokens or 0 for ul in usage_logs)
+        total_output += sum(ul.output_tokens or 0 for ul in usage_logs)
+        total_cost += sum(ul.estimated_cost or 0 for ul in usage_logs)
+    except Exception:
+        pass
+
+    return _ok({
+        "total_input_tokens": total_input,
+        "total_output_tokens": total_output,
+        "total_estimated_cost": round(total_cost, 4),
+    })
+
+
 # ── Actions (authenticated – JWT required) ──────────────────────────────────
 
 
@@ -424,4 +448,5 @@ ACTION_MAP = {
     "unregister": _action_unregister,
     "chat_stream": _action_chat_stream,
     "health": lambda _data, _request=None: _ok({"status": "ok"}),
+    "usage_stats": _action_usage_stats,
 }

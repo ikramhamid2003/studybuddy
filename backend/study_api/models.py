@@ -75,3 +75,29 @@ class Generation(models.Model):
 
     def __str__(self):
         return f"{self.type}: {self.topic[:40]}"
+
+
+class UsageLog(models.Model):
+    """Track per-user token usage and estimated cost."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="usage_logs",
+    )
+    generation = models.ForeignKey(
+        Generation,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="usage_logs",
+    )
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    estimated_cost = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.input_tokens} in / {self.output_tokens} out @ {self.estimated_cost}"

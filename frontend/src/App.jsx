@@ -25,8 +25,8 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-sm">
-        Loading session...
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
       </div>
     );
   }
@@ -41,8 +41,8 @@ function GuestRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-sm">
-        Loading session...
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
       </div>
     );
   }
@@ -53,38 +53,30 @@ function GuestRoute({ children }) {
 }
 
 export default function App() {
-  useEffect(() => {
-    // CSS variables drive the ambient cursor glow used by the app shell.
-    const handleMouseMove = (e) => {
-      document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
-      document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  // No ambient glow needed in the NotebookLM light theme.
 
   return (
-    <div className="cursor-glow-container relative min-h-screen">
-      <div className="pointer-events-none fixed inset-0 z-0 cursor-glow-element" />
+    <div className="relative min-h-screen">
       <div className="relative z-10">
         {/* Providers wrap routing so every page can share auth, cache, and toasts. */}
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <BrowserRouter>
-          {/* Toast styling is centralized so every page uses the same feedback UI. */}
+          {/* Toast styling — light NotebookLM palette. */}
           <Toaster
             position="top-right"
             toastOptions={{
               style: {
-                background: "#1e293b",
-                color: "#f1f5f9",
-                border: "1px solid #334155",
+                background: "#ffffff",
+                color: "#0f172a",
+                border: "1px solid #e2e8f0",
                 borderRadius: "12px",
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: "13px",
+                boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
               },
-              success: { iconTheme: { primary: "#fbbf24", secondary: "#0f172a" } },
-              error: { iconTheme: { primary: "#f43f5e", secondary: "#0f172a" } },
+              success: { iconTheme: { primary: "#4f46e5", secondary: "#ffffff" } },
+              error: { iconTheme: { primary: "#e11d48", secondary: "#ffffff" } },
             }}
           />
           <Routes>

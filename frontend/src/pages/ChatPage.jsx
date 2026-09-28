@@ -27,8 +27,20 @@ import {
   deleteChatSession,
 } from "../utils/api";
 
+function URLBadge({ hasUrl }) {
+  return (
+    <span
+      className="absolute -top-1 -right-1 rounded-full bg-amber-500/90 text-xs text-amber-300 border border-slate-950/50 p-0.5 shadow-xs"
+      title="Content from website"
+    >
+      🌐
+    </span>
+  );
+}
+
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
+  const hasUrl = msg.role === "assistant" && typeof msg.content === "object" && msg.content.hasUrl;
 
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
@@ -51,9 +63,17 @@ function MessageBubble({ msg }) {
               : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
             }`}
         >
-          {msg.content}
+          {hasUrl ? (
+            <>
+              {msg.content.content || msg.content || ""}
+              <URLBadge hasUrl={hasUrl} />
+            </>
+          ) : (
+            {msg.content}
+          )}
         </div>
       </div>
+      {hasUrl && <URLBadge hasUrl={hasUrl} />}
     </div>
   );
 }

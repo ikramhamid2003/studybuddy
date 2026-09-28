@@ -2,39 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
   body {
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-    background-color: #030209;
-    color: #f1f5f9;
+    font-family: "Inter", system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4, h5 {
     font-family: "Outfit", sans-serif;
   }
 
-  /* Ultimate Interactive Scrollbar */
+  /* Refined NotebookLM-style scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: rgba(3, 2, 9, 0.95);
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: #cbd5e1;
     border-radius: 99px;
-    border: 2px solid rgba(3, 2, 9, 0.95);
-    transition: all 0.3s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(251, 191, 36, 0.4);
+    background: #94a3b8;
   }
 }
 
@@ -67,13 +67,13 @@
     transform: rotateY(180deg);
   }
 
-  /* Shimmer loading effect */
+  /* Shimmer loading — adapted to light theme */
   .shimmer {
     background: linear-gradient(
       90deg,
-      rgba(255,255,255,0.03) 25%,
-      rgba(255,255,255,0.08) 50%,
-      rgba(255,255,255,0.03) 75%
+      #f1f5f9 25%,
+      #e2e8f0 50%,
+      #f1f5f9 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
@@ -93,125 +93,74 @@
 
   @keyframes typingBounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-6px); opacity: 1; }
+    30% { transform: translateY(-5px); opacity: 1; }
   }
 
-  /* High-end Hover Shimmer Layer for Buttons */
-  .btn-shimmer {
-    position: relative;
-    overflow: hidden;
-  }
-  .btn-shimmer::after {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -60%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      45deg,
-      transparent 45%,
-      rgba(255, 255, 255, 0.15) 50%,
-      transparent 55%
-    );
-    transform: rotate(-45deg);
-    transition: all 0.6s ease;
-    opacity: 0;
-  }
-  /* The sweep is driven by the owning button, not the overlay itself: the
-     overlay is pointer-events-none, so it can never match :hover on its own.
-     It is decoration, so it only runs for users who asked for motion. */
-  @media (prefers-reduced-motion: no-preference) {
-    .group:hover .btn-shimmer::after {
-      left: 130%;
-      opacity: 1;
-    }
-  }
-
-  /* ── Menu system ─────────────────────────────────────────────────────────
-     Popovers sit one step above the working surface. This is a dark theme, so
-     elevation reads through surface lightness plus a hairline border rather
-     than a heavy shadow, which would only mud. */
+  /* ── Menu system ─────────────────────────────────────────────────────── */
   .menu-panel {
-    @apply rounded-xl border border-slate-700/80 bg-slate-900 overflow-hidden;
-    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+    @apply rounded-xl border border-slate-200 bg-white overflow-hidden;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.04);
   }
 
-  /* One item recipe for every popover, so a menu action looks the same
-     wherever it appears. The hover surface is a deliberate step lighter than
-     the panel, so the pointed-at row is obvious at a glance. */
   .menu-item {
     @apply w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg
-           text-left text-sm text-slate-300
+           text-left text-sm text-slate-600
            transition-[background-color,color,transform] duration-150 ease-out
-           hover:bg-slate-700/70 hover:text-white
+           hover:bg-slate-50 hover:text-slate-900
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
-           focus-visible:ring-slate-300/70
+           focus-visible:ring-indigo-400/70
            motion-safe:active:scale-[0.98];
   }
 
-  /* The item backing the current page. The dot in the markup carries the same
-     state without relying on colour alone. */
   .menu-item[aria-current="page"] {
-    @apply bg-slate-700/70 text-white;
+    @apply bg-indigo-50 text-indigo-700;
   }
 
   .menu-item--quiet {
-    @apply text-slate-400 hover:bg-slate-700/70 hover:text-slate-100;
+    @apply text-slate-500 hover:bg-slate-50 hover:text-slate-700;
   }
 
   .menu-item--confirm {
-    @apply text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-200
+    @apply text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700
            focus-visible:ring-emerald-400/70;
   }
 
   .menu-item--danger {
-    @apply text-rose-400 hover:bg-rose-500/20 hover:text-rose-200
+    @apply text-rose-500 hover:bg-rose-50 hover:text-rose-700
            focus-visible:ring-rose-400/70;
   }
 
   .menu-divider {
-    @apply my-1 h-px bg-slate-800;
+    @apply my-1 h-px bg-slate-100;
   }
 
-  /* ── Icon-only controls ──────────────────────────────────────────────────
-     One treatment for every icon button, so hover, press, and focus behave
-     identically whether the control sits in a toolbar, a row, or a panel.
-     The 8px padding keeps the hit area above the 24px floor for a 14-16px
-     glyph. */
+  /* ── Icon-only controls ────────────────────────────────────────────── */
   .icon-button {
     @apply inline-flex items-center justify-center rounded-lg p-2
-           text-slate-400
+           text-slate-500
            transition-[background-color,color,transform] duration-150 ease-out
-           hover:bg-slate-700/70 hover:text-white
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70
-           focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+           hover:bg-slate-100 hover:text-slate-800
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70
+           focus-visible:ring-offset-2 focus-visible:ring-offset-white
            motion-safe:active:scale-95
            disabled:opacity-40 disabled:pointer-events-none;
   }
 
-  /* Destructive icon actions stay quiet until pointed at, then turn rose. */
   .icon-button--danger {
-    @apply text-slate-500 hover:bg-rose-500/20 hover:text-rose-200
+    @apply text-slate-400 hover:bg-rose-50 hover:text-rose-600
            focus-visible:ring-rose-400/70;
   }
 
-  /* The control that owns an open panel stays lit while the panel is open. */
   .icon-button[aria-expanded="true"] {
-    @apply bg-slate-700/70 text-white;
+    @apply bg-slate-100 text-slate-800;
   }
 
-  /* Native select popups are painted by the OS, not by Tailwind. Without this
-     the options inherit white text on a white popup surface. */
   select option {
-    background-color: #0f172a;
-    color: #e2e8f0;
+    background-color: #ffffff;
+    color: #0f172a;
   }
 
-  /* The app shell needs a DEFINITE viewport height, not a minimum: the chat
-     workspace derives its own height from this chain so the transcript can
-     scroll inside it. `dvh` keeps the composer clear of mobile browser chrome
-     where supported, with `vh` as the fallback. */
+  /* Workspace heights */
   .app-height {
     height: 100vh;
   }
@@ -220,52 +169,119 @@
       height: 100dvh;
     }
   }
+
+  /* ── NotebookLM-style Sidebar ─────────────────────────────────────── */
+  .nb-sidebar {
+    @apply bg-white border-r border-slate-200;
+  }
+
+  .nb-nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+           text-slate-600 transition-all duration-150
+           hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .nb-nav-item--active {
+    @apply bg-indigo-50 text-indigo-700;
+  }
+
+  /* ── Source card ──────────────────────────────────────────────────── */
+  .source-card {
+    @apply flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white
+           transition-all duration-150 hover:border-indigo-300 hover:shadow-sm cursor-pointer;
+  }
+
+  .source-card--selected {
+    @apply border-indigo-400 bg-indigo-50/50;
+  }
+
+  /* ── Chat bubble ──────────────────────────────────────────────────── */
+  .chat-bubble-user {
+    @apply inline-block px-4 py-3 bg-indigo-600 text-white rounded-2xl rounded-tr-sm
+           text-sm leading-relaxed max-w-[80%] ml-auto;
+  }
+
+  .chat-bubble-ai {
+    @apply block px-4 py-3 bg-white border border-slate-200 rounded-2xl rounded-tl-sm
+           text-sm leading-relaxed text-slate-800 shadow-sm;
+  }
+
+  /* ── Citation badge ───────────────────────────────────────────────── */
+  .citation-badge {
+    @apply inline-flex items-center justify-center w-4 h-4 rounded-full
+           bg-emerald-100 border border-emerald-300 text-emerald-700
+           text-[9px] font-bold leading-none mx-0.5 cursor-pointer
+           transition-colors hover:bg-emerald-200;
+  }
+
+  /* ── Prompt pill ─────────────────────────────────────────────────── */
+  .prompt-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+           bg-slate-100 text-slate-600 border border-slate-200
+           transition-all duration-150 cursor-pointer
+           hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700;
+  }
+
+  /* ── Studio card ──────────────────────────────────────────────────── */
+  .studio-card {
+    @apply bg-white border border-slate-200 rounded-2xl p-4 shadow-sm
+           transition-all duration-200 hover:shadow-md hover:border-slate-300;
+  }
+
+  /* ── Primary button (NotebookLM indigo style) ─────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2.5 rounded-lg text-sm font-semibold
+           bg-indigo-600 text-white
+           transition-all duration-150
+           hover:bg-indigo-700 active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2.5 rounded-lg text-sm font-medium
+           bg-white text-slate-700 border border-slate-200
+           transition-all duration-150
+           hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* ── Fade-in animation ───────────────────────────────────────────── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out 0.1s both;
+  }
+
+  /* ── Float animation for hero orbs ──────────────────────────────── */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-12px) scale(1.02); }
+  }
+  @keyframes float-reverse {
+    0%, 100% { transform: translateY(0) scale(1.02); }
+    50% { transform: translateY(12px) scale(1); }
+  }
+  .animate-float { animation: float 8s ease-in-out infinite; }
+  .animate-float-reverse { animation: float-reverse 10s ease-in-out infinite; }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
   .animation-delay-100 { animation-delay: 100ms; }
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
   .animation-delay-400 { animation-delay: 400ms; }
-
-  /* Premium Floating Animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-15px) scale(1.05); }
-  }
-  @keyframes float-reverse {
-    0%, 100% { transform: translateY(0) scale(1.05); }
-    50% { transform: translateY(15px) scale(1); }
-  }
-  @keyframes pulse-slow {
-    0%, 100% { opacity: 0.15; }
-    50% { opacity: 0.25; }
-  }
-
-  .animate-float {
-    animation: float 7s ease-in-out infinite;
-  }
-  .animate-float-reverse {
-    animation: float-reverse 9s ease-in-out infinite;
-  }
-  .animate-pulse-slow {
-    animation: pulse-slow 5s ease-in-out infinite;
-  }
-
-  /* Ultimate Interactive Cursor Tracking Glow Layer */
-  .cursor-glow-container {
-    --mouse-x: 50%;
-    --mouse-y: 50%;
-  }
-  .cursor-glow-element {
-    background: radial-gradient(
-      500px circle at var(--mouse-x) var(--mouse-y),
-      rgba(251, 191, 36, 0.08),
-      rgba(139, 92, 246, 0.03) 30%,
-      transparent 80%
-    );
-  }
 }
