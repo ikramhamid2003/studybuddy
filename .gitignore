@@ -16,6 +16,16 @@ frontend/build/
 # Lint tools
 .ruff_cache/
 
+# Scratch / one-off artifacts — never commit these. Editors and ad-hoc scripts
+# tend to drop them next to the source they were working on.
+*.bak
+*.backup
+*.orig
+*_output.txt
+*_results.txt
+*lint_output.txt
+*_debug.txt
+
 # OS
 .DS_Store
 Thumbs.db
