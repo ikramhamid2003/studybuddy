@@ -19,8 +19,8 @@ export default function PageHeader({ icon, title, subtitle }) {
           {icon}
         </div>
         <div>
-          <h2 className="font-display text-3xl font-extrabold text-white tracking-tight">{title}</h2>
-          <p className="text-slate-400 text-xs font-light font-body mt-0.5">{subtitle}</p>
+          <h2 className="font-display text-3xl font-extrabold text-slate-900 tracking-tight">{title}</h2>
+          <p className="text-slate-600 text-xs font-light font-body mt-0.5">{subtitle}</p>
         </div>
       </div>
       <div className={`mt-5 h-[1.5px] bg-gradient-to-r ${activeLine} relative z-10`} />

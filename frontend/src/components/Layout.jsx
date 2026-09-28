@@ -88,7 +88,7 @@ export default function Layout({ children }) {
               <h1 className="font-semibold text-slate-900 text-base leading-tight tracking-tight">
                 StudyBuddy
               </h1>
-              <p className="text-slate-400 text-xs">AI · Free</p>
+              <p className="text-slate-600 text-xs">AI · Free</p>
             </div>
           )}
         </div>
@@ -96,7 +96,7 @@ export default function Layout({ children }) {
         {/* Collapse toggle */}
         <div className={`flex items-center px-3 pt-4 pb-1 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
           {!sidebarCollapsed && (
-            <p className="text-slate-400 text-[11px] font-medium uppercase tracking-widest px-1">
+            <p className="text-slate-600 text-[11px] font-medium uppercase tracking-widest px-1">
               Tools
             </p>
           )}
@@ -149,7 +149,7 @@ export default function Layout({ children }) {
                   <p className="text-slate-800 text-sm font-medium truncate">
                     {user.username || "Student"}
                   </p>
-                  <p className="text-slate-400 text-xs">Free plan</p>
+                  <p className="text-slate-600 text-xs">Free plan</p>
                 </div>
               )}
             </div>
@@ -193,7 +193,7 @@ export default function Layout({ children }) {
         {!sidebarCollapsed && (
           <div className="px-4 pb-4">
             <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
-              <p className="text-slate-400 text-xs leading-relaxed">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 Powered by{" "}
                 <span className="text-indigo-600 font-medium">Groq LLM</span>
               </p>
