@@ -139,8 +139,10 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
+    # Both ceilings are env-configurable so a deployment can tighten them
+    # without a code change.
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/hour",
+        "anon": os.getenv("THROTTLE_ANON_RATE", "60/hour"),
         "user": os.getenv("THROTTLE_USER_RATE", "300/hour"),
     },
 }

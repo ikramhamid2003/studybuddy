@@ -21,12 +21,12 @@ function renderLayout(path) {
   );
 }
 
-test("sidebar shows default Student name instead of username", () => {
+test("sidebar shows the signed-in username", () => {
   renderLayout("/explain");
-  expect(screen.getByText("Student")).toBeDefined();
-  expect(screen.queryByText("alice")).toBeNull();
-  // the old duplicate "Student" role label under the name is gone
-  expect(screen.getAllByText("Student")).toHaveLength(1);
+  // Names the account holder, falling back to "Student" when the token carries
+  // no username.
+  expect(screen.getByText("alice")).toBeDefined();
+  expect(screen.getByText("Free plan")).toBeDefined();
 });
 
 test("sidebar is desktop-only and small screens get a dropdown header", () => {
@@ -51,7 +51,7 @@ test("dropdown opens with nav items and user section, closes on navigation", () 
 
   // sidebar nav + dropdown nav now both render
   expect(screen.getAllByText("Summarize")).toHaveLength(2);
-  expect(screen.getAllByText("Student")).toHaveLength(2);
+  expect(screen.getAllByText("alice")).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: /sign out/i })).toHaveLength(2);
   expect(screen.getAllByRole("navigation")).toHaveLength(2);
 
@@ -66,22 +66,22 @@ test("desktop sidebar collapses to an icon rail and the content margin follows",
   const aside = screen.getByRole("complementary");
   const main = screen.getByRole("main");
 
-  expect(aside.className).toContain("w-64");
-  expect(main.className).toContain("lg:ml-64");
+  expect(aside.className).toContain("w-[240px]");
+  expect(main.className).toContain("lg:ml-[240px]");
 
   fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
 
   // static width classes, so Tailwind actually emits them
-  expect(aside.className).toContain("w-20");
-  expect(aside.className).not.toContain("w-64");
-  expect(main.className).toContain("lg:ml-20");
-  expect(main.className).not.toContain("lg:ml-64");
+  expect(aside.className).toContain("w-[68px]");
+  expect(aside.className).not.toContain("w-[240px]");
+  expect(main.className).toContain("lg:ml-[68px]");
+  expect(main.className).not.toContain("lg:ml-[240px]");
   // labels leave the DOM so the rail is icons-only
   expect(screen.queryByText("Summarize")).toBeNull();
   expect(screen.queryByText("Tools")).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: /expand sidebar/i }));
 
-  expect(aside.className).toContain("w-64");
+  expect(aside.className).toContain("w-[240px]");
   expect(screen.getByText("Summarize")).toBeDefined();
 });

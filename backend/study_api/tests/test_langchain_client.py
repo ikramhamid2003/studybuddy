@@ -110,6 +110,8 @@ def test_query_groq_structured(mock_get_llm):
         assert res.answer == "42"
 
 
+@patch("study_api.langchain_client._get_llm")
+def test_chat_groq(mock_get_llm):
     mock_get_llm.return_value = _FakeLLM(invoke_result=_FakeResult("  sure, happy to help!  "))
     history = [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello!"}]
 

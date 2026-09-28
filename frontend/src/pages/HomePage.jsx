@@ -3,7 +3,6 @@ import {
   BookOpen,
   Sparkles,
   FileText,
-  CheckSquare,
   MessageSquare,
   ArrowRight,
   Zap,

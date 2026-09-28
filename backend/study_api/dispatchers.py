@@ -1,4 +1,5 @@
 # Lazy/safe import of LangChain — network calls during module init can block
+import contextlib
 import json
 
 from django.contrib.auth.models import User
@@ -6,13 +7,15 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .content_fetcher import process_topic_with_url
-from .models import ChatMessage, ChatSession, Generation
+from .models import ChatMessage, ChatSession, Generation, UsageLog
 from .schemas import FlashcardsResponse, QuizResponse
 
 try:
@@ -30,8 +33,11 @@ except Exception:  # noqa: BLE001
     _HAS_LANGCHAIN = False
 
 
-# Actions that do NOT require authentication
-PUBLIC_ACTIONS = frozenset(["register", "login", "refresh", "health"])
+# Actions that do NOT require authentication. `logout` is here because the
+# refresh token it carries is itself the credential (same model as SimpleJWT's
+# blacklist view); requiring a live access token would let an expired session
+# keep its refresh token.
+PUBLIC_ACTIONS = frozenset(["register", "login", "refresh", "logout", "health"])
 
 EXPLAIN_SYSTEM = (
     "You are an expert tutor. Your task is to explain a concept clearly based on the provided content. "
@@ -213,15 +219,12 @@ def _action_usage_stats(data, request):
     total_output = sum(g.output_tokens or 0 for g in generations)
     total_cost = sum(g.cost or 0 for g in generations)
 
-    # Also include UsageLog entries if they exist
-    try:
-        from .models import UsageLog
-        usage_logs = UsageLog.objects.filter(user=request.user)
-        total_input += sum(ul.input_tokens or 0 for ul in usage_logs)
-        total_output += sum(ul.output_tokens or 0 for ul in usage_logs)
-        total_cost += sum(ul.estimated_cost or 0 for ul in usage_logs)
-    except Exception:
-        pass
+    # Generation already records per-tool usage; UsageLog adds anything that was
+    # tracked separately, so the two are summed rather than treated as exclusive.
+    usage_logs = UsageLog.objects.filter(user=request.user)
+    total_input += sum(ul.input_tokens or 0 for ul in usage_logs)
+    total_output += sum(ul.output_tokens or 0 for ul in usage_logs)
+    total_cost += sum(ul.estimated_cost or 0 for ul in usage_logs)
 
     return _ok({
         "total_input_tokens": total_input,
@@ -368,8 +371,36 @@ def _action_session_delete(data, request):
     return _ok({})
 
 
+def _action_logout(data, request=None):
+    """Revoke a refresh token so the session cannot be resumed.
+
+    Public by design: the refresh token itself is the credential, which is also
+    how SimpleJWT's own blacklist view behaves. That matters because a user's
+    access token is often already expired by the time they sign out, and an
+    authenticated-only action would 401 and leave the refresh token live.
+    """
+
+    refresh = data.get("refresh")
+    if not refresh:
+        return _error("refresh token required")
+
+    try:
+        RefreshToken(refresh).blacklist()
+    except TokenError as e:
+        # An expired or already-revoked token is not worth an error: the session
+        # is over either way, so logout stays idempotent.
+        return _ok({"blacklisted": False, "reason": str(e)})
+    return _ok({"blacklisted": True})
+
+
 def _action_unregister(data, request):
-    """Delete the authenticated user account."""
+    """Delete the authenticated user account and revoke its refresh token."""
+
+    refresh = data.get("refresh")
+    if refresh:
+        # Revoke first so the token cannot outlive the account it belonged to.
+        with contextlib.suppress(TokenError):
+            RefreshToken(refresh).blacklist()
 
     try:
         request.user.delete()
@@ -446,6 +477,7 @@ ACTION_MAP = {
     "session_rename": _action_session_rename,
     "session_delete": _action_session_delete,
     "unregister": _action_unregister,
+    "logout": _action_logout,
     "chat_stream": _action_chat_stream,
     "health": lambda _data, _request=None: _ok({"status": "ok"}),
     "usage_stats": _action_usage_stats,

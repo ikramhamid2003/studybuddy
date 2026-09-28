@@ -51,6 +51,8 @@ export function AuthProvider({ children }) {
       }
       const access = json.data.access;
       localStorage.setItem("token", access);
+      // The refresh token is what logout revokes, so it has to be kept too.
+      if (json.data.refresh) localStorage.setItem("refresh", json.data.refresh);
       setToken(access);
       try {
         const payload = JSON.parse(atob(access.split(".")[1]));
@@ -81,22 +83,26 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    // Blacklist the token on the backend before clearing local state.
-    if (token) {
+    // Revoke the refresh token before clearing local state. The action is
+    // public because the refresh token is the credential, and it must work even
+    // when the access token has already expired.
+    const refresh = localStorage.getItem("refresh");
+    if (refresh) {
       try {
-        await fetch(`${BASE_URL}/api/token/blacklist/`, {
+        await fetch(`${BASE_URL}/unified/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ action: "logout", refresh }),
         });
       } catch (e) {
-        // Even if the blacklist call fails, clear local state.
+        // Even if the revoke call fails, clear local state.
       }
     }
     // Clearing the token automatically returns the app to guest state.
     setToken(null);
     setUser(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
   }
 
   return (

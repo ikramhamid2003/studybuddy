@@ -69,10 +69,11 @@ function MessageBubble({ msg }) {
               <URLBadge hasUrl={hasUrl} />
             </>
           ) : (
-            msg.content
+            {msg.content}
           )}
         </div>
       </div>
+      {hasUrl && <URLBadge hasUrl={hasUrl} />}
     </div>
   );
 }

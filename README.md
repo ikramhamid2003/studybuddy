@@ -97,6 +97,9 @@ GROQ_MODEL=openai/gpt-oss-120b
 DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 SECRET_KEY=some-long-random-secret-key
 DEBUG=True
+# Optional rate-limit ceilings (defaults shown)
+THROTTLE_ANON_RATE=60/hour
+THROTTLE_USER_RATE=300/hour
 EOT
 # Optional: GLITCHTIP_DSN for backend error tracking
 
