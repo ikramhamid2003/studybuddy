@@ -91,32 +91,6 @@ export default function HomePage() {
             </div>
             <span className="font-semibold text-slate-900 text-base">StudyBuddy</span>
           </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <button
-                onClick={() => navigate("/explain")}
-                className="btn-primary text-sm"
-              >
-                Open Workspace
-                <ArrowRight size={14} />
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="btn-secondary text-sm"
-                >
-                  Sign in
-                </button>
-                <button
-                  onClick={() => navigate("/register")}
-                  className="btn-primary text-sm"
-                >
-                  Get started free
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </header>
 
