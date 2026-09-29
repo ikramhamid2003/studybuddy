@@ -40,28 +40,28 @@ const TOOL_OPTIONS = [
 // filter is readable at a glance instead of a grey pill among grey pills.
 const TAB_COLORS = {
   all: {
-    active: "bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-100",
-    idle: "border-transparent text-slate-400 hover:text-fuchsia-100 hover:bg-fuchsia-500/10",
+    active: "bg-fuchsia-50 border-fuchsia-300 text-fuchsia-700",
+    idle: "border-transparent text-slate-600 hover:text-fuchsia-700 hover:bg-fuchsia-50",
   },
   explain: {
-    active: "bg-amber-500/20 border-amber-400/40 text-amber-100",
-    idle: "border-transparent text-slate-400 hover:text-amber-100 hover:bg-amber-500/10",
+    active: "bg-amber-50 border-amber-300 text-amber-700",
+    idle: "border-transparent text-slate-600 hover:text-amber-700 hover:bg-amber-50",
   },
   summarize: {
-    active: "bg-emerald-500/20 border-emerald-400/40 text-emerald-100",
-    idle: "border-transparent text-slate-400 hover:text-emerald-100 hover:bg-emerald-500/10",
+    active: "bg-emerald-50 border-emerald-300 text-emerald-700",
+    idle: "border-transparent text-slate-600 hover:text-emerald-700 hover:bg-emerald-50",
   },
   quiz: {
-    active: "bg-violet-500/20 border-violet-400/40 text-violet-100",
-    idle: "border-transparent text-slate-400 hover:text-violet-100 hover:bg-violet-500/10",
+    active: "bg-violet-50 border-violet-300 text-violet-700",
+    idle: "border-transparent text-slate-600 hover:text-violet-700 hover:bg-violet-50",
   },
   flashcards: {
-    active: "bg-sky-500/20 border-sky-400/40 text-sky-100",
-    idle: "border-transparent text-slate-400 hover:text-sky-100 hover:bg-sky-500/10",
+    active: "bg-sky-50 border-sky-300 text-sky-700",
+    idle: "border-transparent text-slate-600 hover:text-sky-700 hover:bg-sky-50",
   },
   chat: {
-    active: "bg-rose-500/20 border-rose-400/40 text-rose-100",
-    idle: "border-transparent text-slate-400 hover:text-rose-100 hover:bg-rose-500/10",
+    active: "bg-rose-50 border-rose-300 text-rose-700",
+    idle: "border-transparent text-slate-600 hover:text-rose-700 hover:bg-rose-50",
   },
 };
 
@@ -798,7 +798,7 @@ export default function AllPage() {
         ) : (
           <>
             {/* Tab navbar */}
-            <div className="flex gap-1 p-1 bg-slate-900/50 rounded-xl mb-4 border border-slate-800/50 overflow-x-auto">
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-4 border border-slate-200 overflow-x-auto">
               {[
                 { key: "all", label: "All" },
                 ...TOOL_OPTIONS.map((o) => ({ key: o.value, label: o.label })),
@@ -820,8 +820,8 @@ export default function AllPage() {
                     <span
                       className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
                         historyTab === tab.key
-                          ? "bg-white/15 text-white"
-                          : "bg-slate-800 text-slate-500"
+                          ? "bg-white text-slate-700"
+                          : "bg-slate-200 text-slate-500"
                       }`}
                     >
                       {count}
@@ -840,7 +840,7 @@ export default function AllPage() {
                     key={item.id}
                     variant={active?.result === item.result ? "elevated" : "default"}
                     className={`transition-all duration-200 ${
-                      active?.result === item.result ? "border-fuchsia-400/40 bg-slate-800 shadow-[0_0_20px_rgba(217,70,239,0.05)]" : ""
+                      active?.result === item.result ? "border-indigo-300 bg-indigo-50 shadow-sm" : ""
                     }`}
                     style={{ animationDelay: `${index * 30}ms` }}
                   >
@@ -857,7 +857,7 @@ export default function AllPage() {
                         className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70"
                       >
                         <TypeBadge type={item.type} />
-                        <span className="text-slate-300 text-sm truncate flex-1">{item.topic}</span>
+                        <span className="text-slate-800 text-sm truncate flex-1">{item.topic}</span>
                         <span className="text-slate-500 text-xs font-mono flex-shrink-0 hidden sm:inline">
                           {new Date(item.created_at).toLocaleDateString()}
                         </span>

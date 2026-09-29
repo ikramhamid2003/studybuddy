@@ -3,19 +3,19 @@ import PropTypes from "prop-types";
 export default function Card({ children, className = "", accent = null, hover = false, variant = "default", onClick }) {
   // Accent keys match the app's tool colors and add a subtle left border.
   const accentMap = {
-    amber: "bg-amber-500/10 border-amber-500/20 text-amber-400 border-l-2 border-solid",
-    emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 border-l-2 border-solid",
-    violet: "bg-violet-500/10 border-violet-500/20 text-violet-400 border-l-2 border-solid",
-    sky: "bg-sky-500/10 border-sky-500/20 text-sky-400 border-l-2 border-solid",
-    rose: "bg-rose-500/10 border-rose-500/20 text-rose-400 border-l-2 border-solid",
-    fuchsia: "bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-400 border-l-2 border-solid",
+    amber: "bg-amber-50 border-amber-200 text-amber-700 border-l-2 border-solid",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700 border-l-2 border-solid",
+    violet: "bg-violet-50 border-violet-200 text-violet-700 border-l-2 border-solid",
+    sky: "bg-sky-50 border-sky-200 text-sky-700 border-l-2 border-solid",
+    rose: "bg-rose-50 border-rose-200 text-rose-700 border-l-2 border-solid",
+    fuchsia: "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700 border-l-2 border-solid",
   };
 
   const variantMap = {
-    default: "rounded-xl p-6 bg-slate-950 border border-slate-700/60 transition-all duration-300 hover:bg-slate-900/80 hover:border-amber-500/20",
-    elevated: "rounded-xl p-6 bg-slate-900/80 border border-slate-700/50 shadow-sm hover:bg-slate-900/90 transition-all duration-300",
-    outlined: "rounded-xl p-6 bg-transparent border border-slate-700/50 hover:bg-slate-900/50 transition-all duration-300",
-    glass: "rounded-xl p-6 bg-white/5 border border-white/10 hover:bg-slate-900/20 transition-all duration-300",
+    default: "rounded-xl p-6 bg-white border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300",
+    elevated: "rounded-xl p-6 bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300",
+    outlined: "rounded-xl p-6 bg-transparent border border-slate-200 hover:bg-slate-50 transition-all duration-300",
+    glass: "rounded-xl p-6 bg-white/70 border border-slate-200 backdrop-blur-sm hover:bg-white transition-all duration-300",
   };
 
   const isClickable = typeof onClick === "function";
@@ -27,7 +27,7 @@ export default function Card({ children, className = "", accent = null, hover = 
       className={`
         ${variantMap[variant] || variantMap.default}
         ${accent ? accentMap[accent] : ""}
-        ${hover && isClickable ? "hover:border-slate-600 cursor-pointer transform hover:-translate-y-0.5" : ""}
+        ${hover && isClickable ? "hover:border-slate-300 cursor-pointer transform hover:-translate-y-0.5" : ""}
         ${isClickable ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" : ""}
         ${className}
       `}

@@ -5,27 +5,27 @@ const TOOL_META = {
   explain: {
     label: "Explain",
     icon: BookOpen,
-    badge: "text-amber-400 bg-amber-400/10 border-amber-400/30",
+    badge: "text-amber-700 bg-amber-50 border-amber-200",
   },
   summarize: {
     label: "Summarize",
     icon: FileText,
-    badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
+    badge: "text-emerald-700 bg-emerald-50 border-emerald-200",
   },
   quiz: {
     label: "Quiz",
     icon: Zap,
-    badge: "text-violet-400 bg-violet-400/10 border-violet-400/30",
+    badge: "text-violet-700 bg-violet-50 border-violet-200",
   },
   flashcards: {
     label: "Flashcards",
     icon: Layers,
-    badge: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    badge: "text-sky-700 bg-sky-50 border-sky-200",
   },
   chat: {
     label: "Chat",
     icon: MessageSquare,
-    badge: "text-rose-400 bg-rose-400/10 border-rose-400/30",
+    badge: "text-rose-700 bg-rose-50 border-rose-200",
   },
 };
 

@@ -86,7 +86,7 @@ export function Textarea({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-400 text-xs font-mono uppercase tracking-wider">
+        <label className="text-slate-600 text-xs font-mono uppercase tracking-wider">
           {label}
         </label>
       )}
@@ -161,7 +161,7 @@ export function Select({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-400 text-xs font-mono uppercase tracking-wider">
+        <label className="text-slate-600 text-xs font-mono uppercase tracking-wider">
           {label}
         </label>
       )}

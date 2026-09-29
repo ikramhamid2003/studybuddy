@@ -126,8 +126,8 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
             key={item.id}
             className={`w-full flex items-center gap-1 pr-2 rounded-xl border transition-all duration-150 group ${
               activeId === item.id
-                ? "border-amber-400/50 bg-amber-500/20 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]"
-                : "border-slate-800 bg-slate-900/60 hover:bg-amber-500/10 hover:border-amber-400/25"
+                ? "border-indigo-300 bg-indigo-50"
+                : "border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-200"
             }`}
             style={{ animationDelay: `${index * 30}ms` }}
           >
@@ -140,18 +140,18 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
             >
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${
-                  activeId === item.id ? "bg-amber-500/25 text-amber-300" : "bg-slate-800/60 text-slate-500 group-hover:bg-amber-500/20 group-hover:text-amber-300"
+                  activeId === item.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600"
                 } transition-colors`}>
                   <Icon size={14} />
                 </div>
               </div>
-              <span className="text-slate-300 text-sm truncate flex-1">
+              <span className="text-slate-800 text-sm truncate flex-1">
                 {item.topic}
               </span>
-              <span className="text-slate-600 text-xs font-mono flex-shrink-0 hidden sm:inline">
+              <span className="text-slate-500 text-xs font-mono flex-shrink-0 hidden sm:inline">
                 {new Date(item.created_at).toLocaleDateString()}
               </span>
-              <RotateCcw size={14} className="text-slate-600 flex-shrink-0 group-hover:text-amber-400 transition-colors" />
+              <RotateCcw size={14} className="text-slate-500 flex-shrink-0 group-hover:text-indigo-600 transition-colors" />
             </button>
             <button
               onClick={() => handleDelete(item)}
