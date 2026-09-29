@@ -16,4 +16,3 @@ new_lines.extend(lines[41:])  # add the rest
 with open('studybuddy/settings.py', 'w') as f:
     f.writelines(new_lines)
 print('CORS_ALLOWED_ORIGINS added after ALLOWED_HOSTS')
-"
