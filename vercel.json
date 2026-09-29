@@ -1,0 +1,17 @@
+{
+  "services": {
+    "backend": {
+      "framework": "python",
+      "buildCommand": "vercel python build",
+      "entrypoint": "manage.py",
+      "runtime": "python",
+      "root": "./backend"
+    }
+  },
+  "frontend": {
+    "framework": "vite",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "illuminate": true
+  }
+}

@@ -113,7 +113,7 @@
   }
 
   .menu-item[aria-current="page"] {
-    @apply bg-indigo-50 text-indigo-700 font-semibold shadow-xs;
+    @apply bg-indigo-50 text-indigo-700 font-semibold shadow-sm;
   }
 
   .menu-item--quiet {

@@ -35,3 +35,4 @@ Thumbs.db
 .commandcode/
 backend/prodenv/
 backend/venv/
+.vercel
