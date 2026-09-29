@@ -149,7 +149,6 @@ export default function Layout({ children }) {
                   <p className="text-slate-800 text-sm font-medium truncate">
                     {user.username || "Student"}
                   </p>
-                  <p className="text-slate-600 text-xs">Free plan</p>
                 </div>
               )}
             </div>
