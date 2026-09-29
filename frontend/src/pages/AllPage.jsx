@@ -90,7 +90,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
       <div className="space-y-4">
         <Card accent="amber" variant="elevated">
           <div className="flex items-center justify-between mb-3">
-            <SectionTitle color="text-amber-400">Explanation</SectionTitle>
+            <SectionTitle color="text-amber-600">Explanation</SectionTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -103,18 +103,18 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               className="h-7 w-7 p-0"
               aria-label="Copy explanation"
             >
-              <Copy size={14} className="text-slate-400" />
+              <Copy size={14} className="text-slate-500" />
             </Button>
           </div>
-          <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.explanation}</p>
+          <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{result.explanation}</p>
         </Card>
         {result.key_points?.length > 0 && (
           <Card accent="emerald" variant="elevated">
-            <SectionTitle color="text-emerald-400">Key Points</SectionTitle>
+            <SectionTitle color="text-emerald-600">Key Points</SectionTitle>
             <ul className="space-y-2">
               {result.key_points.map((point, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
-                  <span className="text-emerald-400 font-bold mt-0.5 flex-shrink-0">→</span>
+                <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                  <span className="text-emerald-600 font-bold mt-0.5 flex-shrink-0">→</span>
                   {point}
                 </li>
               ))}
@@ -124,14 +124,14 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
         <div className="grid sm:grid-cols-2 gap-4">
           {result.analogy && (
             <Card accent="violet" variant="elevated">
-              <SectionTitle color="text-violet-400">Analogy</SectionTitle>
-              <p className="text-slate-300 text-sm leading-relaxed italic">{result.analogy}</p>
+              <SectionTitle color="text-violet-600">Analogy</SectionTitle>
+              <p className="text-slate-700 text-sm leading-relaxed italic">{result.analogy}</p>
             </Card>
           )}
           {result.example && (
             <Card accent="sky" variant="elevated">
-              <SectionTitle color="text-sky-400">Example</SectionTitle>
-              <p className="text-slate-300 text-sm leading-relaxed">{result.example}</p>
+              <SectionTitle color="text-sky-700">Example</SectionTitle>
+              <p className="text-slate-700 text-sm leading-relaxed">{result.example}</p>
             </Card>
           )}
         </div>
@@ -144,7 +144,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
       <div className="space-y-4">
         <Card accent="emerald" variant="elevated">
           <div className="flex items-center justify-between mb-3">
-            <SectionTitle color="text-emerald-400">Summary</SectionTitle>
+            <SectionTitle color="text-emerald-600">Summary</SectionTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -157,19 +157,19 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               className="h-7 w-7 p-0"
               aria-label="Copy summary"
             >
-              <Copy size={14} className="text-slate-400" />
+              <Copy size={14} className="text-slate-500" />
             </Button>
           </div>
-          <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
+          <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
         </Card>
         {result.key_concepts?.length > 0 && (
           <Card accent="amber" variant="elevated">
-            <SectionTitle color="text-amber-400">Key Concepts</SectionTitle>
+            <SectionTitle color="text-amber-600">Key Concepts</SectionTitle>
             <div className="flex flex-wrap gap-2">
               {result.key_concepts.map((concept, i) => (
                 <span
                   key={i}
-                  className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-full text-xs text-slate-300 hover:border-amber-400/40 hover:text-amber-300 transition-colors cursor-default"
+                  className="px-3 py-1.5 bg-amber-100 border border-amber-200 rounded-full text-xs text-amber-900 font-medium hover:bg-amber-200 transition-colors cursor-default"
                 >
                   {concept}
                 </span>
@@ -179,14 +179,14 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
         )}
         {result.important_terms?.length > 0 && (
           <Card accent="violet" variant="elevated">
-            <SectionTitle color="text-violet-400">Important Terms</SectionTitle>
-            <div className="divide-y divide-slate-800">
+            <SectionTitle color="text-violet-600">Important Terms</SectionTitle>
+            <div className="divide-y divide-slate-200">
               {result.important_terms.map((term, i) => (
                 <li key={i} className="py-3 flex gap-4 items-start">
-                  <span className="text-violet-300 font-mono text-xs font-semibold min-w-[130px] pt-0.5">
+                  <span className="text-violet-800 font-mono text-xs font-semibold min-w-[130px] pt-0.5">
                     {term.term}
                   </span>
-                  <span className="text-slate-300 text-sm">{term.definition}</span>
+                  <span className="text-slate-700 text-sm">{term.definition}</span>
                 </li>
               ))}
             </div>
@@ -194,11 +194,11 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
         )}
         {result.study_tips?.length > 0 && (
           <Card accent="amber" variant="elevated">
-            <SectionTitle color="text-amber-400">Study Tips</SectionTitle>
+            <SectionTitle color="text-amber-600">Study Tips</SectionTitle>
             <ul className="space-y-2">
               {result.study_tips.map((tip, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
-                  <span className="text-amber-400 font-bold flex-shrink-0 mt-0.5">✦</span>
+                <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                  <span className="text-amber-600 font-bold flex-shrink-0 mt-0.5">✦</span>
                   {tip}
                 </li>
               ))}
@@ -231,16 +231,16 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               className={`${submitted && isCorrect ? "animate-fade-up" : ""}`}
             >
               <div className="flex items-start gap-3 mb-4">
-                <span className="font-mono text-xs text-slate-400 bg-slate-800/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 shadow-inner">
+                <span className="font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 flex-shrink-0 mt-0.5 font-medium">
                   Q{qi + 1}
                 </span>
-                <p className="text-white font-semibold text-sm leading-relaxed mt-1 flex-1">{q.question}</p>
+                <p className="text-slate-900 font-semibold text-sm leading-relaxed mt-1 flex-1">{q.question}</p>
                 {submitted && (
                   <div className="ml-auto flex-shrink-0 mt-1">
                     {isCorrect ? (
-                      <CheckCircle className="text-emerald-400" size={20} />
+                      <CheckCircle className="text-emerald-600" size={20} />
                     ) : (
-                      <XCircle className="text-rose-400" size={20} />
+                      <XCircle className="text-rose-600" size={20} />
                     )}
                   </div>
                 )}
@@ -260,21 +260,21 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
                       className={`w-full text-left px-4 py-3 rounded-xl text-sm border transition-all duration-200
                         ${
                           isCorrectOpt
-                            ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-900 font-medium shadow-sm"
                             : isWrongSelected
-                            ? "border-rose-500/50 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_-6px_rgba(244,63,94,0.5)]"
+                            ? "border-rose-300 bg-rose-50 text-rose-900 font-medium shadow-sm"
                             : isSelected
-                            ? "border-violet-500/50 bg-violet-500/15 text-violet-200 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]"
-                            : "border-slate-800/80 bg-slate-900/40 text-slate-300 hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-violet-100"
+                            ? "border-violet-300 bg-violet-50 text-violet-900 font-medium shadow-sm"
+                            : "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 hover:border-slate-300"
                         }
-                        ${submitted ? "cursor-default" : "cursor-pointer transform hover:-translate-y-[1px] hover:shadow-sm"}`}
+                        ${submitted ? "cursor-default" : "cursor-pointer transform hover:-translate-y-[1px]"}`}
                     >
                       <span className="flex items-center gap-3">
                         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isCorrectOpt ? "border-emerald-500 bg-emerald-500" :
-                          isWrongSelected ? "border-rose-500 bg-rose-500" :
-                          isSelected ? "border-violet-500 bg-violet-500" :
-                          "border-slate-700"
+                          isCorrectOpt ? "border-emerald-600 bg-emerald-600" :
+                          isWrongSelected ? "border-rose-600 bg-rose-600" :
+                          isSelected ? "border-violet-600 bg-violet-600" :
+                          "border-slate-300 bg-white"
                         }`}>
                           {isCorrectOpt || isWrongSelected ? (
                             <CheckCircle className="w-3 h-3 text-white" />
@@ -290,8 +290,8 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
               </div>
 
               {submitted && (
-                <div className="ml-12 mt-4 p-4 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs text-slate-300 leading-relaxed shadow-inner">
-                  <span className="text-amber-400 font-semibold">💡 Explanation: </span>
+                <div className="ml-12 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed font-medium">
+                  <span className="text-amber-800 font-bold">💡 Explanation: </span>
                   {q.explanation}
                 </div>
               )}
@@ -301,7 +301,7 @@ function ResultView({ active, answers, submitted, onSelectAnswer, onSubmitQuiz, 
 
         {questions.length > 0 && !submitted && (
           <div className="flex items-center gap-4 mt-4 animate-fade-up">
-            <Button onClick={() => onSubmitQuiz(questions)} size="md">
+            <Button onClick={() => onSubmitQuiz(questions)} size="md" color="violet">
               Submit Quiz ({answeredCount}/{questions.length})
             </Button>
             <span className="text-slate-500 text-xs font-mono">

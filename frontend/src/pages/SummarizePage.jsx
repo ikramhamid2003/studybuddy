@@ -92,21 +92,21 @@ export default function SummarizePage() {
           <Card accent="emerald" variant="elevated">
             <div className="flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
-                <BookOpen className="text-emerald-400" size={18} />
-                <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
+                <BookOpen className="text-emerald-600" size={18} />
+                <span className="text-emerald-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   Summary
                 </span>
               </div>
             </div>
-            <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
+            <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
           </Card>
 
           {/* Key Concepts */}
           {result.key_concepts?.length > 0 && (
             <Card accent="amber" variant="elevated">
               <div className="flex items-center gap-2 mb-3">
-                <Tag className="text-amber-400" size={18} />
-                <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">
+                <Tag className="text-amber-600" size={18} />
+                <span className="text-amber-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   Key Concepts
                 </span>
               </div>
@@ -114,7 +114,7 @@ export default function SummarizePage() {
                 {result.key_concepts.map((c, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-full text-xs text-slate-300 hover:border-amber-400/40 hover:text-amber-300 transition-colors cursor-default"
+                    className="px-3 py-1.5 bg-amber-100 border border-amber-200 rounded-full text-xs text-amber-900 font-medium hover:bg-amber-200 transition-colors cursor-default"
                   >
                     {c}
                   </span>
@@ -127,17 +127,17 @@ export default function SummarizePage() {
           {result.important_terms?.length > 0 && (
             <Card accent="violet" variant="elevated">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-violet-400 text-xs font-mono uppercase tracking-widest">
+                <span className="text-violet-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   📚 Important Terms
                 </span>
               </div>
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-slate-200">
                 {result.important_terms.map((t, i) => (
                   <div key={i} className="py-3 flex gap-4 items-start">
-                    <span className="text-violet-300 font-mono text-xs font-semibold min-w-[130px] pt-0.5">
+                    <span className="text-violet-800 font-mono text-xs font-semibold min-w-[130px] pt-0.5">
                       {t.term}
                     </span>
-                    <span className="text-slate-300 text-sm">{t.definition}</span>
+                    <span className="text-slate-700 text-sm">{t.definition}</span>
                   </div>
                 ))}
               </div>
@@ -148,15 +148,15 @@ export default function SummarizePage() {
           {result.study_tips?.length > 0 && (
             <Card accent="amber" variant="elevated">
               <div className="flex items-center gap-2 mb-3">
-                <Lightbulb className="text-amber-400" size={18} />
-                <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">
+                <Lightbulb className="text-amber-600" size={18} />
+                <span className="text-amber-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   Study Tips
                 </span>
               </div>
               <ul className="space-y-2">
                 {result.study_tips.map((t, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
-                    <span className="text-amber-400 font-bold flex-shrink-0 mt-0.5">✦</span>
+                  <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                    <span className="text-amber-600 font-bold flex-shrink-0 mt-0.5">✦</span>
                     {t}
                   </li>
                 ))}

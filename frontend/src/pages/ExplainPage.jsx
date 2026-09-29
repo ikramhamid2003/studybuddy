@@ -105,13 +105,13 @@ export default function ExplainPage() {
           <Card accent="amber" variant="elevated">
             <div className="flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
-                <Lightbulb className="text-amber-400" size={18} />
-                <span className="text-amber-400 text-xs font-mono uppercase tracking-widest">
+                <Lightbulb className="text-amber-600" size={18} />
+                <span className="text-amber-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   Explanation
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-mono text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium">
                   {level}
                 </span>
                 <Button
@@ -122,26 +122,26 @@ export default function ExplainPage() {
                   aria-label={copied ? "Copied!" : "Copy explanation"}
                   color="amber"
                 >
-                  {copied ? <Check className="text-emerald-400" size={14} /> : <Copy className="text-slate-400" size={14} />}
+                  {copied ? <Check className="text-emerald-600" size={14} /> : <Copy className="text-slate-500" size={14} />}
                 </Button>
               </div>
             </div>
-            <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{result.explanation}</p>
+            <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{result.explanation}</p>
           </Card>
 
           {/* Key Points */}
           {result.key_points?.length > 0 && (
             <Card accent="emerald" variant="elevated">
               <div className="flex items-center gap-2 mb-3">
-                <BookMarked className="text-emerald-400" size={18} />
-                <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
+                <BookMarked className="text-emerald-600" size={18} />
+                <span className="text-emerald-700 text-xs font-mono uppercase tracking-widest font-semibold">
                   Key Points
                 </span>
               </div>
               <ul className="space-y-2">
                 {result.key_points.map((point, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
-                    <span className="text-emerald-400 font-bold mt-0.5 flex-shrink-0">→</span>
+                  <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                    <span className="text-emerald-600 font-bold mt-0.5 flex-shrink-0">→</span>
                     {point}
                   </li>
                 ))}
@@ -154,12 +154,12 @@ export default function ExplainPage() {
             {result.analogy && (
               <Card accent="violet" variant="elevated">
                 <div className="flex items-center gap-2 mb-3">
-                  <Puzzle className="text-violet-400" size={18} />
-                  <span className="text-violet-400 text-xs font-mono uppercase tracking-widest">
+                  <Puzzle className="text-violet-600" size={18} />
+                  <span className="text-violet-700 text-xs font-mono uppercase tracking-widest font-semibold">
                     Analogy
                   </span>
                 </div>
-                <p className="text-slate-300 text-sm leading-relaxed italic">{result.analogy}</p>
+                <p className="text-slate-700 text-sm leading-relaxed italic">{result.analogy}</p>
               </Card>
             )}
 
@@ -167,11 +167,11 @@ export default function ExplainPage() {
             {result.example && (
               <Card accent="sky" variant="elevated">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sky-400 text-xs font-mono uppercase tracking-widest">
+                  <span className="text-sky-700 text-xs font-mono uppercase tracking-widest font-semibold">
                     📖 Example
                   </span>
                 </div>
-                <p className="text-slate-300 text-sm leading-relaxed">{result.example}</p>
+                <p className="text-slate-700 text-sm leading-relaxed">{result.example}</p>
               </Card>
             )}
           </div>
