@@ -11,4 +11,3 @@ if old_text in content:
     print('Added fallback text color rule')
 else:
     print('Could not find the target text color rule')
-"
