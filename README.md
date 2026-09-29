@@ -25,7 +25,7 @@
 - **📱 Responsive UI:** A desktop sidebar that collapses to an icon rail, a chat session rail that collapses the same way, and both becoming a dropdown menu / slide-over drawer on smaller screens.
 - **🔐 Session & Security:** JWT authentication (`rest_framework_simplejwt`, 1-day access / 7-day refresh tokens) with automatic bearer-token injection, plus anonymous rate limiting (60 req/hour) on the API.
 - **📊 Telemetry & Error Tracking:** Vercel Analytics & Speed Insights for Core Web Vitals, and **GlitchTip** (Sentry-compatible) error tracking on both frontend (`@sentry/react` with session replay) and backend (`sentry-sdk` Django integration).
-- **🛡️ Quality Gates:** Ruff Python linter, a **39-test Pytest suite**, ESLint, and **28 Jest tests across 6 suites** — all enforced in **GitHub Actions CI/CD**.
+- **🛡️ Quality Gates:** Ruff Python linter, a **61-test Pytest suite**, ESLint, and **28 Jest tests across 6 suites** — all enforced in **GitHub Actions CI/CD**.
 
 ---
 
@@ -142,7 +142,7 @@ Frontend application runs at: **`http://localhost:3000`** and calls `http://loca
 ```bash
 cd backend
 
-# Run Pytest suite (39 tests)
+# Run Pytest suite (61 tests)
 pytest
 
 # Run Ruff lint checks
