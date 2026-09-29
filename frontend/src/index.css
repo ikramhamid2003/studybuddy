@@ -98,40 +98,40 @@
 
   /* ── Menu system ─────────────────────────────────────────────────────── */
   .menu-panel {
-    @apply rounded-xl border border-slate-200 bg-white overflow-hidden;
-    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.04);
+    @apply rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-xl overflow-hidden p-1.5 space-y-0.5;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.18), 0 0 1px rgba(15, 23, 42, 0.1);
   }
 
   .menu-item {
-    @apply w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg
-           text-left text-sm text-slate-600
+    @apply w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl
+           text-left text-sm font-medium text-slate-700
            transition-[background-color,color,transform] duration-150 ease-out
-           hover:bg-slate-50 hover:text-slate-900
+           hover:bg-indigo-50/80 hover:text-indigo-950
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
-           focus-visible:ring-indigo-400/70
+           focus-visible:ring-indigo-500/70
            motion-safe:active:scale-[0.98];
   }
 
   .menu-item[aria-current="page"] {
-    @apply bg-indigo-50 text-indigo-700;
+    @apply bg-indigo-50 text-indigo-700 font-semibold shadow-xs;
   }
 
   .menu-item--quiet {
-    @apply text-slate-500 hover:bg-slate-50 hover:text-slate-700;
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
   }
 
   .menu-item--confirm {
-    @apply text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700
+    @apply text-emerald-700 font-medium hover:bg-emerald-50 hover:text-emerald-900
            focus-visible:ring-emerald-400/70;
   }
 
   .menu-item--danger {
-    @apply text-rose-500 hover:bg-rose-50 hover:text-rose-700
+    @apply text-rose-600 font-medium hover:bg-rose-50 hover:text-rose-900
            focus-visible:ring-rose-400/70;
   }
 
   .menu-divider {
-    @apply my-1 h-px bg-slate-100;
+    @apply my-1.5 h-px bg-slate-100/80;
   }
 
   /* ── Icon-only controls ────────────────────────────────────────────── */
@@ -158,6 +158,17 @@
   select option {
     background-color: #ffffff;
     color: #0f172a;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    background-color: #f1f5f9;
+    color: #4f46e5;
   }
 
   /* Workspace heights */

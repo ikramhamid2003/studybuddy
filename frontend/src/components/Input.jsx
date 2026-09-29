@@ -122,24 +122,24 @@ export function Textarea({
 // so it is styled once globally in index.css instead of per colour.
 const SELECT_COLORS = {
   amber: {
-    focus: "focus:ring-amber-400/40 focus:border-amber-400",
-    chevron: "text-amber-300",
+    focus: "focus:ring-amber-400/50 focus:border-amber-500",
+    chevron: "text-amber-600",
   },
   emerald: {
-    focus: "focus:ring-emerald-400/40 focus:border-emerald-400",
-    chevron: "text-emerald-300",
+    focus: "focus:ring-emerald-400/50 focus:border-emerald-500",
+    chevron: "text-emerald-600",
   },
   violet: {
-    focus: "focus:ring-violet-400/40 focus:border-violet-400",
-    chevron: "text-violet-300",
+    focus: "focus:ring-violet-400/50 focus:border-violet-500",
+    chevron: "text-violet-600",
   },
   sky: {
-    focus: "focus:ring-sky-400/40 focus:border-sky-400",
-    chevron: "text-sky-300",
+    focus: "focus:ring-sky-400/50 focus:border-sky-500",
+    chevron: "text-sky-600",
   },
   rose: {
-    focus: "focus:ring-rose-400/40 focus:border-rose-400",
-    chevron: "text-rose-300",
+    focus: "focus:ring-rose-400/50 focus:border-rose-500",
+    chevron: "text-rose-600",
   },
 };
 
@@ -161,19 +161,19 @@ export function Select({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-600 text-xs font-mono uppercase tracking-wider">
+        <label className="text-slate-700 text-xs font-mono uppercase tracking-wider font-semibold">
           {label}
         </label>
       )}
       <div className="relative">
         <select
           className={`
-            w-full appearance-none px-4 py-2.5 pr-10 rounded-xl text-white text-sm
-            border cursor-pointer transition-[background-color,border-color,box-shadow] duration-150
-            focus:outline-none focus:ring-2 font-body
+            w-full appearance-none px-4 py-2.5 pr-10 rounded-xl text-slate-900 text-sm bg-gradient-to-b from-white to-slate-50/60
+            border cursor-pointer transition-all duration-200
+            focus:outline-none focus:ring-2 shadow-xs hover:shadow-sm font-body font-medium
             ${hasError
-              ? "bg-rose-500/10 border-rose-500/50 focus:border-rose-400 focus:ring-rose-400/40"
-              : `bg-slate-800/80 border-slate-700 hover:border-slate-500 hover:bg-slate-800 ${colorTheme.focus}`}
+              ? "bg-rose-50 border-rose-300 focus:border-rose-500 focus:ring-rose-400/30 text-rose-900"
+              : `border-slate-200/95 hover:border-slate-300 ${colorTheme.focus}`}
             ${selectClassName}
           `}
           aria-invalid={hasError}
@@ -187,7 +187,7 @@ export function Select({
         <ChevronDown
           size={16}
           aria-hidden="true"
-          className={`pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 ${hasError ? "text-rose-300" : colorTheme.chevron}`}
+          className={`pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 ${hasError ? "text-rose-500" : colorTheme.chevron}`}
         />
       </div>
       {hasError && (
