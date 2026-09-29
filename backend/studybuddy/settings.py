@@ -169,6 +169,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Groq API — free at https://console.groq.com
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 # GlitchTip Error Tracking (Sentry-compatible) — DISABLED for local dev
