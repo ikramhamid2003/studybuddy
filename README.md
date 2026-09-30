@@ -1,4 +1,4 @@
-# 📚 StudyBuddy AI — Full Stack
+# 📚 StudyBuddy AI — Full Stack #
 
 **Live Web App:** [https://studybuddy-omega-gray.vercel.app/](https://studybuddy-omega-gray.vercel.app/)  
 **Backend API:** Deployed on Render · **Database:** Neon PostgreSQL
