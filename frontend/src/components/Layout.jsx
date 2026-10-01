@@ -221,12 +221,22 @@ export default function Layout({ children }) {
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+              aria-haspopup="true"
+              className={`
+                flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all duration-150
+                ${
+                  dropdownOpen
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-700 ring-2 ring-indigo-400/30 shadow-sm"
+                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
+                }
+              `}
             >
-              <span className="hidden sm:inline">{currentItem ? currentItem.label : "Menu"}</span>
+              <span className="font-medium">{currentItem ? currentItem.label : "Menu"}</span>
               <ChevronDown
                 size={15}
-                className={`transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                className={`transition-transform duration-200 ${
+                  dropdownOpen ? "rotate-180 text-indigo-600" : "text-slate-400"
+                }`}
               />
             </button>
 
@@ -236,22 +246,29 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50">
-                  <nav className="p-2 space-y-0.5" aria-label="Tools menu">
+                <div className="dropdown-panel absolute right-0 top-full mt-1.5 w-60 z-50 animate-scale-in">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Study Tools
+                  </div>
+                  <nav className="p-1 space-y-0.5" aria-label="Tools menu">
                     {navItems.map(({ to, label, icon: Icon, activeColor }) => (
                       <NavLink
                         key={to}
                         to={to}
                         onClick={() => setDropdownOpen(false)}
                         className={({ isActive }) =>
-                          `menu-item ${isActive ? "menu-item[aria-current='page']" : ""}`
+                          `menu-item ${
+                            isActive
+                              ? "bg-indigo-50 text-indigo-700 font-semibold"
+                              : "text-slate-700 hover:bg-slate-100/80 hover:text-slate-900"
+                          }`
                         }
                       >
                         {({ isActive }) => (
                           <>
                             <Icon
                               className={`flex-shrink-0 transition-colors ${
-                                isActive ? activeColor : "text-slate-400 group-hover:text-slate-600"
+                                isActive ? activeColor : "text-slate-400"
                               }`}
                               size={16}
                             />
@@ -267,13 +284,13 @@ export default function Layout({ children }) {
 
                   {user && (
                     <>
-                      <div className="menu-divider" />
-                      <div className="menu-user-section p-2">
-                        <div className="flex items-center gap-2.5 px-3 py-2">
-                          <div className="menu-user-avatar flex-shrink-0">
-                            <User size={15} className="text-amber-800" />
+                      <div className="dropdown-divider" />
+                      <div className="p-1">
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 mb-1">
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center flex-shrink-0">
+                            <User size={14} className="text-indigo-600" />
                           </div>
-                          <p className="text-slate-800 text-sm font-medium truncate flex-1">
+                          <p className="text-slate-800 text-xs font-semibold truncate flex-1">
                             {user.username || "Student"}
                           </p>
                         </div>
@@ -282,7 +299,7 @@ export default function Layout({ children }) {
                             setDropdownOpen(false);
                             logout();
                           }}
-                          className="menu-item menu-item--quiet mt-1"
+                          className="dropdown-item dropdown-item--quiet text-slate-600 hover:text-rose-600 hover:bg-rose-50"
                         >
                           <LogOut size={15} className="flex-shrink-0" />
                           Sign out

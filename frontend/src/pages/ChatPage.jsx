@@ -30,7 +30,7 @@ import {
 function URLBadge({ hasUrl }) {
   return (
     <span
-      className="absolute -top-1 -right-1 rounded-full bg-amber-500/90 text-xs text-amber-300 border border-slate-950/50 p-0.5 shadow-xs"
+      className="absolute -top-1 -right-1 rounded-full bg-amber-500/90 text-xs text-amber-300 border border-slate-950/50 p-0.5 shadow-sm"
       title="Content from website"
     >
       🌐
@@ -221,18 +221,20 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
                 className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="menu-panel absolute right-0 top-full mt-1 w-44 z-50 animate-fade-in">
-                <div className="p-2 space-y-0.5">
+              <div className="dropdown-panel absolute right-0 top-full mt-1.5 w-40 z-50 animate-scale-in">
+                <div className="p-1 space-y-0.5">
                   {!editing && (
                     <>
                       <button
+                        type="button"
                         onClick={handleRename}
-                        className="menu-item text-sky-300 hover:text-sky-100 hover:bg-sky-500/20"
+                        className="menu-item text-slate-700 hover:text-slate-900 hover:bg-slate-100/90"
                       >
-                        <Pencil size={14} className="flex-shrink-0" />
+                        <Pencil size={14} className="flex-shrink-0 text-slate-500" />
                         Rename
                       </button>
                       <button
+                        type="button"
                         onClick={handleDelete}
                         className="menu-item menu-item--danger"
                       >
@@ -244,6 +246,7 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
                   {editing && (
                     <>
                       <button
+                        type="button"
                         onClick={commitEdit}
                         className="menu-item menu-item--confirm"
                       >
@@ -251,6 +254,7 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
                         Save
                       </button>
                       <button
+                        type="button"
                         onClick={cancelEdit}
                         className="menu-item menu-item--quiet"
                       >

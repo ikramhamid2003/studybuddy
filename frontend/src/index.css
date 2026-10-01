@@ -96,109 +96,77 @@
     30% { transform: translateY(-5px); opacity: 1; }
   }
 
-  /* ── Menu system ─────────────────────────────────────────────────────── */
-  .menu-panel {
-    @apply rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-xl overflow-hidden p-1.5;
-    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.18), 0 0 1px rgba(15, 23, 42, 0.1);
-    animation: menuPanelIn 0.25s ease-out forwards;
-    transform-origin: top right;
+  /* ── Menu & Dropdown system ─────────────────────────────────────────── */
+  .menu-panel,
+  .dropdown-panel {
+    @apply rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-xl overflow-hidden p-1.5 shadow-xl;
+    box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05);
+    animation: dropdownPanelIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top center;
   }
 
-  @keyframes menuPanelIn {
-    0% { opacity: 0; transform: scale(0.95) translateY(-8px); }
+  @keyframes dropdownPanelIn {
+    0% { opacity: 0; transform: scale(0.96) translateY(-6px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
 
-  .menu-panel > nav > * { animation: menuItemIn 0.3s ease-out forwards; opacity: 0; }
-  .menu-panel > nav > *:nth-child(1)  { animation-delay: 40ms; }
-  .menu-panel > nav > *:nth-child(2)  { animation-delay: 70ms; }
-  .menu-panel > nav > *:nth-child(3)  { animation-delay: 100ms; }
-  .menu-panel > nav > *:nth-child(4)  { animation-delay: 130ms; }
-  .menu-panel > nav > *:nth-child(5)  { animation-delay: 160ms; }
-  .menu-panel > nav > *:nth-child(6)  { animation-delay: 190ms; }
-
-  @keyframes menuItemIn {
-    0% { opacity: 0; transform: translateX(12px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
-
-  .menu-item {
-    @apply w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl
+  .menu-item,
+  .dropdown-item {
+    @apply w-full flex items-center gap-2.5 px-3 py-2 rounded-xl
            text-left text-sm font-medium text-slate-700
-           transition-[background-color,color,transform] duration-150 ease-out
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
-           focus-visible:ring-indigo-500/70
+           transition-all duration-150 ease-out
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50
            motion-safe:active:scale-[0.98];
-    position: relative;
-    overflow: hidden;
+    cursor: pointer;
   }
-  .menu-item::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-  }
-  .menu-item:hover { @apply text-indigo-950; }
-  .menu-item:hover::before { opacity: 0.06; }
 
-  /* Per-tool color on hover when active */
+  .menu-item:hover,
+  .dropdown-item:hover {
+    @apply bg-slate-100/90 text-slate-900;
+  }
+
+  /* Per-tool color when active/selected */
+  .menu-item--active,
   .menu-item[aria-current="page"] {
     @apply bg-indigo-50 text-indigo-700 font-semibold shadow-sm;
   }
 
-  .menu-item--quiet {
-    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  .menu-item--quiet,
+  .dropdown-item--quiet {
+    @apply text-slate-600 hover:bg-slate-100/80 hover:text-slate-900;
   }
-  .menu-item--quiet:hover::before { background: #64748b; opacity: 0.06; }
 
-  .menu-item--confirm {
+  .menu-item--confirm,
+  .dropdown-item--confirm {
     @apply text-emerald-700 font-medium hover:bg-emerald-50 hover:text-emerald-900
            focus-visible:ring-emerald-400/70;
   }
-  .menu-item--confirm:hover::before { background: #10b981; opacity: 0.06; }
 
-  .menu-item--danger {
+  .menu-item--danger,
+  .dropdown-item--danger {
     @apply text-rose-600 font-medium hover:bg-rose-50 hover:text-rose-900
            focus-visible:ring-rose-400/70;
   }
-  .menu-item--danger:hover::before { background: #f43f5e; opacity: 0.06; }
 
-  .menu-divider {
-    @apply my-1.5 h-px bg-slate-100/80;
+  .menu-divider,
+  .dropdown-divider {
+    @apply my-1.5 h-px bg-slate-200/70;
+  }
+
+  .menu-header,
+  .dropdown-header {
+    @apply px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider;
   }
 
   /* User section in dropdown */
   .menu-user-avatar {
     @apply w-8 h-8 rounded-full flex items-center justify-center;
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(245,158,11,0.15);
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(99,102,241,0.15);
   }
 
   .menu-user-section {
-    @apply pt-1.5;
-    animation: menuItemIn 0.3s ease-out forwards;
-    animation-delay: 220ms;
-    opacity: 0;
-  }
-
-  /* Arrow/triangle pointing to trigger */
-  .menu-panel::before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    right: 16px;
-    width: 12px;
-    height: 12px;
-    background: inherit;
-    border: inherit;
-    border-width: 1px 1px 0 0;
-    border-right-color: transparent;
-    border-bottom-color: transparent;
-    transform: rotate(45deg);
-    backdrop-filter: inherit;
-    pointer-events: none;
+    @apply pt-1;
   }
 
   /* ── Icon-only controls ────────────────────────────────────────────── */

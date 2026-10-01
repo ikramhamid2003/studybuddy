@@ -61,7 +61,7 @@ export default function SummarizePage() {
               label="Format"
               value={format}
               onChange={(e) => setFormat(e.target.value)}
-              className="w-auto"
+              className="w-full sm:w-40"
               color="emerald"
             >
               <option value="bullets">Bullets</option>
