@@ -20,7 +20,7 @@ export default function ScoreCard({ score, total, onRetry }) {
     <Card
       variant="elevated"
       accent={pct >= 80 ? "emerald" : pct >= 50 ? "amber" : "rose"}
-      className="text-center animate-fade-up"
+      className="text-center animate-fade-up card-elevated"
     >
       <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-4 animate-bounce" />
       <div className={`font-display text-6xl mb-1 ${color}`}>{pct}%</div>

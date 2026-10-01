@@ -15,7 +15,7 @@ export default function Flashcard({ card, index = 0 }) {
 
   return (
     <div
-      className="flashcard-scene h-52 cursor-pointer group select-none"
+      className="flashcard-scene h-52 cursor-pointer group select-none lift-hover"
       onClick={handleFlip}
       onKeyDown={handleKeyDown}
       tabIndex={0}

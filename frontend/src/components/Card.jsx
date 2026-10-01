@@ -13,9 +13,9 @@ export default function Card({ children, className = "", accent = null, hover = 
 
   const variantMap = {
     default: "rounded-xl p-6 bg-white border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300",
-    elevated: "rounded-xl p-6 bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300",
+    elevated: "rounded-xl p-6 bg-white border border-slate-200 card-elevated transition-all duration-300",
     outlined: "rounded-xl p-6 bg-transparent border border-slate-200 hover:bg-slate-50 transition-all duration-300",
-    glass: "rounded-xl p-6 bg-white/70 border border-slate-200 backdrop-blur-sm hover:bg-white transition-all duration-300",
+    glass: "glass-surface rounded-xl p-6 transition-all duration-300 hover:bg-white/80",
   };
 
   const isClickable = typeof onClick === "function";
