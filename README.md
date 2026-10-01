@@ -24,8 +24,9 @@
 - **🔄 React Query Integration:** Efficient frontend data fetching, caching, and mutation state management; history and session lists invalidate automatically after a generate, rename, or delete.
 - **📱 Responsive UI:** A desktop sidebar that collapses to an icon rail, a chat session rail that collapses the same way, and both becoming a dropdown menu / slide-over drawer on smaller screens.
 - **🔐 Session & Security:** JWT authentication (`rest_framework_simplejwt`, 1-day access / 7-day refresh tokens) with automatic bearer-token injection, plus anonymous rate limiting (60 req/hour) on the API.
+- **🧮 Token & Cost Tracking:** Every generation records its input/output token counts and estimated cost (`Generation` + `UsageLog`), and a `usage_stats` action aggregates a user's cumulative usage across all saved generations.
 - **📊 Telemetry & Error Tracking:** Vercel Analytics & Speed Insights for Core Web Vitals, and **GlitchTip** (Sentry-compatible) error tracking on both frontend (`@sentry/react` with session replay) and backend (`sentry-sdk` Django integration).
-- **🛡️ Quality Gates:** Ruff Python linter, a **61-test Pytest suite**, ESLint, and **28 Jest tests across 6 suites** — all enforced in **GitHub Actions CI/CD**.
+- **🛡️ Quality Gates:** Ruff Python linter, a **61-test Pytest suite**, ESLint, and **8 Jest tests** (frontend API-client coverage) — all enforced in **GitHub Actions CI/CD**.
 
 ---
 
@@ -186,6 +187,8 @@ Every frontend call is a `POST /api/unified/` carrying an `action` field, so the
 | `session_rename` | JWT | Rename a chat session |
 | `session_delete` | JWT | Delete a chat session and its messages |
 | `unregister` | JWT | Delete the authenticated user account |
+| `logout` | Public | Blacklist (revoke) the refresh token on sign-out. Public by design — the refresh token is itself the credential, so it works even after the access token has expired. |
+| `usage_stats` | JWT | Return the caller's cumulative token usage and estimated cost across all generations |
 
 ### Legacy per-resource routes
 
