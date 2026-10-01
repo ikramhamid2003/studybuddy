@@ -22,31 +22,37 @@ const navItems = [
     to: "/all",
     label: "All Tools",
     icon: LayoutGrid,
+    activeColor: "text-fuchsia-600",
   },
   {
     to: "/explain",
     label: "Explain",
     icon: BookOpen,
+    activeColor: "text-amber-600",
   },
   {
     to: "/summarize",
     label: "Summarize",
     icon: FileText,
+    activeColor: "text-emerald-600",
   },
   {
     to: "/quiz",
     label: "Quiz",
     icon: Zap,
+    activeColor: "text-violet-600",
   },
   {
     to: "/flashcards",
     label: "Flashcards",
     icon: Layers,
+    activeColor: "text-sky-600",
   },
   {
     to: "/chat",
     label: "AI Tutor",
     icon: MessageSquare,
+    activeColor: "text-rose-600",
   },
 ];
 
@@ -215,9 +221,9 @@ export default function Layout({ children }) {
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             >
-              {currentItem ? currentItem.label : "Menu"}
+              <span className="hidden sm:inline">{currentItem ? currentItem.label : "Menu"}</span>
               <ChevronDown
                 size={15}
                 className={`transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
@@ -230,9 +236,9 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="menu-panel absolute right-0 top-full mt-2 w-52 z-50 animate-fade-in">
+                <div className="menu-panel absolute right-0 top-full mt-2 w-56 z-50">
                   <nav className="p-2 space-y-0.5" aria-label="Tools menu">
-                    {navItems.map(({ to, label, icon: Icon }) => (
+                    {navItems.map(({ to, label, icon: Icon, activeColor }) => (
                       <NavLink
                         key={to}
                         to={to}
@@ -244,10 +250,15 @@ export default function Layout({ children }) {
                         {({ isActive }) => (
                           <>
                             <Icon
-                              className={`flex-shrink-0 ${isActive ? "text-indigo-600" : ""}`}
+                              className={`flex-shrink-0 transition-colors ${
+                                isActive ? activeColor : "text-slate-400 group-hover:text-slate-600"
+                              }`}
                               size={16}
                             />
-                            {label}
+                            <span className="flex-1">{label}</span>
+                            {isActive && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 flex-shrink-0" />
+                            )}
                           </>
                         )}
                       </NavLink>
@@ -257,12 +268,12 @@ export default function Layout({ children }) {
                   {user && (
                     <>
                       <div className="menu-divider" />
-                      <div className="p-2">
-                        <div className="flex items-center gap-2 px-3 py-2">
-                          <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                            <User size={14} />
+                      <div className="menu-user-section p-2">
+                        <div className="flex items-center gap-2.5 px-3 py-2">
+                          <div className="menu-user-avatar flex-shrink-0">
+                            <User size={15} className="text-amber-800" />
                           </div>
-                          <p className="text-slate-800 text-sm font-medium">
+                          <p className="text-slate-800 text-sm font-medium truncate flex-1">
                             {user.username || "Student"}
                           </p>
                         </div>
@@ -271,7 +282,7 @@ export default function Layout({ children }) {
                             setDropdownOpen(false);
                             logout();
                           }}
-                          className="menu-item menu-item--quiet"
+                          className="menu-item menu-item--quiet mt-1"
                         >
                           <LogOut size={15} className="flex-shrink-0" />
                           Sign out
