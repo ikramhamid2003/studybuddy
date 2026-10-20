@@ -5,21 +5,32 @@ import { Tag, BookOpen, Lightbulb, ArrowRight } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
+import CopyButton from "../components/CopyButton";
 import { Textarea, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { docIdsOption } from "../components/shared/documentLibrary";
+import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
+import { usePendingTopic } from "../utils/pendingTopic";
 
 export default function SummarizePage() {
   const queryClient = useQueryClient();
+  const library = useLibrary();
   // The textarea content is sent as the "topic" field to the shared generation
   // endpoint, then persisted as the saved-history label.
+  // Picks up notes typed into the home focus box, if any were stashed.
   const [notes, setNotes] = useState("");
+  usePendingTopic(setNotes);
   const [format, setFormat] = useState("bullets");
   const [result, setResult] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
   const { mutate, isPending: loading } = useMutation({
-    mutationFn: () => generateAll(notes.trim(), "summarize", { format }),
+    mutationFn: () =>
+      generateAll(notes.trim(), "summarize", { format, ...docIdsOption(library.selectedIds) }),
     onSuccess: (data) => {
       // Refresh this tool's history cache after a successful saved generation.
       setResult(data);
@@ -43,6 +54,9 @@ export default function SummarizePage() {
         title="Summarize Notes"
         subtitle="Paste any study material — get a smart, structured summary instantly"
       />
+
+      {/* Grounding: upload button + document dropdown, the shared document library */}
+      <DocumentPicker library={library} title="Ground the summary in my documents" />
 
       <Card className="mb-6">
         <Textarea
@@ -80,6 +94,8 @@ export default function SummarizePage() {
         </div>
       </Card>
 
+      <GroundingNote />
+
       {loading && (
         <Card variant="elevated">
           <LoadingSkeleton lines={5} message="Condensing your notes..." variant="card" />
@@ -97,6 +113,22 @@ export default function SummarizePage() {
                   Summary
                 </span>
               </div>
+              <CopyButton
+                text={[
+                  result.summary,
+                  result.key_concepts?.length
+                    ? `\n\nKey Concepts:\n${result.key_concepts.map((c) => `• ${c}`).join("\n")}`
+                    : "",
+                  result.important_terms?.length
+                    ? `\n\nImportant Terms:\n${result.important_terms.map((t) => `• ${t.term}: ${t.definition}`).join("\n")}`
+                    : "",
+                  result.study_tips?.length
+                    ? `\n\nStudy Tips:\n${result.study_tips.map((t) => `• ${t}`).join("\n")}`
+                    : "",
+                ].filter(Boolean).join("")}
+                label="Copy summary"
+                color="emerald"
+              />
             </div>
             <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
           </Card>
@@ -163,6 +195,8 @@ export default function SummarizePage() {
               </ul>
             </Card>
           )}
+
+          <DocumentSources sources={result.sources} />
         </div>
       )}
 

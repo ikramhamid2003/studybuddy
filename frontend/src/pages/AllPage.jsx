@@ -27,6 +27,11 @@ import ScoreCard from "../components/shared/ScoreCard";
 import SectionTitle from "../components/shared/SectionTitle";
 import TypeBadge from "../components/shared/TypeBadge";
 import { generateAll, listGenerations, deleteGeneration, listChatSessions, getChatSession, deleteChatSession } from "../utils/api";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { docIdsOption } from "../components/shared/documentLibrary";
+import { useLibrary } from "../context/DocumentLibraryContext";
 
 const TOOL_OPTIONS = [
   { value: "explain", label: "Explain" },
@@ -373,6 +378,7 @@ export default function AllPage() {
   const [chatSessions, setChatSessions] = useState([]);
   const [activeChatSessionId, setActiveChatSessionId] = useState(null);
   const [chatStarted, setChatStarted] = useState(false);
+  const library = useLibrary();
   const queryClient = useQueryClient();
   const chatBottomRef = useRef(null);
 
@@ -463,7 +469,13 @@ export default function AllPage() {
   });
 
   const { mutate: sendChatMsg, isPending: chatLoading } = useMutation({
-    mutationFn: (vars) => generateAll(vars.msg, "chat", { history: vars.history }),
+    mutationFn: (vars) =>
+      generateAll(vars.msg, "chat", {
+        history: vars.history,
+        // The All-page chat keeps its own turns, but grounding is per request,
+        // so the current document selection has to travel with each message.
+        ...docIdsOption(library.selectedIds),
+      }),
     onSuccess: (data) => {
       setChatTurns((t) => [...t, { role: "assistant", content: data.reply }]);
       queryClient.invalidateQueries({ queryKey: ["generations"] });
@@ -478,11 +490,12 @@ export default function AllPage() {
 
   function optionsFor() {
     // Convert the currently visible control values into backend option names.
-    if (type === "explain") return { level };
-    if (type === "summarize") return { format };
-    if (type === "quiz") return { num_questions: parseInt(numQ), difficulty };
-    if (type === "flashcards") return { num_cards: parseInt(numCards) };
-    return {};
+    const docs = docIdsOption(library.selectedIds);
+    if (type === "explain") return { level, ...docs };
+    if (type === "summarize") return { format, ...docs };
+    if (type === "quiz") return { num_questions: parseInt(numQ), difficulty, ...docs };
+    if (type === "flashcards") return { num_cards: parseInt(numCards), ...docs };
+    return { ...docs };
   }
 
   function handleGenerate() {
@@ -550,6 +563,9 @@ export default function AllPage() {
         title="All-in-One Studio"
         subtitle="Every tool with its full options — interactive results, saved history"
       />
+
+      {/* ── Document grounding: upload button + document dropdown ── */}
+      <DocumentPicker library={library} title={`Ground the ${type} in my documents`} />
 
       {/* ── Topic + per-type option controls ── */}
       <Card variant="elevated" className="mb-6">
@@ -659,6 +675,8 @@ export default function AllPage() {
           </Button>
         </div>
       </Card>
+
+      <GroundingNote />
 
       {/* ── Chat conversation panel (shown when chat is selected) ── */}
       {type === "chat" && (
@@ -770,6 +788,9 @@ export default function AllPage() {
             onResetCards={() => setDeckKey((k) => k + 1)}
             deckKey={deckKey}
           />
+          {/* Saved generations carry their sources too, so reopening from
+              history still shows which documents grounded the answer. */}
+          <DocumentSources sources={active.result?.sources} className="mt-4" />
         </div>
       )}
 

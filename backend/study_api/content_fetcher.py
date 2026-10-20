@@ -1,14 +1,24 @@
 """
 Web content fetcher for URLs.
 Detects if user input is a URL and fetches its content for LLM processing.
+Pages are scraped with the Firecrawl API (clean markdown, handles JS-heavy
+sites) when FIRECRAWL_API_KEY is configured, and fall back to a direct
+requests/BeautifulSoup scrape otherwise.
 Includes security measures against malicious URLs.
 """
 
+import ipaddress
+import logging
 import re
-from urllib.parse import urlparse
+import socket
+from typing import TypedDict
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 URL_PATTERN = re.compile(
     r"https?://(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)"
@@ -37,6 +47,32 @@ HEADERS = {
 
 MAX_CONTENT_LENGTH = 12000
 
+FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape"
+# Firecrawl renders pages server-side, so it legitimately needs more time than
+# a direct fetch of the raw HTML.
+FIRECRAWL_TIMEOUT = 60
+
+MAX_REDIRECTS = 3
+
+
+class FetchedContent(TypedDict):
+    """The normalized result returned for every URL fetch attempt."""
+
+    success: bool
+    url: str
+    title: str
+    content: str
+    error: str
+
+
+class TopicContent(TypedDict):
+    """The prompt-ready content produced from a user topic or URL."""
+
+    has_url: bool
+    original_topic: str
+    fetched_content: FetchedContent | None
+    combined_content: str
+
 BLOCKED_IP_PATTERNS = [
     r"^127\.", r"^10\.", r"^172\.(1[6-9]|2\d|3[01])\.",
     r"^192\.168\.", r"^0\.", r"localhost", r"^::1$", r"^169\.254\.",
@@ -52,6 +88,30 @@ def extract_urls(text):
     return URL_PATTERN.findall(text)
 
 
+def _allowed_scrape_domains() -> set[str]:
+    """Optional hostname whitelist from ALLOWED_SCRAPE_DOMAINS (comma-separated).
+
+    Empty means no extra restriction beyond the existing SSRF / blocklist gates.
+    Matching is suffix-based so ``edu`` allows ``mit.edu`` and ``cs.mit.edu``.
+    """
+    raw = getattr(settings, "ALLOWED_SCRAPE_DOMAINS", "") or ""
+    return {part.strip().lower().lstrip(".") for part in raw.split(",") if part.strip()}
+
+
+def _hostname_allowed(hostname: str) -> bool:
+    """True when *hostname* is permitted by ALLOWED_SCRAPE_DOMAINS (if set)."""
+    allowed = _allowed_scrape_domains()
+    if not allowed:
+        return True
+    host = (hostname or "").lower().rstrip(".")
+    if not host:
+        return False
+    for domain in allowed:
+        if host == domain or host.endswith("." + domain):
+            return True
+    return False
+
+
 def _is_safe_url(url):
     try:
         parsed = urlparse(url)
@@ -63,6 +123,14 @@ def _is_safe_url(url):
         for pattern in BLOCKED_IP_PATTERNS:
             if re.match(pattern, hostname, re.IGNORECASE):
                 return False, "Private/local URLs are not allowed"
+        if not _hostname_allowed(hostname):
+            return (
+                False,
+                (
+                    f"This domain ({hostname}) is not on the allowed scrape list. "
+                    "Ask an admin to add it to ALLOWED_SCRAPE_DOMAINS, or paste the content directly."
+                ),
+            )
         path = parsed.path.lower()
         for pattern in BLOCKED_PATHS:
             if re.search(pattern, path, re.IGNORECASE):
@@ -72,12 +140,133 @@ def _is_safe_url(url):
         return False, "Invalid URL format"
 
 
-def fetch_url_content(url, timeout=15):
+def _firecrawl_failure(url: str, error: str, title: str = "") -> FetchedContent:
+    """Build the standard unsuccessful FetchedContent for a failed Firecrawl call."""
+    return {"success": False, "url": url, "title": title, "content": "", "error": error}
+
+
+def _fetch_with_firecrawl(url: str) -> FetchedContent | None:
+    """Scrape *url* with Firecrawl and return its clean markdown.
+
+    Returns None when no FIRECRAWL_API_KEY is configured. API failures are
+    returned as an unsuccessful FetchedContent (never raised) so the caller
+    can fall back to direct scraping.
+    """
+    api_key = settings.FIRECRAWL_API_KEY
+    if not api_key:
+        return None
+
+    try:
+        response = requests.post(
+            FIRECRAWL_SCRAPE_URL,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            json={"url": url, "formats": ["markdown"]},
+            timeout=FIRECRAWL_TIMEOUT,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.exceptions.Timeout:
+        return _firecrawl_failure(url, "Firecrawl request timed out.")
+    except requests.exceptions.HTTPError as e:
+        code = e.response.status_code if e.response else 0
+        return _firecrawl_failure(url, f"Firecrawl could not scrape this page (HTTP {code}).")
+    except requests.exceptions.RequestException as e:
+        return _firecrawl_failure(url, f"Firecrawl request failed: {e!s}")
+    except ValueError:
+        return _firecrawl_failure(url, "Firecrawl returned an invalid response.")
+
+    if not payload.get("success"):
+        message = str(payload.get("error") or "Firecrawl could not scrape this page.")
+        return _firecrawl_failure(url, message)
+
+    data = payload.get("data") or {}
+    markdown = str(data.get("markdown") or "").strip()
+    title = str((data.get("metadata") or {}).get("title") or "").strip()
+
+    if len(markdown) < 50:
+        return _firecrawl_failure(url, "Firecrawl could not extract meaningful content.", title=title)
+
+    if len(markdown) > MAX_CONTENT_LENGTH:
+        markdown = markdown[:MAX_CONTENT_LENGTH] + "\n\n[Content truncated...]"
+    return {"success": True, "url": url, "title": title, "content": markdown, "error": ""}
+
+
+def fetch_url_content(url: str, timeout: int = 15) -> FetchedContent:
+    """Fetch *url* as clean markdown for the LLM prompts.
+
+    Prefers Firecrawl when FIRECRAWL_API_KEY is set (it renders JavaScript and
+    returns page-ready markdown), falling back to a direct scrape when
+    Firecrawl is unconfigured or fails.
+    """
     is_safe, reason = _is_safe_url(url)
     if not is_safe:
         return {"success": False, "url": url, "title": "", "content": "", "error": reason}
+
+    firecrawl_result = _fetch_with_firecrawl(url)
+    if firecrawl_result is not None:
+        if firecrawl_result["success"]:
+            return firecrawl_result
+        logger.warning(
+            "Firecrawl fetch failed for %s (%s); falling back to direct scraping",
+            url,
+            firecrawl_result["error"],
+        )
+    return _fetch_with_requests(url, timeout)
+
+
+def _host_is_public(hostname: str) -> bool:
+    """True when *hostname* DNS-resolves only to public/global IP addresses.
+
+    Guards against hostnames that point into internal networks (DNS
+    rebinding), encoded IP forms (octal/hex/decimal), and IPv6 loopback
+    variants that pass the string checks in _is_safe_url.
+    """
     try:
-        response = requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+        infos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+    except (OSError, ValueError):
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        try:
+            if not ipaddress.ip_address(info[4][0]).is_global:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
+def _safe_get(url: str, timeout: int):
+    """GET *url*, following redirects manually so every hop re-passes the SSRF gates.
+
+    Returns (response, error_reason); response is None when a hop was rejected
+    as unsafe or the redirect chain exceeded MAX_REDIRECTS.
+    """
+    current_url = url
+    for _ in range(MAX_REDIRECTS + 1):
+        hostname = urlparse(current_url).hostname or ""
+        if not hostname or not _host_is_public(hostname):
+            return None, "Private/local URLs are not allowed"
+        response = requests.get(current_url, headers=HEADERS, timeout=timeout, allow_redirects=False)
+        if response.status_code in (301, 302, 303, 307, 308):
+            location = response.headers.get("Location")
+            if not location:
+                return response, ""
+            next_url = urljoin(current_url, location)
+            is_safe, reason = _is_safe_url(next_url)
+            if not is_safe:
+                return None, reason
+            current_url = next_url
+            continue
+        return response, ""
+    return None, "Too many redirects."
+
+
+def _fetch_with_requests(url: str, timeout: int = 15) -> FetchedContent:
+    try:
+        response, fetch_error = _safe_get(url, timeout)
+        if response is None:
+            return {"success": False, "url": url, "title": "", "content": "", "error": fetch_error}
         response.raise_for_status()
         content_type = response.headers.get("Content-Type", "")
         if "text/html" not in content_type and "application/xhtml" not in content_type:
@@ -114,7 +303,7 @@ def fetch_url_content(url, timeout=15):
         return {"success": False, "url": url, "title": "", "content": "", "error": f"Unexpected error: {e!s}"}
 
 
-def process_topic_with_url(topic):
+def process_topic_with_url(topic: str) -> TopicContent:
     topic = topic.strip()
     if not is_url(topic):
         urls = extract_urls(topic)

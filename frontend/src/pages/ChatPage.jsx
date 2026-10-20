@@ -13,11 +13,16 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  Sparkles,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { useLibrary } from "../context/DocumentLibraryContext";
 import {
   sendChatStream,
   listChatSessions,
@@ -25,7 +30,9 @@ import {
   getChatSession,
   renameChatSession,
   deleteChatSession,
+  fetchChatSuggestions,
 } from "../utils/api";
+import { usePendingTopic } from "../utils/pendingTopic";
 
 function URLBadge({ hasUrl }) {
   return (
@@ -72,6 +79,9 @@ function MessageBubble({ msg }) {
             msg.content
           )}
         </div>
+        {!isUser && msg.sources?.length > 0 && (
+          <DocumentSources sources={msg.sources} className="mt-1" />
+        )}
       </div>
     </div>
   );
@@ -88,6 +98,73 @@ function TypingIndicator() {
         <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
         <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
         <span className="typing-dot w-2 h-2 rounded-full bg-rose-400" />
+      </div>
+    </div>
+  );
+}
+
+// Suggestion chips offered after an assistant reply. The parent keys this by
+// turn (session + message count), so each new assistant turn remounts it with
+// fresh local state and a fresh fetch.
+function FollowUpChips({ sessionId, onPick }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [dismissed, setDismissed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const requestRef = useRef("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const requestId = `req:${sessionId}`;
+    requestRef.current = requestId;
+    setLoading(true);
+    setSuggestions([]);
+    fetchChatSuggestions(sessionId)
+      .then((data) => {
+        // Ignore the result if this component was unmounted or a newer request
+        // superseded it (e.g. the user switched sessions mid-flight).
+        if (cancelled || requestRef.current !== requestId) return;
+        setSuggestions(data?.suggestions || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled && requestRef.current === requestId) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  if (dismissed || loading || suggestions.length === 0) return null;
+
+  return (
+    <div className="flex gap-3">
+      {/* Match the assistant bubble's avatar gutter so chips align with text. */}
+      <div className="w-8 flex-shrink-0" />
+      <div className="flex flex-col gap-1.5 max-w-[78%]">
+        <div className="flex items-center gap-1.5 text-slate-600 text-[10px] font-mono">
+          <Sparkles size={11} />
+          <span>Ask next</span>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="ml-0.5 text-slate-600 hover:text-slate-400 transition-colors"
+            aria-label="Dismiss suggestions"
+          >
+            <X size={11} />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onPick(s)}
+              className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-amber-500/15 border border-slate-700 hover:border-amber-400/50 rounded-lg text-xs text-slate-400 hover:text-amber-300 transition-colors text-left"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -275,10 +352,13 @@ function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }
 
 export default function ChatPage() {
   // Sessions power the sidebar; messages power the currently opened transcript.
+  const library = useLibrary();
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([WELCOME]);
+  // Picks up a question typed into the home focus box, if one was stashed.
   const [input, setInput] = useState("");
+  usePendingTopic(setInput);
   const [loading, setLoading] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -403,6 +483,11 @@ export default function ChatPage() {
       const systemPrompt = `You are a helpful AI study assistant. The user has the following other chat sessions:\n${sessionList || "(none)"}\nYou can reference these by title if the user asks about their other chats.`;
 
       let isFirstChunk = true;
+      // Selected documents ground this turn; the citations come back on the
+      // closing SSE frame and are attached to the reply they produced.
+      const documentIds = library.selectedIds.size
+        ? [...library.selectedIds]
+        : undefined;
 
       await sendChatStream(
         userMsg,
@@ -420,13 +505,25 @@ export default function ChatPage() {
               const next = [...m];
               const last = next[next.length - 1];
               if (last && last.role === "assistant") {
-                last.content += chunk;
+                // Replace rather than mutate: an in-place append makes this
+                // updater impure, and React re-running it duplicates text.
+                next[next.length - 1] = { ...last, content: last.content + chunk };
               }
               return next;
             });
           }
         },
-        () => {
+        (_doneSessionId, sources) => {
+          if (sources?.length) {
+            setMessages((m) => {
+              const next = [...m];
+              const last = next[next.length - 1];
+              if (last && last.role === "assistant") {
+                next[next.length - 1] = { ...last, sources };
+              }
+              return next;
+            });
+          }
           setLoading(false);
           inputRef.current?.focus();
           // Pick up the auto-generated title and updated sidebar ordering.
@@ -443,7 +540,8 @@ export default function ChatPage() {
             },
           ]);
           inputRef.current?.focus();
-        }
+        },
+        documentIds
       );
     } catch (err) {
       toast.error(err.message || "Failed to initiate stream");
@@ -461,6 +559,11 @@ export default function ChatPage() {
         title="Study Chat"
         subtitle="Ask anything — your AI tutor is ready to help"
       />
+
+      {/* Grounding: the same document library every tool page uses */}
+      <div className="shrink-0">
+        <DocumentPicker library={library} title="Chat with my documents" />
+      </div>
 
       {/* One surface holds both columns: the session rail and the transcript
           are regions of a single card divided by a border, rather than two
@@ -612,6 +715,17 @@ export default function ChatPage() {
               <MessageBubble key={i} msg={m} />
             ))}
             {loading && <TypingIndicator />}
+            {/* Offer follow-ups after the latest assistant reply, once we have a
+                real session to ground them on and no reply is still streaming. */}
+            {!loading &&
+              activeSessionId &&
+              messages[messages.length - 1]?.role === "assistant" && (
+                <FollowUpChips
+                  key={`${activeSessionId}-${messages.length}`}
+                  sessionId={activeSessionId}
+                  onPick={(s) => handleSend(s)}
+                />
+              )}
             <div ref={bottomRef} />
           </div>
 
@@ -640,6 +754,8 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      <GroundingNote />
     </div>
   );
 }

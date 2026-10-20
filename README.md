@@ -1,11 +1,12 @@
-# 📚 StudyBuddy AI — Full Stack #
+# 📚 StudyBuddy AI — Full Stack
+
 
 **Live Web App:** [https://studybuddy-omega-gray.vercel.app/](https://studybuddy-omega-gray.vercel.app/)  
 **Backend API:** Deployed on Render · **Database:** Neon PostgreSQL
 
-> An AI-powered study companion featuring **Explain**, **Summarize**, **Quiz Generator**, **Flashcard Creator**, an **All-in-One Studio** that runs every tool from one page, and a **Real-Time Streaming AI Chatbot** with saved conversations.
+> An AI-powered study companion featuring **Explain**, **Summarize**, **Quiz Generator**, **Flashcard Creator**, an **All-in-One Studio** that runs every tool from one page, a **Real-Time Streaming AI Chatbot** with saved conversations, and **Document RAG** — upload your own notes, then ground *any* tool's output in their contents with cited sources.
 >
-> **Tech Stack:** React + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq` / `ChatGroq`) on the Groq API (`openai/gpt-oss-120b`) · Neon PostgreSQL · JWT · Pytest & Ruff
+> **Tech Stack:** React + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq` / `ChatGroq`) on the Groq API (`openai/gpt-oss-120b`) · Firecrawl for clean URL scraping · Gemini Embedding 2 for RAG embeddings · Neon PostgreSQL (pgvector retrieval with automatic fallback) · JWT · Pytest & Ruff
 
 ---
 
@@ -16,17 +17,98 @@
   - 📝 **Summarize Notes:** Condenses study material into concise summaries, key concepts, defined terms, and study tips.
   - ❓ **Quiz Generator:** Generates customizable multiple-choice quizzes with explanations for correct answers.
   - 🎴 **Flashcard Creator:** Creates interactive 3D flip flashcards with hints and **Anki CSV export**.
-  - 💬 **AI Study Buddy Chat:** Multi-turn conversational AI tutor with **real-time word-by-word streaming (SSE)** and **persisted chat sessions** (create, rename, delete) stored in PostgreSQL.
-- **🎛️ All-in-One Studio (`/all`):** Runs any tool with its full options in one place, filters the combined generation history by tool, and lets you reopen or **delete** any saved result.
+  - 💬 **AI Study Buddy Chat:** Multi-turn conversational AI tutor with **real-time word-by-word streaming (SSE)**, **persisted chat sessions** (create, rename, delete) stored in PostgreSQL, and optional document grounding with per-message citations.
+- **🎛️ All-in-One Studio (`/all`):** Runs any tool with its full options in one place — including the **My documents** grounding picker — filters the combined generation history by tool, and lets you reopen or **delete** any saved result.
+- **🏠 Adaptive Home (`/`), one route with two faces:** Signed out, a landing page whose "try the router" demo runs the *real* `routeIntent` keyword router — not a mock. Signed in, a personalized dashboard assembled only from rows the API already returns: day streak, a 14-day activity sparkline, tool mix, an onboarding checklist whose ticks are earned by real generations / sessions / documents, next-step suggestions derived from your last topic, recent conversations, your document library, and cumulative tokens + priced cost from `GET /api/usage/` (previously an endpoint nothing consumed). The hero focus box routes whatever you type to the matching tool and hands the text over pre-filled through a one-shot `sessionStorage` hand-off. Every derived metric is a pure function of `(rows, now)` in `frontend/src/utils/personalize.js`, unit-tested with an injected clock so no number on the page can be fabricated.
+- **📎 Ground Any Tool in Your Documents:** The **My documents** picker is not confined to one page — Explain, Summarize, Quiz, Flashcards, Chat **and** the All-in-One Studio each carry the same document panel, so any generation can be grounded instead of answered from model memory. A selection that fits inside a 24,000-character budget is fed to the prompt **whole** (raw extracted text, no retrieval); anything larger or not yet extracted falls back to **top-k retrieval** over the selected documents. Selected excerpts are folded into the prompt with a "do not invent beyond these notes" preamble and the response comes back with **SOURCES** citations. While a selection is active, each page also shows a one-line note under its input — "The output will be based on the selected documents" — which disappears entirely when nothing is picked (`shared/GroundingNote.jsx`). Guards: document IDs must be owned by the caller *and* `ready` (a foreign or still-ingesting ID is refused with 400 before any LLM call), a grounding failure aborts with 400/503 rather than streaming or returning an ungrounded answer, and the document set is part of the cached prompt key, so two different libraries never share one response.
+- **📄 Document Ingestion & Retrieval:** Upload **PDF, TXT, or MD** files from any tool page. Documents are ingested in a background thread (extract → chunk → embed with **Gemini Embedding 2**), retrieval runs over **pgvector** on PostgreSQL with a seamless in-process numpy cosine-similarity fallback, and answers are generated by **Groq** as plain text (no raw markdown) with citations back to the source documents. The standalone **Ask My Docs** page (`/rag`) was retired once every tool grounded itself from the shared selection; the `/api/rag/*` endpoints remain (`upload`, `documents`, status polling, `delete`, and the `query` endpoint the retired page used).
+- **🌐 Firecrawl Web Scraping:** Paste a URL into Explain, Summarize, Quiz, Flashcards, or Chat and the page is scraped with the **Firecrawl API** into clean markdown — JavaScript-rendered pages included — then handed to **Groq** for the final answer. Plain-text topics skip scraping entirely and go straight to **Groq**. If `FIRECRAWL_API_KEY` is not configured or a scrape fails, a built-in requests/BeautifulSoup scraper takes over automatically. Every fetch is **SSRF-guarded** (CWE-918): the URL scheme, blocklisted domains/paths, and the DNS-resolved IP are validated (loopback, private, and link-local ranges — including cloud metadata addresses — are refused, closing DNS-rebinding and encoded-IP bypasses), and redirects are followed manually with every hop re-validated (max 3 hops).
 - **🦜 LangChain Integration:** All LLM calls go through `langchain-groq` (`ChatGroq`) in `langchain_client.py` — plain text, JSON, SSE streaming, and **structured output validated against Pydantic schemas** (Quiz & Flashcards). Structured calls use JSON prompting with `JsonOutputParser` rather than native tool-calling, so they also work on models that do not implement tools.
 - **⚡ High-Performance Groq LLM API:** Fast, low-latency Groq models — `openai/gpt-oss-120b` by default, overridable with `GROQ_MODEL`.
-- **💾 Database Request Caching:** Identical LLM requests are cached in Django for 7 days (`studybuddy_cache` table), eliminating duplicate API costs and serving instant responses.
+- **💾 Database Request Caching:** Identical LLM requests are cached in Django for 7 days (`studybuddy_cache` table), eliminating duplicate API costs and serving instant responses. The four JSON tools participate — keyed on the fully-expanded prompt (including any fetched web content and any grounded document excerpts) so changed options or a different document set never share a response — while live chat (history-dependent) and RAG queries (grounded in a changing document set) are never cached. Failed LLM calls are never cached.
 - **🔄 React Query Integration:** Efficient frontend data fetching, caching, and mutation state management; history and session lists invalidate automatically after a generate, rename, or delete.
 - **📱 Responsive UI:** A desktop sidebar that collapses to an icon rail, a chat session rail that collapses the same way, and both becoming a dropdown menu / slide-over drawer on smaller screens.
-- **🔐 Session & Security:** JWT authentication (`rest_framework_simplejwt`, 1-day access / 7-day refresh tokens) with automatic bearer-token injection, plus anonymous rate limiting (60 req/hour) on the API.
-- **🧮 Token & Cost Tracking:** Every generation records its input/output token counts and estimated cost (`Generation` + `UsageLog`), and a `usage_stats` action aggregates a user's cumulative usage across all saved generations.
+- **🔐 Session & Security:** JWT authentication (`rest_framework_simplejwt`, 1-day access / 7-day refresh tokens, with the `username` embedded in the token payload so the sidebar can name the signed-in student) with automatic bearer-token injection, anonymous rate limiting (60 req/hour) on the API, and SSRF-hardened URL fetching (resolved-IP validation + per-hop redirect re-checks). Sessions whose access token predates the `username` claim self-heal via `GET /api/auth/me/`, so the sidebar shows the real handle without forcing a re-login.
+- **🧮 Token & Cost Tracking:** `langchain_client.py` reads each response's provider-reported token counts into a per-request `ContextVar` (`_record_usage` / `take_last_usage`), and `GenerateView` writes them onto the `Generation` row — `input_tokens`, `output_tokens`, and `cost` from the per-million rates in `settings.GROQ_PRICE_PER_M_INPUT` / `_OUTPUT` — which `GET /api/usage/` then aggregates. Measured 2026-10-16 through the live HTTP path: a cold `explain` recorded **209 in / 477 out**, and the identical repeat (a response-cache hit) recorded **0 / 0** while returning the same payload, because it never reaches the provider. Cost reads `0.0000` until both price variables are set for the configured model — an honest zero rather than a guessed rate.
+- **🚦 Per-User Daily Token Budget:** Each account gets a daily allowance (`USER_TOKEN_LIMIT`, default **10,000** tokens, `0` disables it). `tokens_used_today` sums the day's `Generation` and `UsageLog` tokens — and streamed chat now writes a `UsageLog` row so it counts too, closing the gap where only `/api/generate/` was metered. `GenerateView` and `ChatStreamView` call `enforce_daily_token_limit` **before** any model call and return **429** with a plain-language message once the budget is spent (a request can overshoot by at most one call, since a call's cost is unknown until it runs). `GET /api/usage/` additionally returns `daily_token_limit`, `tokens_used_today` and `tokens_remaining_today`, which the dashboard renders as a "Daily token budget" meter that turns amber near the cap and rose when spent.
 - **📊 Telemetry & Error Tracking:** Vercel Analytics & Speed Insights for Core Web Vitals, and **GlitchTip** (Sentry-compatible) error tracking on both frontend (`@sentry/react` with session replay) and backend (`sentry-sdk` Django integration).
-- **🛡️ Quality Gates:** Ruff Python linter, a **61-test Pytest suite**, ESLint, and **8 Jest tests** (frontend API-client coverage) — all enforced in **GitHub Actions CI/CD**.
+- **🛡️ Quality Gates:** Ruff Python linter, a **131-test Pytest suite**, ESLint, and **55 Jest tests** in 5 suites (API-client coverage including document-grounded streaming, a 31-test personalization suite for streaks / activity windows / tool mix / intent routing / suggestions / checklist, plus `Button`, `Card` and `Input` render tests) — all enforced in **GitHub Actions CI/CD**.
+
+---
+
+## 📊 By the numbers
+
+Every figure below is reproducible from this repository — measured on the current working tree, or read directly from the config that enforces it. Anything that would take a live LLM call to obtain is called out as unmeasured instead of being estimated.
+
+### Scale
+
+| Area | Count | How to verify |
+|------|-------|---------------|
+| Backend Python files / lines | 42 files · 5,815 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
+| Frontend source files / lines | 48 files · 8,578 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
+| API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
+| Frontend routes | 11 | `frontend/src/App.jsx` |
+| Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
+| Test modules · tests | 11 pytest files · 131 tests · 5 Jest files · 55 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
+| Python dependencies · npm deps | 29 pinned · 12 prod + 6 dev | `requirements.txt`, `package.json` |
+| AI tools persisted per request type | 5 (`explain`, `summarize`, `quiz`, `flashcards`, `chat`) | `GenerateSerializer.type` choices |
+| Endpoints accepting `document_ids` | 3 (`/api/generate/` for all 5 tool types, `/api/chat/stream/`, `/api/rag/query/` — the last serves the retired Ask My Docs page's endpoint, no longer called by the UI) | `grep -n document_ids backend/study_api/views.py backend/study_api/dispatchers.py` |
+| Tests covering RAG + grounding | 51 of the 115 (`test_rag.py` 38 · `test_generations.py` 15) | `pytest --collect-only -q \| grep -c test_rag` and `grep -c test_generations` |
+
+### Quality & build (backend measured 2026-10-16 · frontend re-measured 2026-10-18)
+
+| Check | Result |
+|-------|--------|
+| `ruff check backend/` | **0 errors** (was 6) |
+| `pytest` | **115 passed**, 0 failed · 131.71 s |
+| `jest` (all 5 suites) | **55 passed**, 0 failed · 5.82 s |
+| `npm run build` | Compiled successfully · **250.67 kB** gzipped JS, **14.51 kB** gzipped CSS |
+| `npx eslint src --ext .js,.jsx` | **0 errors**, 1 warning (unused import) — ESLint is not `--max-warnings 0`, so CI stays green on warnings |
+
+### Performance levers, with the value each one is set to
+
+These are the mechanisms that actually control cost and latency — the numbers are the configured limits, not a marketing estimate.
+
+| Lever | Setting | Effect that can be verified |
+|-------|---------|-----------------------------|
+| **Database response cache** | `DatabaseCache` on the `studybuddy_cache` table, TTL **7 days** (`604800 s`), keyed on tool prefix + md5 of the fully-expanded prompt | A hit is served from one indexed row read and **skips the provider round-trip entirely — 0 input and 0 output tokens billed for that request**. Four tools opt in (`explain`, `summarize`, `quiz`, `flashcards`); live chat and RAG queries are never cached, the first because it is history-dependent and the second because it is grounded in a changing document set. |
+| **Bounded RAG context** | `RAG_TOP_K=5` × `RAG_CHUNK_SIZE=800`, each chunk truncated to 1,500 characters by `_build_rag_context` | An answer carries **at most 4,000 characters of retrieved source text**, independent of document size (measured 3,117 characters of context for a top-5 retrieval). Without retrieval the whole document would have to go into the prompt — and it cannot: `GenerateSerializer.topic` is capped at 8,000 characters, so a 10,583-character document is rejected before reaching the model, which is what makes RAG the only path for long material. Uploads may be as large as `RAG_MAX_UPLOAD_MB=20`. |
+| **Chunk overlap** | `RAG_CHUNK_OVERLAP=150` (18.75% of the chunk) | Prevents answers straddling a chunk boundary from being missed during retrieval. |
+| **One grounding authorization path** | `ready_document_ids(user, requested)` is the only owner + `status='ready'` filter, and `/api/generate/`, `/api/chat/stream/` and `/api/rag/query/` all call it | A grounded tool call can never read a document it does not own or that is still ingesting — and the three endpoints cannot drift apart on that rule, because there is only one implementation. |
+| **Embedding dimension** | `RAG_EMBED_DIMENSIONS=768`, verified against the vectors actually stored per chunk | Retrieval is one 768-wide dot product per chunk. The dimension is configurable, and changing it (or the model) requires re-indexing every document. |
+| **Per-scope rate limits** | anon `60/h`, user `300/h`, generate `60/h`, rag `40/h`, chat `90/h` | Expensive LLM/RAG views get a tighter ceiling than cheap list and status calls, so a runaway client cannot exhaust the Groq quota through the cheapest route. |
+| **Max output tokens** | `800` default per call, `600` for chat | Caps the billed output of any single generation. |
+| **Composite indexes** | 5 declared: `(user, created_at)`, `(user, type, created_at)` on generations; `(user, created_at)` on usage and documents; `(document, chunk_index)` on chunks | Keeps history, per-type filters and usage aggregation index-backed as rows accumulate. |
+| **SSE streaming** | `stream_chat_groq` → `text/event-stream` | The first visible token arrives while the rest is still being generated, instead of after the complete response. |
+| **pgvector with fallback** | vector index when the `vector` extension exists, else in-process numpy cosine | Retrieval never hard-fails on a database that cannot create extensions. |
+| **Background ingestion** | `RAG_INGEST_TIMEOUT_SECONDS=600`, stale documents reaped | Upload returns immediately; embedding runs off the request thread. |
+
+### Measured end-to-end (2026-10-16, local dev stack)
+
+Conditions: `DEBUG=True`, Django dev server on `127.0.0.1:8000`, SQLite backend, Groq `openai/gpt-oss-120b`, Gemini embeddings for RAG. Prompts used unique nonces so nothing was pre-warmed. Latency rows are wall-clock from the client; token rows are provider-reported counts.
+
+One caveat about that dev server: every local `runserver` on `:8000` in this environment was started with `--noreload`, so a listening process can predate the code being tested. The token-persistence figures quoted in Features were therefore re-measured against a freshly started server on its own port.
+
+| What was compared | Measured result | Samples |
+|-------------------|-----------------|---------|
+| **Cache cold vs warm**, identical prompt through `POST /api/generate/` | median **1,880 ms → 32.6 ms**, i.e. **98.3% lower latency (~58×)**; a warm call issues no provider request at all | n = 3 pairs |
+| **Streaming, long answer** (~400 words requested) | first visible token at **949 ms** while the complete non-streaming reply took **2,026 ms** → the user starts reading at **47%** of the total wait (506 SSE frames) | n = 1 |
+| **Streaming, short answer** (two sentences) | first token at **1,187 ms** vs a complete non-streaming reply in **756 ms** → streaming is **slower** for short output | n = 1 |
+| **RAG vs whole document in the prompt**, same question, same model, same `max_tokens` | **856 vs 2,366 input tokens = 63.8% fewer**, with the same correct answer and identical output (114 tokens both arms) | n = 1 each |
+| **Retrieval overhead** | `retrieve_chunks()` **1,348 ms**, dominated by the Gemini query-embedding network call; the numpy cosine pass inside it is **0.0145 ms** median | n = 1 |
+| **Document ingestion** | 10,583-character text file → upload accepted in **39 ms**, 18 chunks indexed, status `ready` after **3,169 ms** | n = 1 |
+
+Read these honestly:
+
+- The caching figure is the only multi-sample result and is the robust one. Single-sample rows carry provider-side network variance — note that the retrieved arm took *longer* in LLM time (2,604 ms vs 1,040 ms) despite sending 63.8% fewer tokens, which is well inside the variance of one request each, so **retrieval is measured as a cost and context-window saving here, not a latency win**.
+- Streaming has a genuine crossover: it lost on a two-sentence answer and won on a 400-word one. A README that simply said "streaming makes chat faster" would be wrong.
+- The RAG control arm pasted the entire 10,549-character document into the same prompt template the shipped path uses, and both arms answered correctly from the single section containing the fact, so the 63.8% token reduction is not bought with a quality loss on this sample. It is one question against one 18-chunk document — not an accuracy study.
+
+### What this repo does *not* claim
+
+No retrieval-accuracy or answer-quality benchmark exists across a question set, so no accuracy percentage is stated. Groq and Gemini throughput is provider-side, varies with account and load, and is only sampled above. Likewise, grounding every tool in the caller's documents is a behaviour with tests behind it, not a measured quality lift: the anti-hallucination instruction was verified on a single question whose answer is absent from the uploaded notes (the model abstained instead of inventing), and no study says how much grounded quiz or flashcard output beats ungrounded output.
+
+Token figures match the persistence path, and that path has limits worth stating: `GenerateView` writes provider-reported counts and the priced cost onto every `Generation` it creates and `/api/usage/` sums them, but the streaming chat and RAG endpoints create no `Generation` row — a grounded chat turn persists its message and citations, yet still contributes nothing to those totals. `cost` reads `0.0000` until `GROQ_PRICE_PER_M_INPUT` and `GROQ_PRICE_PER_M_OUTPUT` are configured for the running model.
 
 ---
 
@@ -42,10 +124,15 @@ studybuddy/
 │   ├── src/
 │   │   ├── components/       # Layout (collapsible sidebar / mobile dropdown), PageHeader, Card,
 │   │   │                     # Button, Input, LoadingSkeleton, ToolHistory, ErrorBoundary
-│   │   │   └── shared/       # ChatBubble, Flashcard, ScoreCard, SectionTitle, TypeBadge
+│   │   │   ├── shared/       # ChatBubble, Flashcard, ScoreCard, SectionTitle, TypeBadge,
+│   │   │   │                 # DocumentPicker + DocumentSources + GroundingNote (the grounding
+│   │   │   │                 # panel reused by every tool page) and the useDocumentLibrary() hook behind them
+│   │   │   └── home/         # HomeDashboard (signed-in personalized face), HomeLanding (visitor
+│   │   │                     # face), Sparkline + ProgressRing (hand-rolled SVG, no chart lib)
 │   │   ├── pages/            # Home, All, Explain, Summarize, Quiz, Flashcards, Chat, Login, Register
 │   │   ├── context/          # AuthContext for JWT session management
-│   │   ├── utils/            # api.js (fetch client for the unified endpoint), routeColors, clipboard
+│   │   ├── utils/            # api.js (explicit resource client), api.test.js (Jest suite), routeColors, clipboard,
+│   │   │                     # personalize.js (+31-test suite) and pendingTopic.js (home → tool pre-fill hand-off)
 │   │   ├── App.jsx           # Routing & React Query provider
 │   │   └── index.css         # Tailwind directives & menu / button / icon component classes
 │   └── package.json
@@ -53,12 +140,14 @@ studybuddy/
 ├── backend/                    # Django REST Framework API
 │   ├── studybuddy/            # Project config (settings.py, urls.py, wsgi.py)
 │   ├── study_api/             # API surface
-│   │   ├── dispatchers.py     # Unified action handlers (ACTION_MAP) + system prompts
+│   │   ├── dispatchers.py     # Shared action handlers (usage, generations, RAG, suggestions)
 │   │   ├── langchain_client.py # LangChain/Groq client (text, JSON, streaming, structured output)
-│   │   ├── content_fetcher.py # Optional URL → readable page content extraction
-│   │   ├── models.py          # ChatSession, ChatMessage & Generation persistence
+│   │   ├── rag_pipeline.py    # RAG: extraction, chunking, Gemini embeddings, retrieval, grounded answers
+│   │   ├── content_fetcher.py # URL → clean markdown (Firecrawl when configured, built-in scraper otherwise); SSRF-guarded
+│   │   ├── models.py          # ChatSession, ChatMessage, Generation, Document & DocumentChunk persistence
 │   │   ├── schemas.py         # Pydantic schemas for structured output
-│   │   └── tests/             # Pytest suite (views, generations, chat sessions, langchain client)
+│   │   ├── signals.py         # post_save hook on User → admin signup notification email
+│   │   └── tests/             # Pytest suite (views, generations, chat sessions, langchain client, RAG, content fetcher)
 │   ├── build.sh               # Build script for Render deployment
 │   ├── manage.py
 │   ├── pytest.ini
@@ -76,7 +165,9 @@ studybuddy/
 ### Prerequisites
 - Python 3.12+ installed
 - A PostgreSQL database — the easiest free option is [Neon](https://neon.tech) (copy the connection string)
-- Free Groq API key from [console.groq.com](https://console.groq.com)
+- Free Groq API key from [console.groq.com](https://console.groq.com) — answer generation
+- Free Gemini API key from [aistudio.google.com](https://aistudio.google.com/app/apikey) — RAG embeddings
+- Optional: Firecrawl API key from [firecrawl.dev](https://www.firecrawl.dev) — cleaner URL scraping (a built-in scraper is used without it)
 
 ### Steps
 
@@ -95,12 +186,38 @@ pip install -r requirements.txt
 cat <<EOT > .env
 GROQ_API_KEY=gsk_your_actual_groq_api_key_here
 GROQ_MODEL=openai/gpt-oss-120b
+# Optional — USD per million tokens for GROQ_MODEL. Left unset, /api/usage/ still
+# records real token counts but reports a cost of 0.0000 instead of a guessed rate.
+GROQ_PRICE_PER_M_INPUT=0
+GROQ_PRICE_PER_M_OUTPUT=0
+GEMINI_API_KEY=your_gemini_api_key_here
+# Optional — clean URL scraping via Firecrawl; without it the built-in scraper is used
+FIRECRAWL_API_KEY=fc_your_firecrawl_api_key_here
 DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 SECRET_KEY=some-long-random-secret-key
+SIGNUP_NOTIFICATION_EMAIL=you@example.com
+DEFAULT_FROM_EMAIL=your-smtp-sender@example.com
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-smtp-username
+EMAIL_HOST_PASSWORD=your-smtp-password-or-app-password
+EMAIL_USE_TLS=true
 DEBUG=True
 # Optional rate-limit ceilings (defaults shown)
 THROTTLE_ANON_RATE=60/hour
 THROTTLE_USER_RATE=300/hour
+# Per-user daily token budget (input + output across all tools and streamed
+# chat). Requests are refused with 429 once spent; resets at midnight in the
+# server timezone. Set to 0 to disable the cap.
+USER_TOKEN_LIMIT=10000
+# Optional RAG tunables (defaults shown; changing RAG_EMBED_MODEL or
+# RAG_EMBED_DIMENSIONS requires re-indexing all uploaded documents)
+RAG_EMBED_MODEL=gemini-embedding-2
+RAG_EMBED_DIMENSIONS=768
+RAG_CHUNK_SIZE=800
+RAG_CHUNK_OVERLAP=150
+RAG_TOP_K=5
+RAG_MAX_UPLOAD_MB=20
 EOT
 # Optional: GLITCHTIP_DSN for backend error tracking
 
@@ -143,7 +260,7 @@ Frontend application runs at: **`http://localhost:3000`** and calls `http://loca
 ```bash
 cd backend
 
-# Run Pytest suite (61 tests)
+# Run Pytest suite (115 tests)
 pytest
 
 # Run Ruff lint checks
@@ -157,7 +274,7 @@ cd frontend
 # Run ESLint
 npm run lint
 
-# Run unit tests (28 tests across 6 suites)
+# Run Jest tests (5 suites, 55 tests)
 npm test -- --watchAll=false
 ```
 
@@ -167,42 +284,51 @@ Both suites also run automatically in GitHub Actions on every push/PR to `main`.
 
 ## 📡 API Endpoints Reference
 
-### Unified endpoint (what the frontend uses)
+The frontend uses explicit resource endpoints. Authentication routes are public; generation, chat, history, usage, and RAG routes require a JWT bearer token.
 
-Every frontend call is a `POST /api/unified/` carrying an `action` field, so the app has one URL and one response envelope: `{"ok": true, "data": …}` on success, `{"ok": false, "error": "…"}` on failure. Public actions are listed below; everything else requires a JWT bearer token.
+### Authentication
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/register/` | Public | Create a new user account |
+| `POST` | `/api/auth/login/` | Public | Obtain JWT access + refresh tokens |
+| `POST` | `/api/auth/refresh/` | Public | Exchange a refresh token for a new access token |
+| `GET` | `/api/auth/me/` | JWT | Return the signed-in user's `id` and `username`; recovers the handle for tokens issued before the `username` claim existed |
+| `POST` | `/api/token/blacklist/` | Public | Revoke a refresh token (logout) |
 
-| Action | Auth | Description |
-|--------|------|-------------|
-| `health` | Public | Service health check |
-| `register` | Public | Create a new user account |
-| `login` | Public | Obtain JWT access + refresh tokens |
-| `refresh` | Public | Exchange a refresh token for a new access token |
-| `generate` | JWT | Run any tool and persist the result. Body: `topic`, `type` (`explain` \| `summarize` \| `quiz` \| `flashcards` \| `chat`) plus optional per-tool params: `level` (explain), `format` (summarize), `num_questions` + `difficulty` (quiz), `num_cards` (flashcards), `history` (chat) |
-| `generations_list` | JWT | List saved generations, newest first; optional `query_type` filters by tool |
-| `generation_delete` | JWT | Delete one saved generation owned by the caller |
-| `chat_stream` | JWT | Real-time SSE streaming chat. Returns `text/event-stream` instead of the JSON envelope, and reports mid-stream failures as an `{"error": …}` frame |
-| `sessions_list` | JWT | List chat sessions for the sidebar |
-| `session_create` | JWT | Create an empty chat session |
-| `sessions_detail` | JWT | Fetch one session with its persisted messages |
-| `session_rename` | JWT | Rename a chat session |
-| `session_delete` | JWT | Delete a chat session and its messages |
-| `unregister` | JWT | Delete the authenticated user account |
-| `logout` | Public | Blacklist (revoke) the refresh token on sign-out. Public by design — the refresh token is itself the credential, so it works even after the access token has expired. |
-| `usage_stats` | JWT | Return the caller's cumulative token usage and estimated cost across all generations |
+### Study Tools & History
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/generate/` | JWT | Run any tool (explain, summarize, quiz, flashcards, chat) and persist the result; optional `document_ids` grounds it in the caller's ready documents and returns `sources` |
+| `GET` | `/api/generations/` | JWT | List saved generations, newest first; optional `?type=` filter |
+| `DELETE` | `/api/generations/<id>/` | JWT | Delete one saved generation owned by the caller |
+| `GET` | `/api/usage/` | JWT | Return cumulative token usage and estimated cost |
 
-### Legacy per-resource routes
+### AI Chat Sessions
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/chat/stream/` | JWT | Real-time SSE streaming chat (returns `text/event-stream`); optional `document_ids` grounds each turn and the closing `done` frame carries `sources` |
+| `GET` | `/api/sessions/` | JWT | List chat sessions for the sidebar |
+| `POST` | `/api/sessions/` | JWT | Create an empty chat session |
+| `GET` | `/api/sessions/<id>/` | JWT | Fetch one session with its persisted messages |
+| `PATCH` | `/api/sessions/<id>/` | JWT | Rename a chat session |
+| `DELETE` | `/api/sessions/<id>/` | JWT | Delete a chat session and its messages |
+| `GET` | `/api/sessions/<id>/suggestions/` | JWT | Fetch AI-suggested follow-up questions for a session |
 
-Kept for compatibility (and exercised directly by the test suite):
+### Document RAG
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/rag/upload/` | JWT | Multipart document upload (`file`, optional `title`) |
+| `GET` | `/api/rag/documents/` | JWT | List the caller's uploaded documents |
+| `GET` | `/api/rag/documents/<id>/` | JWT | Poll document status (`pending`, `processing`, `ready`, `error`) |
+| `DELETE` | `/api/rag/documents/<id>/` | JWT | Delete a document and its indexed chunks |
+| `POST` | `/api/rag/query/` | JWT | Ask a question grounded in ready documents (endpoint of the retired Ask My Docs page; no longer called by the UI) |
 
+### System
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/api/health/` | Public | Service health check |
-| `POST` | `/api/generate/` | JWT | Run a tool and persist the result |
-| `GET` | `/api/generations/` | JWT | List persisted generations (`?type=` filter) |
-| `POST` | `/api/chat/stream/` | JWT | Real-time Server-Sent Events (SSE) streaming chat |
-| `GET` / `POST` | `/api/sessions/` | JWT | List or create chat sessions |
-| `GET` / `PATCH` / `DELETE` | `/api/sessions/<id>/` | JWT | Retrieve, rename, or delete a chat session |
-| `POST` | `/api/auth/register/`, `/api/auth/login/`, `/api/auth/refresh/` | Public | Authentication (also reachable as unified actions) |
+| `GET` | `/api/schema/` | Public | OpenAPI 3 schema (drf-spectacular) |
+| `GET` | `/api/docs/` | Public | Swagger UI for every endpoint above |
 
 ---
 
@@ -211,11 +337,15 @@ Kept for compatibility (and exercised directly by the test suite):
 ### Backend (Render + Neon)
 1. Create a free PostgreSQL database on [Neon](https://neon.tech) and copy its connection string.
 2. Go to your [Render Dashboard](https://dashboard.render.com/) → **New +** > **Blueprint** and connect this repository — [`render.yaml`](render.yaml) defines the Django web service (gunicorn + WhiteNoise, health check at `/api/health/`).
-3. In the service's Environment settings, set `DATABASE_URL` to your Neon connection string and `GROQ_API_KEY` to your Groq key (both are declared `sync: false` in the Blueprint).
+3. In the service's Environment settings, set `DATABASE_URL` to your Neon connection string, `GROQ_API_KEY` to your Groq key, and `GEMINI_API_KEY` to your Gemini API key for RAG embeddings (all three are declared `sync: false` in the Blueprint).
 4. Optionally set `GROQ_MODEL` if you want a model other than the `openai/gpt-oss-120b` default. Render's environment overrides the code default, so if you set this here you must keep it in sync with the model your Groq key can actually use.
 5. Run `python manage.py migrate` against the Neon database (e.g. from the Render shell). `build.sh` already runs `collectstatic`, `createcachetable`, and `migrate` on every deploy.
 
 > **Note:** the Groq model is account-scoped. If `generate` or `chat_stream` returns a `model_not_found` error, list the models your key can use with `GET https://api.groq.com/openai/v1/models` and set `GROQ_MODEL` accordingly — the model catalogue changes over time.
+
+> **Optional — faster RAG retrieval:** with a PostgreSQL/Neon database the pipeline uses pgvector when the `vector` extension exists and otherwise falls back to in-process numpy cosine similarity automatically. To enable the pgvector path, run `CREATE EXTENSION IF NOT EXISTS vector;` once against your database (Neon SQL editor or Render shell). Both paths read the same stored embeddings, so no re-indexing is needed — and if your Postgres user cannot create extensions, RAG still works via the fallback.
+
+> **Optional — better URL scraping:** set `FIRECRAWL_API_KEY` (declared `sync: false` in the Blueprint) to scrape URLs with Firecrawl for clean, JS-rendered markdown. Without it, the built-in requests/BeautifulSoup scraper is used, and any Firecrawl failure falls back to it automatically.
 
 ### Frontend (Vercel)
 1. Connect the `frontend/` directory to Vercel.

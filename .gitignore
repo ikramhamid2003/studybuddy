@@ -3,6 +3,7 @@ backend/.env
 backend/__pycache__/
 backend/study_api/__pycache__/
 backend/studybuddy/__pycache__/
+backend/staticfiles/
 backend/db.sqlite3
 *.sqlite3
 *.pyc
@@ -13,8 +14,10 @@ frontend/.env.*
 frontend/node_modules/
 frontend/build/
 
-# Lint tools
+# Tool caches
 .ruff_cache/
+.pytest_cache/
+.uv-cache/
 
 # Scratch / one-off artifacts — never commit these. Editors and ad-hoc scripts
 # tend to drop them next to the source they were working on.
@@ -25,14 +28,14 @@ frontend/build/
 *_results.txt
 *lint_output.txt
 *_debug.txt
+pyrefly_errors*.txt
 
 # OS
 .DS_Store
 Thumbs.db
 .vscode/
 
-# Command Code IDE (editor-local only)
-.commandcode/
+
 backend/prodenv/
 backend/venv/
 .vercel

@@ -48,8 +48,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "corsheaders",
-    "study_api",
+    "study_api.apps.StudyApiConfig",
     "rest_framework_simplejwt.token_blacklist",
 ]
 
@@ -130,21 +131,41 @@ CSRF_TRUSTED_ORIGINS = _env_list(
 REST_FRAMEWORK = {
     # The frontend expects JSON-only responses and bearer-token auth.
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "study_api.throttles.StudyBuddyAnonRateThrottle",
+        "study_api.throttles.StudyBuddyUserRateThrottle",
+        "study_api.throttles.ActionRateThrottle",
     ],
-    # Both ceilings are env-configurable so a deployment can tighten them
-    # without a code change.
+    # Global + per-action ceilings are env-configurable so a deployment can
+    # tighten expensive LLM/RAG routes without a code change.
     "DEFAULT_THROTTLE_RATES": {
         "anon": os.getenv("THROTTLE_ANON_RATE", "60/hour"),
         "user": os.getenv("THROTTLE_USER_RATE", "300/hour"),
+        "generate": os.getenv("THROTTLE_GENERATE_RATE", "60/hour"),
+        "rag": os.getenv("THROTTLE_RAG_RATE", "40/hour"),
+        "chat": os.getenv("THROTTLE_CHAT_RATE", "90/hour"),
     },
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "StudyBuddy API",
+    "DESCRIPTION": (
+        "StudyBuddy backend. Operations use explicit resource-based REST "
+        "endpoints (e.g. POST /api/generate/, GET /api/sessions/); RAG file "
+        "upload uses POST /api/rag/upload/."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 SIMPLE_JWT = {
@@ -172,6 +193,54 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
+# Per-million-token rates used to turn recorded usage into an estimated cost.
+# They default to zero on purpose: Groq prices vary by model and change over
+# time, so a hardcoded guess would silently report wrong numbers. Set both to
+# the current rate for GROQ_MODEL to get a real cost estimate.
+GROQ_PRICE_PER_M_INPUT = float(os.getenv("GROQ_PRICE_PER_M_INPUT", "0"))
+GROQ_PRICE_PER_M_OUTPUT = float(os.getenv("GROQ_PRICE_PER_M_OUTPUT", "0"))
+
+# Per-user token budget for the current day (input + output across every tool
+# and streamed chat). Requests are refused once it is spent; the count resets at
+# midnight in the server timezone. Set to 0 to disable the cap entirely.
+USER_TOKEN_LIMIT = int(os.getenv("USER_TOKEN_LIMIT", "10000"))
+
+# Firecrawl API — free tier at https://www.firecrawl.dev
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+
+# Optional comma-separated hostname whitelist for URL scraping (empty = allow
+# any public host that passes the SSRF gates). Example: "wikipedia.org,edu"
+ALLOWED_SCRAPE_DOMAINS = os.getenv("ALLOWED_SCRAPE_DOMAINS", "")
+
+# Gemini is used for embeddings; Groq remains the answer-generation provider.
+# Create a free-tier API key at https://aistudio.google.com/app/apikey
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+# RAG pipeline settings. Changing model or dimensions requires re-indexing.
+RAG_EMBED_MODEL = os.getenv("RAG_EMBED_MODEL", "gemini-embedding-2")
+RAG_EMBED_DIMENSIONS = int(os.getenv("RAG_EMBED_DIMENSIONS", "768"))
+RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "800"))
+RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+RAG_MAX_UPLOAD_MB = int(os.getenv("RAG_MAX_UPLOAD_MB", "20"))
+# Ingestion runs in a daemon thread and the uploaded bytes are never persisted,
+# so a restart mid-ingest kills the work with nothing to resume from. Documents
+# left in pending/processing past this age are reported as failed instead of
+# leaving the UI polling forever.
+RAG_INGEST_TIMEOUT_SECONDS = int(os.getenv("RAG_INGEST_TIMEOUT_SECONDS", "600"))
+
+# Signup email notifications. Configure these as Render environment variables.
+SIGNUP_NOTIFICATION_EMAIL = os.getenv("SIGNUP_NOTIFICATION_EMAIL", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
 
 # GlitchTip Error Tracking (Sentry-compatible) — DISABLED for local dev
 # Set GLITCHTIP_DSN env var to enable in production. Local dev never needs error tracking.

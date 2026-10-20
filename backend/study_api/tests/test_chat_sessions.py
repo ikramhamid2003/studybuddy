@@ -16,7 +16,7 @@ def other_auth_client():
     client = APIClient()
     user = User.objects.create_user(username="bob", password="testpassword")
     client.force_authenticate(user=user)
-    client.user = user
+    client.user = user  # pyrefly: ignore[missing-attribute]
     return client
 
 
@@ -80,3 +80,24 @@ def test_chat_stream_with_session_persists_full_reply(mock_stream, auth_client):
     assert len(messages) == 2
     assert messages[1].content == "hello world"
     assert session.title == "hi there"
+
+
+@patch("study_api.views.stream_chat_groq")
+def test_chat_stream_accepts_a_system_history_turn(mock_stream, auth_client):
+    # The Study Chat page always sends its session list as a system turn; the
+    # endpoint used to reject the whole request over it.
+    mock_stream.return_value = ["ok"]
+
+    resp = auth_client.post(
+        "/api/chat/stream/",
+        {
+            "message": "what are my other chats?",
+            "history": [{"role": "system", "content": '- "Physics" (id: 3)'}],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 200
+    body = b"".join(resp.streaming_content).decode("utf-8")
+    assert "ok" in body
+    assert "Physics" in mock_stream.call_args.args[1][0]["content"]

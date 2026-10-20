@@ -9,14 +9,24 @@ import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import Flashcard from "../components/shared/Flashcard";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { docIdsOption } from "../components/shared/documentLibrary";
+import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
+import { usePendingTopic } from "../utils/pendingTopic";
 
 export default function FlashcardsPage() {
   const queryClient = useQueryClient();
+  const library = useLibrary();
   // `key` forces React to remount cards when resetting every flipped card.
+  // Picks up a topic typed into the home focus box, if one was stashed.
   const [topic, setTopic] = useState("");
+  usePendingTopic(setTopic);
   const [numCards, setNumCards] = useState("8");
   const [cards, setCards] = useState([]);
+  const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState(0); // used to reset all cards
   const [activeHistoryId, setActiveHistoryId] = useState(null);
@@ -26,12 +36,15 @@ export default function FlashcardsPage() {
     setLoading(true);
     // Clear old cards while the new deck is being generated.
     setCards([]);
+    setSources([]);
     try {
       const data = await generateAll(topic.trim(), "flashcards", {
         num_cards: parseInt(numCards),
+        ...docIdsOption(library.selectedIds),
       });
       if (!data.flashcards?.length) throw new Error("No flashcards returned");
       setCards(data.flashcards);
+      setSources(data.sources || []);
       setActiveHistoryId(data.generation_id ?? null);
       setKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["generations", "flashcards"] });
@@ -71,6 +84,9 @@ export default function FlashcardsPage() {
         subtitle="Click any card to flip it and reveal the answer"
       />
 
+      {/* Grounding: upload button + document dropdown, the shared document library */}
+      <DocumentPicker library={library} title="Ground the deck in my documents" />
+
       <Card className="mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
@@ -102,6 +118,8 @@ export default function FlashcardsPage() {
           </Button>
         </div>
       </Card>
+
+      <GroundingNote />
 
       {loading && (
         <Card variant="elevated">
@@ -144,6 +162,8 @@ export default function FlashcardsPage() {
               </div>
             ))}
           </div>
+
+          <DocumentSources sources={sources} className="mt-6" />
         </>
       )}
 
@@ -166,6 +186,7 @@ export default function FlashcardsPage() {
           // Reopened decks reuse the stored payload and remount cards unflipped.
           setTopic(item.topic);
           setCards(item.result.flashcards || []);
+          setSources(item.result.sources || []);
           setActiveHistoryId(item.id);
           setKey((k) => k + 1);
         }}
@@ -173,6 +194,7 @@ export default function FlashcardsPage() {
           // Clear the open deck when the entry backing it is removed.
           if (activeHistoryId === id) {
             setCards([]);
+            setSources([]);
             setActiveHistoryId(null);
           }
         }}

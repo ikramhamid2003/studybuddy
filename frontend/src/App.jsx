@@ -15,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DocumentLibraryProvider } from "./context/DocumentLibraryContext";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ export default function App() {
               error: { iconTheme: { primary: "#e11d48", secondary: "#ffffff" } },
             }}
           />
+          <DocumentLibraryProvider>
           <Routes>
             {/* Public Pages */}
             <Route path="/" element={<HomePage />} />
@@ -161,6 +163,7 @@ export default function App() {
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </DocumentLibraryProvider>
           <Analytics />
           <SpeedInsights />
         </BrowserRouter>

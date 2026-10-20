@@ -1,9 +1,9 @@
+import base64
+import json
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
-
-from study_api.models import ChatMessage, ChatSession
 
 # Enable DB access for throttling, database cache, and users
 pytestmark = pytest.mark.django_db
@@ -23,19 +23,70 @@ def test_register_view(api_client):
     assert resp.data["user"]["username"] == "newuser"
 
 
-def test_unified_login_returns_tokens_under_data(api_client):
-    User.objects.create_user(username="newuser", password="securepassword123")
+def _claims(access_token):
+    """Decode a JWT payload the same way the frontend does to name the user."""
+
+    payload = access_token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload))
+
+
+def test_login_token_carries_username(api_client):
+    User.objects.create_user(username="ada", password="securepassword123")
 
     resp = api_client.post(
-        "/api/unified/",
-        {"action": "login", "username": "newuser", "password": "securepassword123"},
+        "/api/auth/login/",
+        {"username": "ada", "password": "securepassword123"},
+        format="json",
+    )
+    assert resp.status_code == 200
+    assert _claims(resp.data["access"])["username"] == "ada"
+
+
+def test_refreshed_token_keeps_username(api_client):
+    # The frontend renews access tokens in the background, so the claim has to
+    # survive rotation or the UI falls back to its generic label mid-session.
+    User.objects.create_user(username="ada", password="securepassword123")
+    login = api_client.post(
+        "/api/auth/login/",
+        {"username": "ada", "password": "securepassword123"},
         format="json",
     )
 
+    resp = api_client.post(
+        "/api/auth/refresh/", {"refresh": login.data["refresh"]}, format="json"
+    )
     assert resp.status_code == 200
-    assert resp.data["ok"] is True
-    assert resp.data["data"]["access"]
-    assert resp.data["data"]["refresh"]
+    assert _claims(resp.data["access"])["username"] == "ada"
+
+
+def test_me_endpoint_returns_the_username(auth_client):
+    # Older access tokens carry no username claim, so the sidebar recovers it
+    # from this endpoint instead of showing a generic label.
+    resp = auth_client.get("/api/auth/me/")
+    assert resp.status_code == 200
+    assert resp.data == {"id": auth_client.user.id, "username": "testuser"}
+
+
+def test_me_endpoint_rejects_anonymous(api_client):
+    assert api_client.get("/api/auth/me/").status_code == 401
+
+
+@patch("study_api.signup_notifications.send_mail")
+def test_signup_notification_contains_safe_account_details(mock_send_mail, settings):
+    settings.SIGNUP_NOTIFICATION_EMAIL = "owner@example.com"
+    settings.DEFAULT_FROM_EMAIL = "noreply@example.com"
+    User.objects.create_user(
+        username="notification-user", email="student@example.com", password="secret"
+    )
+
+    # The post-save signal sent one notification; inspect it rather than sending
+    # a second one by calling the helper directly.
+    assert mock_send_mail.call_count == 1
+    kwargs = mock_send_mail.call_args.kwargs
+    assert kwargs["recipient_list"] == ["owner@example.com"]
+    assert "student@example.com" in kwargs["message"]
+    assert "secret" not in kwargs["message"]
 
 
 @patch("study_api.views.stream_chat_groq")
@@ -52,63 +103,3 @@ def test_chat_stream_view(mock_stream, auth_client):
     assert "hello" in chunks
     assert "stream" in chunks
 
-
-@patch("study_api.dispatchers.stream_chat_groq")
-def test_unified_chat_stream_uses_session_history(mock_stream, auth_client):
-    # Existing session messages should be sent back to the model as chat history.
-    mock_stream.return_value = ["remembered"]
-    session = ChatSession.objects.create(user=auth_client.user)
-    ChatMessage.objects.create(session=session, role="user", content="what is inertia?")
-    ChatMessage.objects.create(
-        session=session,
-        role="assistant",
-        content="Inertia resists motion changes.",
-    )
-
-    resp = auth_client.post(
-        "/api/unified/",
-        {"action": "chat_stream", "message": "say that again", "session_id": session.id},
-        format="json",
-    )
-
-    assert resp.status_code == 200
-    chunks = b"".join(resp.streaming_content).decode("utf-8")
-    assert "remembered" in chunks
-    assert mock_stream.call_args[0][1] == [
-        {"role": "user", "content": "what is inertia?"},
-        {"role": "assistant", "content": "Inertia resists motion changes."},
-    ]
-
-
-@patch("study_api.dispatchers.stream_chat_groq")
-def test_unified_chat_stream_includes_other_session_context(mock_stream, auth_client):
-    # A new session can still receive compact memory from older sessions.
-    mock_stream.return_value = ["remembered"]
-    old_session = ChatSession.objects.create(user=auth_client.user, title="Physics")
-    ChatMessage.objects.create(
-        session=old_session,
-        role="user",
-        content="I am studying inertia.",
-    )
-    ChatMessage.objects.create(
-        session=old_session,
-        role="assistant",
-        content="Inertia is resistance to motion changes.",
-    )
-    new_session = ChatSession.objects.create(user=auth_client.user)
-
-    resp = auth_client.post(
-        "/api/unified/",
-        {
-            "action": "chat_stream",
-            "message": "what was I studying?",
-            "session_id": new_session.id,
-        },
-        format="json",
-    )
-
-    assert resp.status_code == 200
-    b"".join(resp.streaming_content)
-    history = mock_stream.call_args[0][1]
-    assert "previous chat sessions" in history[0]["content"]
-    assert "I am studying inertia." in history[0]["content"]

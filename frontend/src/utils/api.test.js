@@ -1,5 +1,12 @@
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from "util";
-import { deleteGeneration, listGenerations, sendChatStream } from "./api";
+import {
+  SESSION_EXPIRED_EVENT,
+  deleteGeneration,
+  listGenerations,
+  sendChatStream,
+  uploadDocument,
+  validateRagFile,
+} from "./api";
 
 // jsdom does not provide these, but the streaming client decodes the SSE byte
 // stream with TextDecoder, so both sides of the test need them.
@@ -8,9 +15,9 @@ if (typeof global.TextDecoder === "undefined") global.TextDecoder = NodeTextDeco
 
 const realFetch = global.fetch;
 
-// The unified client is the single place every API call funnels through, so its
-// error surfacing decides what users actually see when a request fails.
-describe("unified request error handling", () => {
+// The explicit-endpoint client is the single place every API call funnels
+// through, so its error surfacing decides what users actually see on failure.
+describe("explicit endpoint request handling", () => {
   afterEach(() => {
     global.fetch = realFetch;
   });
@@ -43,7 +50,7 @@ describe("unified request error handling", () => {
     });
 
     await expect(listGenerations("explain")).rejects.toThrow(
-      "generations_list failed (HTTP 400)"
+      "/generations/?type=explain failed (HTTP 400)"
     );
   });
 
@@ -67,7 +74,7 @@ describe("unified request error handling", () => {
     await expect(listGenerations()).resolves.toEqual([{ id: 7, topic: "gravity" }]);
   });
 
-  test("sends the delete action with the generation id", async () => {
+  test("deletes a generation through its resource endpoint", async () => {
     mockResponse({
       ok: true,
       status: 200,
@@ -77,10 +84,8 @@ describe("unified request error handling", () => {
     await deleteGeneration(42);
 
     const [, options] = global.fetch.mock.calls[0];
-    expect(JSON.parse(options.body)).toEqual({
-      action: "generation_delete",
-      generation_id: 42,
-    });
+    expect(global.fetch.mock.calls[0][0]).toContain("/generations/42/");
+    expect(options.method).toBe("DELETE");
   });
 });
 
@@ -128,7 +133,7 @@ describe("streaming chat frame handling", () => {
     mockStream([
       'data: {"chunk":"Hel"}\n\n',
       'data: {"chunk":"lo"}\n\n',
-      'data: {"done":true,"session_id":42}\n\n',
+      'data: {"done":true,"session_id":42,"sources":[]}\n\n',
     ]);
 
     const onChunk = jest.fn();
@@ -137,7 +142,30 @@ describe("streaming chat frame handling", () => {
     await sendChatStream("hi", [], null, onChunk, onDone, jest.fn());
 
     expect(onChunk.mock.calls.map((call) => call[0])).toEqual(["Hel", "lo"]);
-    expect(onDone).toHaveBeenCalledWith(42);
+    expect(onDone).toHaveBeenCalledWith(42, []);
+  });
+
+  test("passes selected documents and returns their citations", async () => {
+    mockStream([
+      'data: {"chunk":"grounded"}\n\n',
+      'data: {"done":true,"session_id":42,"sources":[{"document_title":"Notes"}]}\n\n',
+    ]);
+
+    const onDone = jest.fn();
+    await sendChatStream("hi", [], null, jest.fn(), onDone, jest.fn(), [7, 8]);
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).document_ids).toEqual([7, 8]);
+    expect(onDone.mock.calls[0][1]).toEqual([{ document_title: "Notes" }]);
+  });
+
+  test("omits document_ids when nothing is selected", async () => {
+    mockStream(['data: {"done":true,"session_id":42,"sources":[]}\n\n']);
+
+    await sendChatStream("hi", [], null, jest.fn(), jest.fn(), jest.fn());
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).document_ids).toBeUndefined();
   });
 
   test("skips a malformed frame and keeps reading the stream", async () => {
@@ -151,5 +179,29 @@ describe("streaming chat frame handling", () => {
 
     expect(onChunk).toHaveBeenCalledWith("ok");
     expect(onError).not.toHaveBeenCalled();
+  });
+});
+
+describe("validateRagFile", () => {
+  test("accepts pdf/txt/md under the size limit", () => {
+    const file = new File(["hello notes"], "notes.txt", { type: "text/plain" });
+    expect(validateRagFile(file)).toBeNull();
+  });
+
+  test("rejects unsupported extensions", () => {
+    const file = new File(["x"], "photo.png", { type: "image/png" });
+    expect(validateRagFile(file)).toMatch(/pdf, txt, or md/i);
+  });
+
+  test("rejects empty files", () => {
+    const file = new File([], "empty.txt", { type: "text/plain" });
+    expect(validateRagFile(file)).toMatch(/empty/i);
+  });
+});
+
+describe("uploadDocument client validation", () => {
+  test("fails before network when the file type is invalid", async () => {
+    const file = new File(["x"], "virus.exe", { type: "application/octet-stream" });
+    await expect(uploadDocument(file)).rejects.toThrow(/pdf, txt, or md/i);
   });
 });

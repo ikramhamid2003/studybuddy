@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
+import { fetchCurrentUser, SESSION_EXPIRED_EVENT } from "../utils/api";
 
 const AuthContext = createContext(null);
 
@@ -22,7 +23,23 @@ export function AuthProvider({ children }) {
       try {
         // Decode the lightweight identity fields needed by the UI.
         const payload = JSON.parse(atob(token.split(".")[1]));
-        setUser({ id: payload.user_id, username: payload.username || "Student" });
+        setUser({ id: payload.user_id, username: payload.username || "" });
+        if (!payload.username) {
+          // Access tokens issued before the username claim only carry user_id,
+          // so an already signed-in session recovers the handle from the API
+          // rather than showing a generic label until the next login.
+          fetchCurrentUser()
+            .then((me) =>
+              setUser((current) =>
+                current && current.id === payload.user_id
+                  ? { id: me.id, username: me.username }
+                  : current,
+              ),
+            )
+            .catch(() => {
+              // Left unresolved, the UI keeps its fallback label.
+            });
+        }
       } catch (e) {
         console.error("Failed to decode token:", e);
         localStorage.removeItem("token");
@@ -36,23 +53,36 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, [token]);
 
+  useEffect(() => {
+    // The API client renews the access token on its own; this event means the
+    // refresh token was also rejected, so the session is genuinely over and the
+    // route guards have to return the app to guest state.
+    const onSessionExpired = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh");
+      setToken(null);
+      setUser(null);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, []);
+
   async function login(username, password) {
     try {
-      // All auth calls go through the unified backend endpoint.
-      const res = await fetch(`${BASE_URL}/unified/`, {
+      const res = await fetch(`${BASE_URL}/auth/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", username, password }),
+        body: JSON.stringify({ username, password }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) {
-        const msg = json.error || "Invalid credentials";
+      if (!res.ok || !json) {
+        const msg = json?.detail || "Invalid credentials";
         throw new Error(msg);
       }
-      const access = json.data.access;
+      const access = json.access;
       localStorage.setItem("token", access);
       // The refresh token is what logout revokes, so it has to be kept too.
-      if (json.data.refresh) localStorage.setItem("refresh", json.data.refresh);
+      if (json.refresh) localStorage.setItem("refresh", json.refresh);
       setToken(access);
       try {
         const payload = JSON.parse(atob(access.split(".")[1]));
@@ -60,7 +90,7 @@ export function AuthProvider({ children }) {
       } catch (e) {
         console.error("Failed to decode token:", e);
       }
-      return json.data;
+      return json;
     } catch (error) {
       const msg = error.message || "Invalid credentials";
       throw new Error(msg);
@@ -70,11 +100,15 @@ export function AuthProvider({ children }) {
   async function register(username, email, password) {
     try {
       // Register first, then reuse login so token handling stays in one place.
-      await fetch(`${BASE_URL}/unified/`, {
+      const response = await fetch(`${BASE_URL}/auth/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "register", username, email, password }),
+        body: JSON.stringify({ username, email, password }),
       });
+      if (!response.ok) {
+        const json = await response.json().catch(() => null);
+        throw new Error(json?.detail || json?.username?.[0] || "Registration failed");
+      }
       await login(username, password);
     } catch (error) {
       const msg = error.message || "Registration failed";
@@ -89,10 +123,10 @@ export function AuthProvider({ children }) {
     const refresh = localStorage.getItem("refresh");
     if (refresh) {
       try {
-        await fetch(`${BASE_URL}/unified/`, {
+        await fetch(`${BASE_URL}/token/blacklist/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "logout", refresh }),
+          body: JSON.stringify({ refresh }),
         });
       } catch (e) {
         // Even if the revoke call fails, clear local state.

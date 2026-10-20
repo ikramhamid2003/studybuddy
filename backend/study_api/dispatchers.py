@@ -1,218 +1,119 @@
 # Lazy/safe import of LangChain — network calls during module init can block
-import contextlib
-import json
+import threading
+from datetime import timedelta
+from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.http import StreamingHttpResponse
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.serializers import (
-    TokenObtainPairSerializer,
-    TokenRefreshSerializer,
-)
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from .content_fetcher import process_topic_with_url
-from .models import ChatMessage, ChatSession, Generation, UsageLog
-from .schemas import FlashcardsResponse, QuizResponse
+from .models import (
+    ChatSession,
+    Document,
+    Generation,
+    UsageLog,
+)
 
 try:
-    from .langchain_client import (
-        chat_groq,
-        query_groq_json,
-        query_groq_structured,
-        stream_chat_groq,
-    )
-
-    _HAS_LANGCHAIN = True
+    from .langchain_client import query_groq_json
 except Exception:  # noqa: BLE001
     # Server starts even if LangChain is broken/unreachable
-    chat_groq = query_groq_json = stream_chat_groq = query_groq_structured = None
-    _HAS_LANGCHAIN = False
+    def query_groq_json(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("LangChain is unavailable. Install the configured backend dependencies.")
+
+try:
+    from .rag_pipeline import ingest_document, rag_answer, retrieve_chunks
+
+    _HAS_RAG = True
+except Exception:  # noqa: BLE001
+    def _rag_unavailable(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("The RAG pipeline is unavailable. Install the configured backend dependencies.")
+
+    ingest_document = rag_answer = retrieve_chunks = _rag_unavailable
+    _HAS_RAG = False
 
 
-# Actions that do NOT require authentication. `logout` is here because the
-# refresh token it carries is itself the credential (same model as SimpleJWT's
-# blacklist view); requiring a live access token would let an expired session
-# keep its refresh token.
-PUBLIC_ACTIONS = frozenset(["register", "login", "refresh", "logout", "health"])
-
-EXPLAIN_SYSTEM = (
-    "You are an expert tutor. Your task is to explain a concept clearly based on the provided content. "
-    "If the user provides a URL, base your explanation on the actual content from that webpage. "
-    "Always respond with ONLY a valid JSON object — no markdown fences, no extra text. "
-    "Use exactly this format: "
-    '{"explanation":"clear explanation text based on the provided content","key_points":["point 1","point 2","point 3"],'
-    '"analogy":"a simple real-world analogy","example":"a concrete example"}'
-)
-SUMMARIZE_SYSTEM = (
-    "You are an expert at condensing academic study material. "
-    "If the user provides a URL or web content, summarize the actual content from that page. "
-    "Always respond with ONLY a valid JSON object — no markdown fences, no extra text. "
-    "Use exactly this format: "
-    '{"summary":"concise summary of the provided content","key_concepts":["concept 1","concept 2","concept 3"],'
-    '"important_terms":[{"term":"term name","definition":"brief definition"}],'
-    '"study_tips":["tip 1","tip 2"]}'
-)
-QUIZ_SYSTEM = (
-    "You are a quiz generator for students. "
-    "If the user provides a URL or web content, generate questions based on the actual content from that page. "
-    "Always respond with ONLY a valid JSON object — no markdown, no extra text. "
-    "Use exactly this format: "
-    '{"questions":[{"id":1,"question":"question text based on the provided content",'
-    '"options":["A) option","B) option","C) option","D) option"],'
-    '"answer":"A) option","explanation":"why this is correct"}]}'
-)
-FLASHCARDS_SYSTEM = (
-    "You are a study flashcard creator. "
-    "If the user provides a URL or web content, create flashcards based on the actual content from that page. "
-    "Always respond with ONLY a valid JSON object — no markdown, no extra text. "
-    "Use exactly this format: "
-    '{"flashcards":[{"id":1,"front":"term or question from the content","back":"definition or answer","hint":"short memory hint"}]}'
-)
-CHAT_SYSTEM = (
-    "You are a friendly, knowledgeable study buddy AI assistant. "
-    "Help students understand concepts, answer questions, and guide their learning. "
-    "If the user shares a URL or web content, use that content to provide specific, relevant answers. "
-    "Be encouraging, clear, and concise. Use examples when helpful. "
-    "Format responses in plain text — no JSON needed."
+CHAT_SUGGESTIONS_SYSTEM = (
+    "You suggest short, concrete follow-up questions a student might ask next. "
+    "Given the conversation, produce EXACTLY 3 follow-up questions that: "
+    "build on the current topic, vary in depth (one clarifying, one deeper, one tangential), "
+    "and are specific — never generic placeholders like 'tell me more'. "
+    "Each question must be one line, at most 90 characters, no leading numbers or bullets. "
+    "Always respond with ONLY a valid JSON object — no markdown, no extra text: "
+    '{"suggestions": ["q1", "q2", "q3"]}'
 )
 
 
-CHAT_CONTEXT_TURNS = 20
-GLOBAL_CHAT_CONTEXT_TURNS = 12
-GLOBAL_GENERATION_CONTEXT_ITEMS = 6
-
-
-def _error(msg, code=status.HTTP_400_BAD_REQUEST):
-    """Return the unified API error envelope used by the frontend client."""
+def _error(msg: str, code: int = status.HTTP_400_BAD_REQUEST) -> Response:
+    """Return the standard API error envelope used by the frontend client."""
 
     return Response({"ok": False, "error": msg}, status=code)
 
 
-def _ok(data=None, status=status.HTTP_200_OK):
-    """Return the unified API success envelope used by the frontend client."""
+def _ok(data: Any = None, status: int = status.HTTP_200_OK) -> Response:
+    """Return the standard API success envelope used by the frontend client."""
 
     return Response({"ok": True, "data": {} if data is None else data}, status=status)
 
 
-def _unwrap(obj):
-    """Convert DRF dict-like to plain dict (nested)."""
-    if isinstance(obj, dict):
-        return {k: _unwrap(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [_unwrap(i) for i in obj]
-    return obj
-
-
-def _clip_text(value, limit=700):
+def _clip_text(value: Any, limit: int = 700) -> str:
     """Trim saved context so prompts stay within a predictable token budget."""
 
     text = str(value or "").strip()
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "..."
 
 
-def _saved_chat_session_context(user, exclude_session=None, limit=GLOBAL_CHAT_CONTEXT_TURNS):
-    """Build a compact, read-only memory block from the user's other chats."""
-    queryset = ChatMessage.objects.filter(session__user=user).select_related("session")
-    if exclude_session is not None:
-        queryset = queryset.exclude(session=exclude_session)
+def daily_token_limit() -> int:
+    """Per-user token budget for the current day. <= 0 disables the cap."""
 
-    messages = list(queryset.order_by("-created_at")[:limit])
-    if not messages:
-        return []
+    return int(getattr(settings, "USER_TOKEN_LIMIT", 0) or 0)
 
-    lines = []
-    for msg in reversed(messages):
-        speaker = "Student" if msg.role == "user" else "Assistant"
-        lines.append(f"[{msg.session.title}] {speaker}: {_clip_text(msg.content, 500)}")
 
-    return [
+def _tokens_in_range(queryset) -> int:
+    agg = queryset.aggregate(i=Sum("input_tokens"), o=Sum("output_tokens"))
+    return (agg["i"] or 0) + (agg["o"] or 0)
+
+
+def tokens_used_today(user) -> int:
+    """Input + output tokens this user has already spent in the current day.
+
+    Sums persisted Generations and streamed-chat UsageLogs — together they are
+    every call that reached the model, so neither tool type slips past the cap.
+    """
+
+    today = timezone.localdate()
+    return _tokens_in_range(
+        Generation.objects.filter(user=user, created_at__date=today)
+    ) + _tokens_in_range(UsageLog.objects.filter(user=user, created_at__date=today))
+
+
+def enforce_daily_token_limit(user) -> Response | None:
+    """Return a 429 response once the day's budget is spent, else None.
+
+    Checked before any model call, so an over-budget request never spends
+    provider tokens. A user can overshoot by at most one call's worth, which is
+    unavoidable without pricing the request up front.
+    """
+
+    limit = daily_token_limit()
+    if limit <= 0 or tokens_used_today(user) < limit:
+        return None
+    return Response(
         {
-            "role": "user",
-            "content": (
-                "Saved context from this student's previous chat sessions. "
-                "Use it only when it helps answer the current question; do not mention "
-                "this context unless the student asks about prior conversations.\n"
-                + "\n".join(lines)
-            ),
-        }
-    ]
-
-
-def _saved_generation_chat_context(user, limit=GLOBAL_GENERATION_CONTEXT_ITEMS):
-    """Build a compact memory block from chat turns saved by the ALL page."""
-    generations = list(
-        Generation.objects.filter(user=user, type="chat").order_by("-created_at")[:limit]
+            "error": (
+                f"You've used all {limit:,} tokens for today. "
+                "Your daily budget resets at midnight."
+            )
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
     )
-    if not generations:
-        return []
-
-    lines = []
-    for generation in reversed(generations):
-        reply = generation.result.get("reply", "") if isinstance(generation.result, dict) else ""
-        lines.append(f"Student: {_clip_text(generation.topic, 500)}")
-        if reply:
-            lines.append(f"Assistant: {_clip_text(reply, 500)}")
-
-    return [
-        {
-            "role": "user",
-            "content": (
-                "Saved context from this student's previous ALL-page chat messages. "
-                "Use it only when relevant to the current question.\n" + "\n".join(lines)
-            ),
-        }
-    ]
 
 
-# ── Actions (public – no auth) ───────────────────────────────────────────────
-
-
-def _action_register(data, request=None):
-    """Create a Django user from the public unified endpoint."""
-
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    email = data.get("email", "").strip()
-    if not username or not password:
-        return _error("username and password required")
-    try:
-        user = User.objects.create_user(username=username, email=email, password=password)
-        return _ok({"message": "Registered", "user": {"username": user.username, "email": user.email}})
-    except Exception as e:  # noqa: BLE001
-        msg = str(e) or "Registration failed"
-        return _error(msg, code=status.HTTP_400_BAD_REQUEST)
-
-
-def _action_login(data, request=None):
-    """Issue JWT access/refresh tokens using SimpleJWT validation."""
-
-    serializer = TokenObtainPairSerializer(data={"username": data.get("username", ""), "password": data.get("password", "")})
-    try:
-        serializer.is_valid(raise_exception=True)
-        return _ok(_unwrap(serializer.validated_data))
-    except Exception as e:  # noqa: BLE001
-        return _error(str(e))
-
-
-def _action_refresh(data, request=None):
-    """Refresh a JWT access token without requiring the old access token."""
-
-    refresh_token = data.get("refresh")
-    if not refresh_token:
-        return _error("refresh token required")
-    serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
-    try:
-        serializer.is_valid(raise_exception=True)
-        return _ok(_unwrap(serializer.validated_data))
-    except Exception as e:  # noqa: BLE001
-        return _error(str(e))
-
-
-def _action_usage_stats(data, request):
+def _action_usage_stats(data: dict[str, Any], request: Any) -> Response:
     """Return cumulative token usage and estimated cost for the authenticated user."""
     generations = Generation.objects.filter(user=request.user)
     total_input = sum(g.input_tokens or 0 for g in generations)
@@ -226,82 +127,19 @@ def _action_usage_stats(data, request):
     total_output += sum(ul.output_tokens or 0 for ul in usage_logs)
     total_cost += sum(ul.estimated_cost or 0 for ul in usage_logs)
 
+    limit = daily_token_limit()
+    used_today = tokens_used_today(request.user)
     return _ok({
         "total_input_tokens": total_input,
         "total_output_tokens": total_output,
         "total_estimated_cost": round(total_cost, 4),
+        "daily_token_limit": limit,
+        "tokens_used_today": used_today,
+        "tokens_remaining_today": max(0, limit - used_today) if limit > 0 else None,
     })
 
 
-# ── Actions (authenticated – JWT required) ──────────────────────────────────
-
-
-def _action_generate(data, request):
-    """Route one saved AI generation to the correct prompt/client handler."""
-
-    topic = data.get("topic", "").strip()
-    gen_type = data.get("type")
-    if not topic or not gen_type:
-        return _error("topic and type required")
-
-    # Process topic - fetch URL content if applicable
-    topic_info = process_topic_with_url(topic)
-    content = topic_info["combined_content"]
-    has_url = topic_info["has_url"]
-    url_title = topic_info["fetched_content"]["title"] if topic_info["fetched_content"] else ""
-
-    chat_history = []
-    if gen_type == "chat":
-        chat_history = (
-            _saved_chat_session_context(request.user)
-            + _saved_generation_chat_context(request.user)
-            + data.get("history", [])[-CHAT_CONTEXT_TURNS:]
-        )
-
-    # Build user message with URL context if available
-    def build_user_msg(base_msg):
-        if has_url and topic_info["fetched_content"] and topic_info["fetched_content"]["success"]:
-            return f"{base_msg}\n\n--- Web Content from {topic_info['original_topic']} ---\n{topic_info['fetched_content']['content']}"
-        if has_url and topic_info["fetched_content"] and not topic_info["fetched_content"]["success"]:
-            return f"{base_msg}\n\n[Note: Could not fetch content from the URL: {topic_info['fetched_content']['error']} Please generate content based on the URL title/topic instead.]"
-        return base_msg
-
-    handlers = {
-        "explain": lambda: query_groq_json(EXPLAIN_SYSTEM, build_user_msg(f'Explain "{topic}" at {data.get("level","beginner")} level.'), max_tokens=700),
-        "summarize": lambda: query_groq_json(SUMMARIZE_SYSTEM, build_user_msg(f'Summarize the following content:\n{content}'), max_tokens=800),
-        "quiz": lambda: query_groq_structured(QUIZ_SYSTEM, build_user_msg(f'Generate {data.get("num_questions",5)} quiz Qs about "{topic}" ({data.get("difficulty","medium")}).'), QuizResponse, max_tokens=1000).model_dump(),
-        "flashcards": lambda: query_groq_structured(FLASHCARDS_SYSTEM, build_user_msg(f'Create {data.get("num_cards",8)} flashcards about "{topic}".'), FlashcardsResponse, max_tokens=900).model_dump(),
-        "chat": lambda: {"reply": chat_groq(CHAT_SYSTEM, chat_history, build_user_msg(topic), max_tokens=600)},
-    }
-    handler = handlers.get(gen_type)
-    if not handler:
-        return _error(f"unknown type: {gen_type}")
-    try:
-        result = handler()
-    except Exception as e:  # noqa: BLE001
-        return _error(f"AI request failed: {e}", code=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-    generation = Generation.objects.create(user=request.user, type=gen_type, topic=topic, result=result)
-    result["generation_id"] = generation.id
-    if has_url:
-        result["source_url"] = topic_info["original_topic"]
-        if url_title:
-            result["source_title"] = url_title
-    return _ok(result)
-
-
-def _action_generations_list(data, request):
-    """List the latest saved generations, optionally filtered by tool type."""
-
-    qset = Generation.objects.filter(user=request.user)
-    gen_type = data.get("query_type")
-    if gen_type:
-        qset = qset.filter(type=gen_type)
-    qs = list(qset[:50])
-    return _ok([{"id": g.id, "type": g.type, "topic": g.topic, "result": g.result, "created_at": g.created_at.isoformat()} for g in qs])
-
-
-def _action_generation_delete(data, request):
+def _action_generation_delete(data: dict[str, Any], request: Any) -> Response:
     """Delete one saved generation owned by the current user."""
 
     generation_id = data.get("generation_id")
@@ -316,169 +154,286 @@ def _action_generation_delete(data, request):
     return _ok({})
 
 
-def _action_sessions_list(data, request):
-    """List chat sessions for the authenticated sidebar."""
+def _action_chat_suggestions(data: dict[str, Any], request: Any) -> Response:
+    """Return 3 contextual follow-up question chips for the given session.
 
-    sessions = ChatSession.objects.filter(user=request.user)
-    return _ok([{"id": s.id, "title": s.title, "created_at": s.created_at.isoformat(), "updated_at": s.updated_at.isoformat()} for s in sessions])
-
-
-def _action_session_create(data, request):
-    """Create an empty chat session before the first streamed message."""
-
-    session = ChatSession.objects.create(user=request.user)
-    return _ok({"id": session.id, "title": session.title, "created_at": session.created_at.isoformat(), "updated_at": session.updated_at.isoformat()}, status=status.HTTP_201_CREATED)
-
-
-def _action_sessions_detail(data, request):
-    """Return a single chat transcript with its persisted messages."""
+    Reads the session's most recent turns and asks the LLM for exactly three
+    short, concrete follow-ups so the UI can offer the student a natural next
+    step. Falls back to an empty list rather than an error so the chat keeps
+    working if the model is briefly unavailable.
+    """
 
     session_id = data.get("session_id")
     if not session_id:
         return _error("session_id required")
+
     session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-    messages = [{"role": m.role, "content": m.content, "id": m.id, "created_at": m.created_at.isoformat()} for m in session.messages.all()]
-    return _ok({
-        "id": session.id,
-        "title": session.title,
-        "created_at": session.created_at.isoformat(),
-        "updated_at": session.updated_at.isoformat(),
-        "messages": messages,
-    })
+    turns = [m for m in session.messages.all()][-8:]
+    if len(turns) < 2 or not any(m.role == "assistant" for m in turns):
+        # No real exchange yet, so there is nothing sensible to follow up on.
+        return _ok({"suggestions": []})
+
+    transcript = "\n".join(
+        f"{'Student' if m.role == 'user' else 'Assistant'}: {_clip_text(m.content, 500)}"
+        for m in turns
+    )
+    user_msg = f"Conversation so far:\n{transcript}\n\nSuggest the next follow-up questions."
+
+    try:
+        parsed = query_groq_json(
+            CHAT_SUGGESTIONS_SYSTEM, user_msg, max_tokens=120
+        )
+    except Exception:  # noqa: BLE001
+        return _ok({"suggestions": []})
+
+    raw = parsed.get("suggestions", []) if isinstance(parsed, dict) else []
+    suggestions = [str(s).strip() for s in raw if str(s).strip()]
+    # Drop duplicates, cap length, and keep the model output to the required 3.
+    seen = set()
+    unique = []
+    for s in suggestions:
+        key = s.lower()
+        if key not in seen and len(s) <= 90:
+            seen.add(key)
+            unique.append(s[:90])
+        if len(unique) == 3:
+            break
+    return _ok({"suggestions": unique})
 
 
-def _action_session_rename(data, request):
-    """Rename a chat session owned by the current user."""
-
-    session_id = data.get("session_id")
-    title = data.get("title", "").strip()
-    if not session_id or not title:
-        return _error("session_id and title required")
-    session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-    session.title = title
-    session.save()
-    return _ok({"id": session.id, "title": session.title, "created_at": session.created_at.isoformat(), "updated_at": session.updated_at.isoformat()})
+# ── RAG actions ─────────────────────────────────────────────────────────────
 
 
-def _action_session_delete(data, request):
-    """Delete one chat session and its cascade-owned messages."""
+RAG_MAX_UPLOAD_MB = 20  # fallback; settings value used when available
 
-    session_id = data.get("session_id")
-    if not session_id:
-        return _error("session_id required")
-    session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-    session.delete()
+
+def _doc_dict(doc: Document) -> dict[str, Any]:
+    """Serialize a Document model instance to a JSON-safe dict."""
+    return {
+        "id": doc.id,
+        "title": doc.title,
+        "filename": doc.filename,
+        "file_size": doc.file_size,
+        "page_count": doc.page_count,
+        "chunk_count": doc.chunk_count,
+        "status": doc.status,
+        "error_message": doc.error_message,
+        "created_at": doc.created_at.isoformat(),
+        "updated_at": doc.updated_at.isoformat(),
+    }
+
+
+def _reap_stale_documents(user: User) -> None:
+    """Fail documents whose ingestion died with the worker that ran it.
+
+    Ingestion happens in a daemon thread and the uploaded bytes are never
+    persisted, so a deploy or restart mid-ingest destroys the work with nothing
+    to resume from. Without this the row stays 'processing' forever and the
+    frontend — which polls while any document is pending or processing — never
+    stops. Reaping lazily on read keeps it bounded to the requesting user and
+    needs no scheduler. A thread that is merely slow will still finish and
+    overwrite the status with 'ready'.
+    """
+
+    timeout = settings.RAG_INGEST_TIMEOUT_SECONDS
+    now = timezone.now()
+    Document.objects.filter(
+        user=user,
+        status__in=("pending", "processing"),
+        updated_at__lt=now - timedelta(seconds=timeout),
+    ).update(
+        status="error",
+        error_message=(
+            "Processing was interrupted by a server restart. "
+            "Please upload the file again."
+        ),
+        # auto_now does not apply to QuerySet.update(), so stamp it explicitly.
+        updated_at=now,
+    )
+
+
+def _action_rag_upload(data: dict[str, Any], request: Any) -> Response:
+    """Receive an uploaded file, create a Document record, and start ingestion.
+
+    The file arrives via multipart/form-data in request.FILES['file'].
+    Ingestion (extract → chunk → embed → store) runs in a background thread
+    so the HTTP response is immediate and the UI can poll for status.
+    """
+    from django.conf import settings as dj_settings
+
+    if not _HAS_RAG:
+        return _error("RAG pipeline is not available (missing dependencies).")
+
+    file_obj = request.FILES.get("file")
+    if not file_obj:
+        return _error("No file uploaded. Send a multipart request with a 'file' field.")
+
+    if file_obj.size == 0:
+        return _error("The uploaded file is empty.")
+
+    max_mb = getattr(dj_settings, "RAG_MAX_UPLOAD_MB", RAG_MAX_UPLOAD_MB)
+    if file_obj.size > max_mb * 1024 * 1024:
+        return _error(f"File too large. Maximum upload size is {max_mb} MB.")
+
+    allowed_ext = {".pdf", ".txt", ".md"}
+    filename = (file_obj.name or "upload").strip()
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in allowed_ext:
+        return _error("Unsupported file type. Upload a PDF, TXT, or MD file.")
+
+    file_bytes = file_obj.read()
+    raw_title = (data.get("title") or "").strip() or filename
+    title = raw_title[:500]
+    filename = filename[:500]
+
+    doc = Document.objects.create(
+        user=request.user,
+        title=title,
+        filename=filename,
+        file_size=file_obj.size,
+        status="pending",
+    )
+
+    # Kick off ingestion in a background thread to return immediately.
+    def _run_ingest(doc_id: int, content: bytes) -> None:
+        try:
+            ingest_document(doc_id, content)
+        except Exception:  # noqa: BLE001, S110 — ingest_document already updates doc.status to 'error'
+            pass
+        finally:
+            # Clean up the thread-local database connection to avoid leaks
+            from django.db import connection
+            connection.close()
+
+    thread = threading.Thread(target=_run_ingest, args=(doc.id, file_bytes), daemon=True)
+    thread.start()
+
+    return _ok(_doc_dict(doc), status=status.HTTP_201_CREATED)
+
+
+def _action_rag_list(data: dict[str, Any], request: Any) -> Response:
+    """List all documents uploaded by the authenticated user."""
+    _reap_stale_documents(request.user)
+    docs = Document.objects.filter(user=request.user).order_by("-created_at")
+    return _ok([_doc_dict(d) for d in docs])
+
+
+def _action_rag_document_status(data: dict[str, Any], request: Any) -> Response:
+    """Return the current processing status of a single document."""
+    raw_id = data.get("document_id")
+    if raw_id is None:
+        return _error("document_id required")
+    try:
+        doc_id = int(raw_id)
+    except (ValueError, TypeError):
+        return _error("Invalid document_id", code=status.HTTP_400_BAD_REQUEST)
+
+    _reap_stale_documents(request.user)
+    doc = Document.objects.filter(id=doc_id, user=request.user).first()
+    if doc is None:
+        return _error("Document not found", code=status.HTTP_404_NOT_FOUND)
+    return _ok(_doc_dict(doc))
+
+
+def _action_rag_delete(data: dict[str, Any], request: Any) -> Response:
+    """Delete a document and all its chunks."""
+    raw_id = data.get("document_id")
+    if raw_id is None:
+        return _error("document_id required")
+    try:
+        doc_id = int(raw_id)
+    except (ValueError, TypeError):
+        return _error("Invalid document_id", code=status.HTTP_400_BAD_REQUEST)
+
+    doc = Document.objects.filter(id=doc_id, user=request.user).first()
+    if doc is None:
+        return _error("Document not found", code=status.HTTP_404_NOT_FOUND)
+    doc.delete()  # cascades to DocumentChunk
     return _ok({})
 
 
-def _action_logout(data, request=None):
-    """Revoke a refresh token so the session cannot be resumed.
+def ready_document_ids(user: User, requested: list[int] | None = None) -> list[int]:
+    """Ids of this user's searchable documents, optionally narrowed to *requested*.
 
-    Public by design: the refresh token itself is the credential, which is also
-    how SimpleJWT's own blacklist view behaves. That matters because a user's
-    access token is often already expired by the time they sign out, and an
-    authenticated-only action would 401 and leave the refresh token live.
+    Only `ready` documents count: a pending or failed one has no usable chunks,
+    and another user's id must never resolve, whichever endpoint asks.
     """
 
-    refresh = data.get("refresh")
-    if not refresh:
-        return _error("refresh token required")
-
-    try:
-        RefreshToken(refresh).blacklist()
-    except TokenError as e:
-        # An expired or already-revoked token is not worth an error: the session
-        # is over either way, so logout stays idempotent.
-        return _ok({"blacklisted": False, "reason": str(e)})
-    return _ok({"blacklisted": True})
+    owned = Document.objects.filter(user=user, status="ready")
+    if requested is None:
+        return list(owned.values_list("id", flat=True))
+    allowed = set(owned.filter(id__in=requested).values_list("id", flat=True))
+    return [d for d in requested if d in allowed]
 
 
-def _action_unregister(data, request):
-    """Delete the authenticated user account and revoke its refresh token."""
+def _action_rag_query(data: dict[str, Any], request: Any) -> Response:
+    """Answer a question using RAG over the user's selected documents.
 
-    refresh = data.get("refresh")
-    if refresh:
-        # Revoke first so the token cannot outlive the account it belonged to.
-        with contextlib.suppress(TokenError):
-            RefreshToken(refresh).blacklist()
+    Body fields:
+      - question (str, required): the student's question
+      - document_ids (list[int], optional): which docs to search;
+        defaults to all 'ready' docs owned by the user
+      - top_k (int, optional): number of chunks to retrieve (default: 5)
+    """
+    if not _HAS_RAG:
+        return _error("RAG pipeline is not available (missing dependencies).")
 
-    try:
-        request.user.delete()
-    except Exception as e:  # noqa: BLE001
-        return _error(str(e))
-    return _ok({"message": "Account deleted"})
+    question = (data.get("question") or "").strip()
+    if not question:
+        return _error("question is required")
 
+    raw_doc_ids = data.get("document_ids")
+    if raw_doc_ids is not None:
+        if not isinstance(raw_doc_ids, list):
+            return _error("document_ids must be a list of document IDs.")
+        parsed_ids = []
+        for d in raw_doc_ids:
+            try:
+                parsed_ids.append(int(d))
+            except (ValueError, TypeError):
+                continue
+        if not parsed_ids:
+            return _error("No valid document IDs specified.")
 
-# ── Special: streaming (returns SSE) ─────────────────────────────────────────
-
-def _action_chat_stream(data, request):
-    """Stream assistant tokens as SSE and persist the completed chat turn."""
-
-    message = data.get("message", "")
-    history = data.get("history", [])[-CHAT_CONTEXT_TURNS:]
-    session_id = data.get("session_id")
-
-    # Process message for URLs
-    msg_info = process_topic_with_url(message)
-    processed_message = msg_info["combined_content"]
-
-    full_reply_parts = []
-    session = None
-    if session_id:
-        session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-        session_history = [
-            {"role": m.role, "content": m.content}
-            for m in session.messages.all()
-        ][-CHAT_CONTEXT_TURNS:]
-        history = _saved_chat_session_context(request.user, exclude_session=session) + session_history
+        doc_ids = ready_document_ids(request.user, parsed_ids)
+        if not doc_ids:
+            return _error("None of the selected documents are ready for search.")
     else:
-        history = _saved_chat_session_context(request.user) + history
+        doc_ids = ready_document_ids(request.user)
+        if not doc_ids:
+            return _error(
+                "No ready documents to search. Upload documents and wait for processing to finish."
+            )
 
-    def event_generator():
-        nonlocal full_reply_parts, session
-        try:
-            # Forward each model chunk immediately while saving pieces for the
-            # final persisted assistant message.
-            for chunk in stream_chat_groq(CHAT_SYSTEM, history, processed_message, max_tokens=600):
-                full_reply_parts.append(chunk)
-                yield f"data: {{\"chunk\": {json.dumps(chunk)}}}\n\n".encode()
+    from django.conf import settings as dj_settings
 
-            if session is not None:
-                is_first_turn = not session.messages.exists()
-                full_reply = "".join(full_reply_parts)
-                ChatMessage.objects.create(session=session, role="user", content=message)
-                ChatMessage.objects.create(session=session, role="assistant", content=full_reply)
-                if is_first_turn:
-                    session.title = message.strip().splitlines()[0][:47] + ("…" if len(message.strip().splitlines()[0]) > 47 else "")
-                session.save()
+    try:
+        top_k = int(data.get("top_k") or getattr(dj_settings, "RAG_TOP_K", 5))
+    except (ValueError, TypeError):
+        top_k = 5
+    top_k = max(1, min(20, top_k))
 
-            yield f'data: {{"done": true, "session_id": {json.dumps(session.id if session else None)}}}\n\n'.encode()
-        except Exception as e:  # noqa: BLE001
-            yield f'data: {{"error": {json.dumps(str(e))}}}\n\n'.encode()
+    try:
+        chunks = retrieve_chunks(doc_ids, question, top_k=top_k)
+        result = rag_answer(question, chunks)
+    except Exception as e:  # noqa: BLE001
+        return _error(f"RAG query failed: {e}", code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    resp = StreamingHttpResponse(event_generator(), content_type="text/event-stream")
-    resp["X-Accel-Buffering"] = "no"
-    resp["Cache-Control"] = "no-cache"
-    return resp
+    sources = [
+        {
+            "document_id": c["document_id"],
+            "document_title": c["document_title"],
+            "page_number": c.get("page_number"),
+            "score": c.get("score"),
+            "text_preview": c["text"][:200] + ("..." if len(c["text"]) > 200 else ""),
+        }
+        for c in chunks
+    ]
 
-
-ACTION_MAP = {
-    # The frontend sends an action string to /unified/; this table is the only
-    # place that string is coupled to backend behavior.
-    "register": _action_register,
-    "login": _action_login,
-    "refresh": _action_refresh,
-    "generate": _action_generate,
-    "generations_list": _action_generations_list,
-    "generation_delete": _action_generation_delete,
-    "sessions_list": _action_sessions_list,
-    "session_create": _action_session_create,
-    "sessions_detail": _action_sessions_detail,
-    "session_rename": _action_session_rename,
-    "session_delete": _action_session_delete,
-    "unregister": _action_unregister,
-    "logout": _action_logout,
-    "chat_stream": _action_chat_stream,
-    "health": lambda _data, _request=None: _ok({"status": "ok"}),
-    "usage_stats": _action_usage_stats,
-}
+    return _ok({
+        "answer": result["answer"],
+        "sources": sources,
+        "question": question,
+        "grounded": result.get("grounded", True),
+        "groundedness_reason": result.get("groundedness_reason", ""),
+    })

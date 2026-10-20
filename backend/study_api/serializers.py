@@ -1,13 +1,34 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import ChatMessage, ChatSession, Generation
 
 
-class ChatMessageSerializer(serializers.Serializer):
-    """Inbound chat turn used before messages are persisted."""
+class UsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Adds the username to the access token's payload.
 
-    role = serializers.ChoiceField(choices=["user", "assistant"])
+    simplejwt's default claims carry only `user_id`, so the frontend — which
+    decodes the JWT locally to name the signed-in user — fell back to a generic
+    label. Embedding `username` lets it show the real handle without an extra
+    profile request.
+    """
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["username"] = user.username
+        return token
+
+
+class ChatMessageSerializer(serializers.Serializer):
+    """Inbound chat turn used before messages are persisted.
+
+    "system" is accepted because the Study Chat page sends the user's other
+    session titles as a system turn; only user/assistant messages are stored.
+    """
+
+    role = serializers.ChoiceField(choices=["user", "assistant", "system"])
     content = serializers.CharField(max_length=4000)
 
 
@@ -15,6 +36,15 @@ class ChatSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=2000, required=True)
     history = ChatMessageSerializer(many=True, required=False, default=list)
     session_id = serializers.IntegerField(required=False, allow_null=True)
+    # Same optional grounding contract as GenerateSerializer: retrieve from
+    # these documents before answering, or stay ungrounded when absent.
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+        max_length=25,
+        default=list,
+    )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -66,7 +96,7 @@ class ChatSessionRenameSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=100, required=True)
 
 
-# ── Unified generation (ALL page) ───────────────────────────────────────────
+# ── AI Tool Generations (All-in-One Studio) ──────────────────────────────────
 
 
 class GenerateChatTurnSerializer(serializers.Serializer):
@@ -75,7 +105,7 @@ class GenerateChatTurnSerializer(serializers.Serializer):
 
 
 class GenerateSerializer(serializers.Serializer):
-    """Shared request shape for every AI tool on the unified endpoint."""
+    """Shared request shape for every AI tool in the Studio."""
 
     topic = serializers.CharField(max_length=8000, required=True)
     type = serializers.ChoiceField(
@@ -96,6 +126,15 @@ class GenerateSerializer(serializers.Serializer):
     )
     num_cards = serializers.IntegerField(min_value=3, max_value=15, default=8)
     history = GenerateChatTurnSerializer(many=True, required=False, default=list)
+    # When present, every tool retrieves from these documents and grounds its
+    # answer in the excerpts. Absent or empty keeps the pre-RAG behaviour.
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+        max_length=25,
+        default=list,
+    )
 
 
 class GenerationModelSerializer(serializers.ModelSerializer):

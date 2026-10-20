@@ -15,5 +15,5 @@ def auth_client():
     client = APIClient()
     user = User.objects.create_user(username="testuser", password="testpassword")
     client.force_authenticate(user=user)
-    client.user = user
+    client.user = user  # pyrefly: ignore[missing-attribute]
     return client

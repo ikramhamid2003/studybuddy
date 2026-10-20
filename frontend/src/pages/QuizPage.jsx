@@ -9,33 +9,49 @@ import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import ScoreCard from "../components/shared/ScoreCard";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { docIdsOption } from "../components/shared/documentLibrary";
+import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
+import { usePendingTopic } from "../utils/pendingTopic";
 
 export default function QuizPage() {
   const queryClient = useQueryClient();
+  const library = useLibrary();
   // Quiz state is split between generated questions, selected answers, and the
   // submission flag so users can answer freely before grading.
+  // Picks up a topic typed into the home focus box, if one was stashed.
   const [topic, setTopic] = useState("");
+  usePendingTopic(setTopic);
   const [numQ, setNumQ] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+
+  function clearQuiz() {
+    setQuestions([]); setAnswers({}); setSubmitted(false); setSources([]);
+  }
 
   async function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
     setLoading(true);
     // Reset old quiz state before requesting a new set of questions.
-    setQuestions([]); setAnswers({}); setSubmitted(false);
+    clearQuiz();
     try {
       const data = await generateAll(topic.trim(), "quiz", {
         num_questions: parseInt(numQ),
         difficulty,
+        ...docIdsOption(library.selectedIds),
       });
       if (!data.questions?.length) throw new Error("No questions returned");
       setQuestions(data.questions);
+      setSources(data.sources || []);
       setActiveHistoryId(data.generation_id ?? null);
       queryClient.invalidateQueries({ queryKey: ["generations", "quiz"] });
       toast.success(`${data.questions.length} questions ready!`);
@@ -70,6 +86,9 @@ export default function QuizPage() {
         subtitle="Test your knowledge with AI-generated multiple-choice questions"
       />
 
+      {/* Grounding: upload button + document dropdown, the shared document library */}
+      <DocumentPicker library={library} title="Ground the quiz in my documents" />
+
       <Card className="mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
@@ -100,6 +119,8 @@ export default function QuizPage() {
         </div>
       </Card>
 
+      <GroundingNote />
+
       {loading && (
         <Card variant="elevated">
           <LoadingSkeleton lines={6} message="Writing your quiz questions..." variant="card" />
@@ -107,7 +128,7 @@ export default function QuizPage() {
       )}
 
       {submitted && questions.length > 0 && (
-        <ScoreCard score={score} total={questions.length} onRetry={() => { setQuestions([]); setAnswers({}); setSubmitted(false); }} />
+        <ScoreCard score={score} total={questions.length} onRetry={clearQuiz} />
       )}
 
       {questions.map((q, qi) => {
@@ -206,6 +227,8 @@ export default function QuizPage() {
         </div>
       )}
 
+      <DocumentSources sources={sources} className="mb-6" />
+
       <ToolHistory
         type="quiz"
         activeId={activeHistoryId}
@@ -216,14 +239,13 @@ export default function QuizPage() {
           setQuestions(item.result.questions || []);
           setAnswers({});
           setSubmitted(false);
+          setSources(item.result.sources || []);
           setActiveHistoryId(item.id);
         }}
         onDeleted={(id) => {
           // Clear the open quiz when the entry backing it is removed.
           if (activeHistoryId === id) {
-            setQuestions([]);
-            setAnswers({});
-            setSubmitted(false);
+            clearQuiz();
             setActiveHistoryId(null);
           }
         }}

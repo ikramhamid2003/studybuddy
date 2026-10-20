@@ -8,19 +8,29 @@ import Button from "../components/Button";
 import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
+import DocumentPicker from "../components/shared/DocumentPicker";
+import DocumentSources from "../components/shared/DocumentSources";
+import GroundingNote from "../components/shared/GroundingNote";
+import { docIdsOption } from "../components/shared/documentLibrary";
+import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
+import { usePendingTopic } from "../utils/pendingTopic";
 import { copyToClipboard } from "../utils/clipboard";
 
 export default function ExplainPage() {
   const queryClient = useQueryClient();
+  const library = useLibrary();
   // Local state mirrors the form controls and the currently displayed result.
+  // Picks up a topic typed into the home focus box, if one was stashed.
   const [topic, setTopic] = useState("");
+  usePendingTopic(setTopic);
   const [level, setLevel] = useState("beginner");
   const [result, setResult] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
   const [copied, setCopied] = useState(false);
   const { mutate, isPending: loading } = useMutation({
-    mutationFn: () => generateAll(topic.trim(), "explain", { level }),
+    mutationFn: () =>
+      generateAll(topic.trim(), "explain", { level, ...docIdsOption(library.selectedIds) }),
     onSuccess: (data) => {
       // Store the generated payload locally and refresh the filtered history
       // list so this result appears immediately below the tool.
@@ -53,6 +63,9 @@ export default function ExplainPage() {
         title="Explain a Concept"
         subtitle="Get any topic broken down simply, with analogies and real examples"
       />
+
+      {/* Grounding: upload button + document dropdown, the shared document library */}
+      <DocumentPicker library={library} title="Ground the explanation in my documents" />
 
       {/* Input Card */}
       <Card className="mb-6">
@@ -90,6 +103,8 @@ export default function ExplainPage() {
           </Button>
         </div>
       </Card>
+
+      <GroundingNote />
 
       {/* Loading */}
       {loading && (
@@ -175,6 +190,8 @@ export default function ExplainPage() {
               </Card>
             )}
           </div>
+
+          <DocumentSources sources={result.sources} />
         </div>
       )}
 
