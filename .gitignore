@@ -19,6 +19,10 @@ frontend/build/
 .pytest_cache/
 .uv-cache/
 
+# Generated knowledge-graph artifact — rebuilt locally by graphify, so it is
+# never a source file and must not be committed.
+graphify-out/
+
 # Scratch / one-off artifacts — never commit these. Editors and ad-hoc scripts
 # tend to drop them next to the source they were working on.
 *.bak
