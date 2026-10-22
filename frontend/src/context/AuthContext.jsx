@@ -11,6 +11,20 @@ const DEFAULT_API_URL =
 
 const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
 
+// Auth endpoints answer an invalid payload with DRF's field-error dict, so the
+// only human-readable reason sits under whichever key the server chose to
+// reject — {"email": ["Enter a valid email address."]} or {"non_field_errors":
+// [...]}. Reading just `detail` (or just `username`) threw that reason away and
+// left the student with a generic label they could only diagnose in devtools.
+function rejectionMessage(json, fallback) {
+  if (typeof json?.detail === "string") return json.detail;
+  for (const value of Object.values(json ?? {})) {
+    const reason = Array.isArray(value) ? value[0] : value;
+    if (typeof reason === "string" && reason) return reason;
+  }
+  return fallback;
+}
+
 export function AuthProvider({ children }) {
   // The access token is the single source of truth; user state is derived from
   // the JWT payload whenever the token changes.
@@ -86,8 +100,7 @@ export function AuthProvider({ children }) {
       });
       const json = await res.json();
       if (!res.ok || !json) {
-        const msg = json?.detail || "Invalid credentials";
-        throw new Error(msg);
+        throw new Error(rejectionMessage(json, "Invalid credentials"));
       }
       const access = json.access;
       localStorage.setItem("token", access);
@@ -117,7 +130,7 @@ export function AuthProvider({ children }) {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => null);
-        throw new Error(json?.detail || json?.username?.[0] || "Registration failed");
+        throw new Error(rejectionMessage(json, "Registration failed"));
       }
       await login(username, password);
     } catch (error) {

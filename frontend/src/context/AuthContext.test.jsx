@@ -80,3 +80,56 @@ describe("session teardown", () => {
     expect(cachedKeys(queryClient)).toEqual(["generations"]);
   });
 });
+
+describe("rejection messages", () => {
+  afterEach(() => {
+    global.fetch = realFetch;
+    localStorage.clear();
+  });
+
+  const hook = () =>
+    renderHook(() => useAuth(), { wrapper: makeWrapper(newQueryClient()) }).result
+      .current;
+
+  const rejected = (body) =>
+    jest.fn().mockResolvedValue({ ok: false, status: 400, json: async () => body });
+
+  test("signup names the reason when the server rejects the email", async () => {
+    // DRF keys the error dict by field, and `ada@b.c.` is accepted by the
+    // register page's own regex but refused by Django's EmailValidator — so this
+    // is a real 400 the student can reach, and the reason must not be lost.
+    global.fetch = rejected({ email: ["Enter a valid email address."] });
+    await expect(
+      hook().register("ada", "ada@b.c.", "hunter2"),
+    ).rejects.toThrow("Enter a valid email address.");
+  });
+
+  test("signup still names a rejected username", async () => {
+    global.fetch = rejected({ username: ["A user with that username already exists."] });
+    await expect(
+      hook().register("ada", "ada@example.com", "hunter2"),
+    ).rejects.toThrow("A user with that username already exists.");
+  });
+
+  test("login names the reason when the body carries no detail", async () => {
+    global.fetch = rejected({
+      non_field_errors: ["Unable to log in with provided credentials."],
+    });
+    await expect(hook().login("ada", "wrong")).rejects.toThrow(
+      "Unable to log in with provided credentials.",
+    );
+  });
+
+  test("an unparseable body falls back to the generic label", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new Error("not json");
+      },
+    });
+    await expect(
+      hook().register("ada", "ada@example.com", "hunter2"),
+    ).rejects.toThrow("Registration failed");
+  });
+});

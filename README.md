@@ -33,7 +33,7 @@
 - **🧮 Token & Cost Tracking:** `langchain_client.py` reads each response's provider-reported token counts into a per-request `ContextVar` (`_record_usage` / `take_last_usage`), and `GenerateView` writes them onto the `Generation` row — `input_tokens`, `output_tokens`, and `cost` from the per-million rates in `settings.GROQ_PRICE_PER_M_INPUT` / `_OUTPUT` — which `GET /api/usage/` then aggregates. Measured 2026-10-16 through the live HTTP path: a cold `explain` recorded **209 in / 477 out**, and the identical repeat (a response-cache hit) recorded **0 / 0** while returning the same payload, because it never reaches the provider. Cost reads `0.0000` until both price variables are set for the configured model — an honest zero rather than a guessed rate.
 - **🚦 Per-User Daily Token Budget:** Each account gets a daily allowance (`USER_TOKEN_LIMIT`, default **10,000** tokens, `0` disables it). `tokens_used_today` sums the day's `Generation` and `UsageLog` tokens — and streamed chat now writes a `UsageLog` row so it counts too, closing the gap where only `/api/generate/` was metered. `GenerateView` and `ChatStreamView` call `enforce_daily_token_limit` **before** any model call and return **429** with a plain-language message once the budget is spent (a request can overshoot by at most one call, since a call's cost is unknown until it runs). A stream the reader abandons mid-reply still counts: `ChatStreamView` records the turn in a `finally`, because a disconnect arrives as `GeneratorExit` — which the ordinary error handler cannot catch — and unrecorded tokens would make the cap bypassable by simply closing the tab. `GET /api/usage/` additionally returns `daily_token_limit`, `tokens_used_today` and `tokens_remaining_today`, which the dashboard renders as a "Daily token budget" meter that turns amber near the cap and rose when spent.
 - **📊 Telemetry & Error Tracking:** Vercel Analytics & Speed Insights for Core Web Vitals, and **GlitchTip** (Sentry-compatible) error tracking on both frontend (`@sentry/react` with session replay) and backend (`sentry-sdk` Django integration).
-- **🛡️ Quality Gates:** Ruff Python linter, a **138-test Pytest suite**, ESLint, and **67 Jest tests** in 7 suites (API-client coverage including document-grounded streaming and request cancellation, session teardown, document-selection ownership and the 25-document cap, a 31-test personalization suite for streaks / activity windows / tool mix / intent routing / suggestions / checklist, plus `Button`, `Card` and `Input` render tests) — all enforced in **GitHub Actions CI/CD**, which also checks for unmigrated model changes and runs the pgvector retrieval SQL against a real Postgres.
+- **🛡️ Quality Gates:** Ruff Python linter, a **138-test Pytest suite**, ESLint, and **71 Jest tests** in 7 suites (API-client coverage including document-grounded streaming and request cancellation, session teardown, the reason an auth endpoint rejects a signup, document-selection ownership and the 25-document cap, a 31-test personalization suite for streaks / activity windows / tool mix / intent routing / suggestions / checklist, plus `Button`, `Card` and `Input` render tests) — all enforced in **GitHub Actions CI/CD**, which also checks for unmigrated model changes and runs the pgvector retrieval SQL against a real Postgres.
 
 ---
 
@@ -50,7 +50,7 @@ Every figure below is reproducible from this repository — measured on the curr
 | API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
 | Frontend routes | 11 | `frontend/src/App.jsx` |
 | Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
-| Test modules · tests | 11 pytest files · 138 tests · 7 Jest files · 67 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
+| Test modules · tests | 11 pytest files · 138 tests · 7 Jest files · 71 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
 | Python dependencies · npm deps | 29 pinned · 22 runtime + 7 dev | `backend/requirements.txt` (install), `backend/requirements-dev.txt` (include `-r` line), `package.json` |
 | AI tools persisted per request type | 5 (`explain`, `summarize`, `quiz`, `flashcards`, `chat`) | `GenerateSerializer.type` choices |
 | Endpoints accepting `document_ids` | 3 (`/api/generate/` for all 5 tool types, `/api/chat/stream/`, `/api/rag/query/` — the last serves the retired Ask My Docs page's endpoint, no longer called by the UI) | `grep -n document_ids backend/study_api/views.py backend/study_api/dispatchers.py` |
@@ -62,8 +62,8 @@ Every figure below is reproducible from this repository — measured on the curr
 |-------|--------|
 | `ruff check backend/` | **0 errors** (was 6) |
 | `pytest` | **137 passed, 1 skipped**, 0 failed · 138.44 s (the skip is the pgvector case, which needs the CI Postgres job; wall time varies with machine load — the same suite measured 104.85 s unattended and 266.17 s on an earlier run) |
-| `jest` (all 7 suites) | **67 passed**, 0 failed · 6.44 s |
-| `npm run build` | Compiled successfully · **206.9 kB** gzipped JS, **14.27 kB** gzipped CSS |
+| `jest` (all 7 suites) | **71 passed**, 0 failed · 14.29 s (wall time varies with machine load — the same suites ran in 6.44 s on a quiet machine) |
+| `npm run build` | Compiled successfully · **207 kB** gzipped JS, **14.27 kB** gzipped CSS |
 | `npx eslint src --ext .js,.jsx` | **0 errors**, 1 warning (unused import) — ESLint is not `--max-warnings 0`, so CI stays green on warnings |
 
 ### Performance levers, with the value each one is set to
@@ -132,7 +132,8 @@ studybuddy/
 │   │   │   └── home/         # HomeDashboard (signed-in personalized face), HomeLanding (visitor
 │   │   │                     # face), Sparkline + ProgressRing (hand-rolled SVG, no chart lib)
 │   │   ├── pages/            # Home, All, Explain, Summarize, Quiz, Flashcards, Chat, Login, Register
-│   │   ├── context/          # AuthContext for JWT session management (+3-test cache-teardown suite)
+│   │   ├── context/          # AuthContext for JWT session management (+7-test cache-teardown and
+│   │   │                     # auth-rejection suite)
 │   │   ├── utils/            # api.js (explicit resource client), api.test.js (19-test Jest suite),
 │   │   │                     # routeColors, clipboard,
 │   │   │                     # personalize.js (+31-test suite) and pendingTopic.js (home → tool pre-fill hand-off)
@@ -302,7 +303,7 @@ cd frontend
 # Run ESLint
 npm run lint
 
-# Run Jest tests (7 suites, 67 tests)
+# Run Jest tests (7 suites, 71 tests)
 npm test -- --watchAll=false
 ```
 
