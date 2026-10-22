@@ -38,7 +38,7 @@ pyrefly_errors*.txt
 .DS_Store
 Thumbs.db
 .vscode/
-
+CLAUDE.md
 
 backend/prodenv/
 backend/venv/
