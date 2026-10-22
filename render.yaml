@@ -34,7 +34,12 @@ services:
       # Signup notifications stay inert until SIGNUP_NOTIFICATION_EMAIL holds a
       # value, so the addresses and the App Password are entered in the dashboard
       # and never synced from this file. Gmail's endpoint is not a secret, so it
-      # lives here instead of costing a dashboard entry.
+      # lives here instead of costing a dashboard entry. But Render blocks
+      # outbound traffic to SMTP ports 25/465/587 on free web services, so this
+      # cannot deliver from this service even with all four values entered — the
+      # feature is effectively local-only unless the instance is paid or the send
+      # moves to a provider reachable over HTTPS. A failed attempt is not silent:
+      # logging.lastResort writes it to stderr, which lands in the log stream.
       - key: SIGNUP_NOTIFICATION_EMAIL
         sync: false
       - key: DEFAULT_FROM_EMAIL

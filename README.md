@@ -45,8 +45,8 @@ Every figure below is reproducible from this repository — measured on the curr
 
 | Area | Count | How to verify |
 |------|-------|---------------|
-| Backend Python files / lines | 42 files · 6,101 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
-| Frontend source files / lines | 51 files · 9,050 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
+| Backend Python files / lines | 42 files · 6,105 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
+| Frontend source files / lines | 51 files · 9,116 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
 | API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
 | Frontend routes | 11 | `frontend/src/App.jsx` |
 | Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
@@ -209,7 +209,9 @@ DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 # DB_SSL_REQUIRE=false
 SECRET_KEY=some-long-random-secret-key
 # Signup notifications stay disabled while SIGNUP_NOTIFICATION_EMAIL is empty —
-# filling it is the only switch. For Gmail: EMAIL_HOST=smtp.gmail.com, a
+# filling it is the only switch, and it delivers from a local run. A deployed
+# Render free instance cannot send at all: ports 25/465/587 are blocked there
+# (see the deploy note below). For Gmail: EMAIL_HOST=smtp.gmail.com, a
 # 16-character App Password (Google account → Security → 2-Step Verification →
 # App passwords) in EMAIL_HOST_PASSWORD, and DEFAULT_FROM_EMAIL must equal
 # EMAIL_HOST_USER or Gmail rejects the send. A normal Google password will not
@@ -376,7 +378,7 @@ The frontend uses explicit resource endpoints. Authentication routes are public;
 
 > **Optional — better URL scraping:** set `FIRECRAWL_API_KEY` (declared `sync: false` in the Blueprint) to scrape URLs with Firecrawl for clean, JS-rendered markdown. Without it, the built-in requests/BeautifulSoup scraper is used, and any Firecrawl failure falls back to it automatically.
 
-> **Optional — signup notification emails:** the Blueprint declares `SIGNUP_NOTIFICATION_EMAIL`, `DEFAULT_FROM_EMAIL`, `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` as `sync: false` (enter them in Render's dashboard, never in this file), and pins `EMAIL_HOST=smtp.gmail.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=true` as literals. Leaving `SIGNUP_NOTIFICATION_EMAIL` empty keeps the feature off **and logs nothing about being off** — `settings.py` defines no `LOGGING` block, so a skipped or failed send only becomes visible if `GLITCHTIP_DSN` is set (GlitchTip captures `logger.exception`). A failed send never surfaces to the user as a signup error, and a stalled one is capped by `EMAIL_TIMEOUT` (5 s default).
+> **Signup notification emails are local-only, by decision:** Render blocks outbound traffic to SMTP ports **25, 465 and 587 on free web services**, so `EMAIL_HOST=smtp.gmail.com:587` can never connect from the deployment however carefully the four `sync: false` values (`SIGNUP_NOTIFICATION_EMAIL`, `DEFAULT_FROM_EMAIL`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`) are entered in its dashboard. Do not spend time debugging that as a code fault. The Blueprint still pins `EMAIL_HOST=smtp.gmail.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=true` as literals, and `SIGNUP_NOTIFICATION_EMAIL` empty keeps the feature off locally too. A *skipped* send logs nothing, but a *failed* one is not invisible: `settings.py` defines no `LOGGING` block, so Python's `logging.lastResort` writes `Could not send signup notification for user …` plus the traceback to stderr — which is exactly what Render's log stream shows, and the line's absence is what proves the recipient is empty. A stalled send is capped by `EMAIL_TIMEOUT` (5 s default). Delivering from production would mean upgrading the Render instance, or sending over HTTPS on port 443 (not blocked) through a transactional provider.
 
 ### Frontend (Vercel)
 1. Connect the `frontend/` directory to Vercel.
