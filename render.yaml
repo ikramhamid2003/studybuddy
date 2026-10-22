@@ -5,7 +5,11 @@ services:
     region: ohio
     healthCheckPath: /api/health/
     buildCommand: "cd backend && chmod +x build.sh && ./build.sh"
-    startCommand: "cd backend && gunicorn studybuddy.wsgi:application --bind 0.0.0.0:$PORT"
+    # --timeout must stay above FIRECRAWL_TIMEOUT (60s) plus one LLM call, or
+    # gunicorn SIGKILLs the worker mid-request and the client gets a 502. Default
+    # is 30s. --threads makes gunicorn use gthread, so one 512MB worker can also
+    # serve the SSE chat stream without blocking the other requests behind it.
+    startCommand: "cd backend && gunicorn studybuddy.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --graceful-timeout 30 --keep-alive 5 --threads 4"
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -27,3 +31,21 @@ services:
         sync: false
       - key: FIRECRAWL_API_KEY
         sync: false
+      # Signup notifications stay inert until SIGNUP_NOTIFICATION_EMAIL holds a
+      # value, so the addresses and the App Password are entered in the dashboard
+      # and never synced from this file. Gmail's endpoint is not a secret, so it
+      # lives here instead of costing a dashboard entry.
+      - key: SIGNUP_NOTIFICATION_EMAIL
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "true"

@@ -31,6 +31,7 @@ import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
+import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
 
 const TOOL_OPTIONS = [
@@ -380,6 +381,7 @@ export default function AllPage() {
   const [chatStarted, setChatStarted] = useState(false);
   const library = useLibrary();
   const queryClient = useQueryClient();
+  const abort = useGenerationAbort();
   const chatBottomRef = useRef(null);
 
   const refreshChatSessions = useCallback(async () => {
@@ -446,6 +448,7 @@ export default function AllPage() {
     try {
       await deleteGeneration(item.id);
       queryClient.invalidateQueries({ queryKey: ["generations"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       // Close the result panel if it was showing the entry that just vanished.
       setActive((current) => (current?.result === item.result ? null : current));
       toast.success("Deleted from history");
@@ -455,7 +458,7 @@ export default function AllPage() {
   }, [queryClient]);
 
   const { mutate, isPending: loading } = useMutation({
-    mutationFn: (vars) => generateAll(vars.topic, vars.type, vars.options),
+    mutationFn: (vars) => generateAll(vars.topic, vars.type, vars.options, abort.start()),
     onSuccess: (data, vars) => {
       // Store a normalized active object so ResultView can render any tool from
       // the same shape, whether freshly generated or reopened from history.
@@ -463,9 +466,12 @@ export default function AllPage() {
       setAnswers({});
       setSubmitted(false);
       queryClient.invalidateQueries({ queryKey: ["generations"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       toast.success("Generated & saved to history!");
     },
-    onError: (err) => toast.error(err.message || "Generation failed. Try again."),
+    onError: (err) => {
+      if (!abort.isAbort(err)) toast.error(err.message || "Generation failed. Try again.");
+    },
   });
 
   const { mutate: sendChatMsg, isPending: chatLoading } = useMutation({
@@ -479,6 +485,8 @@ export default function AllPage() {
     onSuccess: (data) => {
       setChatTurns((t) => [...t, { role: "assistant", content: data.reply }]);
       queryClient.invalidateQueries({ queryKey: ["generations"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["chat_sessions"] });
       refreshChatSessions();
     },
     onError: (err) => toast.error(err.message || "Message failed."),

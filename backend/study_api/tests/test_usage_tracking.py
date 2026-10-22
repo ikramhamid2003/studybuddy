@@ -12,6 +12,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
@@ -245,6 +246,51 @@ def test_usage_endpoint_reports_budget_fields(auth_client):
 
 
 @pytest.mark.django_db
+def test_usage_endpoint_reports_zeros_before_any_spending(auth_client):
+    # Database SUM() over no rows is NULL. Without coercion the dashboard would
+    # render nulls for the very students who have not generated anything yet.
+    data = auth_client.get("/api/usage/").json()["data"]
+    assert data["total_input_tokens"] == 0
+    assert data["total_output_tokens"] == 0
+    assert data["total_estimated_cost"] == 0
+
+
+@pytest.mark.django_db
+def test_usage_endpoint_sums_generations_and_usage_logs(auth_client):
+    # The two tables are additive, and the aggregates now run in SQL, so this
+    # asserts the numbers the endpoint actually returns rather than a helper's.
+    user = auth_client.user
+    Generation.objects.create(
+        user=user,
+        type="explain",
+        topic="generated row",
+        input_tokens=1000,
+        output_tokens=500,
+        cost=Decimal("0.0010"),
+    )
+    UsageLog.objects.create(
+        user=user,
+        input_tokens=40,
+        output_tokens=20,
+        estimated_cost=Decimal("0.0002"),
+    )
+    other = User.objects.create_user(username="someoneelse", password="testpassword")
+    Generation.objects.create(
+        user=other,
+        type="explain",
+        topic="other account",
+        input_tokens=9999,
+        output_tokens=9999,
+        cost=Decimal("9.9999"),
+    )
+
+    data = auth_client.get("/api/usage/").json()["data"]
+    assert data["total_input_tokens"] == 1040
+    assert data["total_output_tokens"] == 520
+    assert data["total_estimated_cost"] == pytest.approx(0.0012, abs=1e-9)
+
+
+@pytest.mark.django_db
 def test_streamed_chat_records_a_usage_log(auth_client):
     # Chat streaming has no Generation row, so UsageLog is what makes it count
     # toward the budget. The stream is stubbed; only the recording is asserted.
@@ -259,3 +305,27 @@ def test_streamed_chat_records_a_usage_log(auth_client):
 
     log = UsageLog.objects.get(user=auth_client.user)
     assert (log.input_tokens, log.output_tokens) == (40, 12)
+
+
+@pytest.mark.django_db
+def test_abandoned_stream_still_records_usage(auth_client):
+    # A reader that hangs up makes WSGI throw GeneratorExit at the yield, which is
+    # a BaseException and therefore skips the except handler. Without recording in
+    # a finally the tokens are spent but never metered, so closing the tab mid
+    # reply would bypass the daily budget.
+    with (
+        patch("study_api.views.stream_chat_groq", return_value=iter(["first ", "second "])),
+        patch(
+            "study_api.views.take_last_usage",
+            return_value={"input_tokens": 33, "output_tokens": 9},
+        ),
+    ):
+        resp = auth_client.post(
+            "/api/chat/stream/", {"message": "hello there", "history": []}, format="json"
+        )
+        stream = resp.streaming_content
+        next(stream)  # exactly one frame reaches the client before it disconnects
+        resp.close()  # the WSGI teardown path that closes the generator
+
+    log = UsageLog.objects.get(user=auth_client.user)
+    assert (log.input_tokens, log.output_tokens) == (33, 9)

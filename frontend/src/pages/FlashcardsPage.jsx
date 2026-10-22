@@ -13,6 +13,7 @@ import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
+import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
 import { usePendingTopic } from "../utils/pendingTopic";
@@ -20,6 +21,7 @@ import { usePendingTopic } from "../utils/pendingTopic";
 export default function FlashcardsPage() {
   const queryClient = useQueryClient();
   const library = useLibrary();
+  const abort = useGenerationAbort();
   // `key` forces React to remount cards when resetting every flipped card.
   // Picks up a topic typed into the home focus box, if one was stashed.
   const [topic, setTopic] = useState("");
@@ -38,18 +40,25 @@ export default function FlashcardsPage() {
     setCards([]);
     setSources([]);
     try {
-      const data = await generateAll(topic.trim(), "flashcards", {
-        num_cards: parseInt(numCards),
-        ...docIdsOption(library.selectedIds),
-      });
+      const data = await generateAll(
+        topic.trim(),
+        "flashcards",
+        {
+          num_cards: parseInt(numCards),
+          ...docIdsOption(library.selectedIds),
+        },
+        abort.start()
+      );
       if (!data.flashcards?.length) throw new Error("No flashcards returned");
       setCards(data.flashcards);
       setSources(data.sources || []);
       setActiveHistoryId(data.generation_id ?? null);
       setKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["generations", "flashcards"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       toast.success(`${data.flashcards.length} flashcards created!`);
     } catch (err) {
+      if (abort.isAbort(err)) return;
       toast.error(err.message || "Flashcard generation failed.");
     } finally {
       setLoading(false);

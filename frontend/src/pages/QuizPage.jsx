@@ -13,6 +13,7 @@ import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
+import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
 import { usePendingTopic } from "../utils/pendingTopic";
@@ -20,6 +21,7 @@ import { usePendingTopic } from "../utils/pendingTopic";
 export default function QuizPage() {
   const queryClient = useQueryClient();
   const library = useLibrary();
+  const abort = useGenerationAbort();
   // Quiz state is split between generated questions, selected answers, and the
   // submission flag so users can answer freely before grading.
   // Picks up a topic typed into the home focus box, if one was stashed.
@@ -44,18 +46,26 @@ export default function QuizPage() {
     // Reset old quiz state before requesting a new set of questions.
     clearQuiz();
     try {
-      const data = await generateAll(topic.trim(), "quiz", {
-        num_questions: parseInt(numQ),
-        difficulty,
-        ...docIdsOption(library.selectedIds),
-      });
+      const data = await generateAll(
+        topic.trim(),
+        "quiz",
+        {
+          num_questions: parseInt(numQ),
+          difficulty,
+          ...docIdsOption(library.selectedIds),
+        },
+        abort.start()
+      );
       if (!data.questions?.length) throw new Error("No questions returned");
       setQuestions(data.questions);
       setSources(data.sources || []);
       setActiveHistoryId(data.generation_id ?? null);
       queryClient.invalidateQueries({ queryKey: ["generations", "quiz"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       toast.success(`${data.questions.length} questions ready!`);
     } catch (err) {
+      // Navigating away cancels the request; that is not a failure to report.
+      if (abort.isAbort(err)) return;
       toast.error(err.message || "Quiz generation failed.");
     } finally {
       setLoading(false);

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Send,
   Trash2,
@@ -366,6 +367,20 @@ export default function ChatPage() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const initialSessionOpenedRef = useRef(false);
+  const streamRef = useRef(null);
+  const openRequestIdRef = useRef(0);
+  const queryClient = useQueryClient();
+
+  // A stream keeps running after the reader walks away: the provider is still
+  // billing it, and its late chunks would append into whichever transcript is on
+  // screen by then. Aborting the fetch ends both problems.
+  useEffect(() => () => streamRef.current?.abort(), []);
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.abort();
+    streamRef.current = null;
+    setLoading(false);
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -388,22 +403,32 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const openSession = useCallback(async (sessionId) => {
-    if (sessionId === activeSessionId) return;
-    try {
-      // Opening a session hydrates the full transcript from persisted messages.
-      const data = await getChatSession(sessionId);
-      setActiveSessionId(sessionId);
-      localStorage.setItem(LAST_CHAT_SESSION_KEY, String(sessionId));
-      setMessages(
-        data.messages.length
-          ? data.messages.map((m) => ({ role: m.role, content: m.content }))
-          : [WELCOME]
-      );
-    } catch (err) {
-      toast.error("Couldn't open that chat");
-    }
-  }, [activeSessionId]);
+  const openSession = useCallback(
+    async (sessionId) => {
+      if (sessionId === activeSessionId) return;
+      // Switching chats stops the reply where it is — those tokens are already
+      // spent, but its text must not land in the transcript being opened.
+      stopStream();
+      const requestId = ++openRequestIdRef.current;
+      try {
+        // Opening a session hydrates the full transcript from persisted messages.
+        const data = await getChatSession(sessionId);
+        // Two quick clicks must render the last one, not whichever answers first.
+        if (requestId !== openRequestIdRef.current) return;
+        setActiveSessionId(sessionId);
+        localStorage.setItem(LAST_CHAT_SESSION_KEY, String(sessionId));
+        setMessages(
+          data.messages.length
+            ? data.messages.map((m) => ({ role: m.role, content: m.content }))
+            : [WELCOME]
+        );
+      } catch (err) {
+        if (requestId !== openRequestIdRef.current) return;
+        toast.error("Couldn't open that chat");
+      }
+    },
+    [activeSessionId, stopStream]
+  );
 
   useEffect(() => {
     if (sessionsLoading || initialSessionOpenedRef.current || sessions.length === 0) {
@@ -419,6 +444,7 @@ export default function ChatPage() {
   }, [openSession, sessions, sessionsLoading]);
 
   function startNewChat() {
+    stopStream();
     // A new chat remains unsaved until the first user message creates a session.
     setActiveSessionId(null);
     localStorage.removeItem(LAST_CHAT_SESSION_KEY);
@@ -433,6 +459,7 @@ export default function ChatPage() {
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, title } : s))
       );
+      queryClient.invalidateQueries({ queryKey: ["chat_sessions"] });
     } catch (err) {
       toast.error("Couldn't rename chat");
     }
@@ -445,6 +472,7 @@ export default function ChatPage() {
       // Update local sidebar state immediately, then let the next refresh keep
       // ordering consistent with the backend.
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      queryClient.invalidateQueries({ queryKey: ["chat_sessions"] });
       if (sessionId === activeSessionId) {
         startNewChat();
       } else if (String(sessionId) === localStorage.getItem(LAST_CHAT_SESSION_KEY)) {
@@ -489,6 +517,9 @@ export default function ChatPage() {
         ? [...library.selectedIds]
         : undefined;
 
+      const controller = new AbortController();
+      streamRef.current = controller;
+
       await sendChatStream(
         userMsg,
         [{ role: "system", content: systemPrompt }],
@@ -514,6 +545,7 @@ export default function ChatPage() {
           }
         },
         (_doneSessionId, sources) => {
+          streamRef.current = null;
           if (sources?.length) {
             setMessages((m) => {
               const next = [...m];
@@ -528,8 +560,14 @@ export default function ChatPage() {
           inputRef.current?.focus();
           // Pick up the auto-generated title and updated sidebar ordering.
           refreshSessions();
+          // The dashboard reads its session list and its budget meter from the
+          // shared cache, and no other site invalidates either key — without
+          // this the meter keeps showing the spend from before the turn.
+          queryClient.invalidateQueries({ queryKey: ["chat_sessions"] });
+          queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
         },
         (err) => {
+          streamRef.current = null;
           toast.error(err.message || "Failed to send message");
           setLoading(false);
           setMessages((m) => [
@@ -541,7 +579,8 @@ export default function ChatPage() {
           ]);
           inputRef.current?.focus();
         },
-        documentIds
+        documentIds,
+        controller.signal
       );
     } catch (err) {
       toast.error(err.message || "Failed to initiate stream");

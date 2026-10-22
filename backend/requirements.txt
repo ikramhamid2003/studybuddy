@@ -1,13 +1,8 @@
 Django==6.0.3
 djangorestframework==3.16.1
-djangorestframework-simplejwt
+djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.28.0
 django-cors-headers==4.9.0
-# Type information for Django and Django REST Framework (editor/type-checker only)
-django-stubs~=6.0
-djangorestframework-stubs~=3.16
-# Type stubs for requests (editor/type-checker only)
-types-requests~=2.33
 whitenoise==6.12.0
 psycopg2-binary==2.9.11
 dj-database-url==3.1.2
@@ -16,20 +11,14 @@ requests==2.32.5
 beautifulsoup4==4.13.4
 lxml==5.4.0
 gunicorn==25.1.0
-sentry-sdk[django]
-langchain-core
-langchain-groq
+sentry-sdk[django]==2.71.0
+langchain-core==1.6.9
+langchain-groq==1.1.3
 pydantic==2.12.5
 
 # RAG dependencies
 pgvector==0.3.6
 pypdf==5.1.0
 tiktoken==0.8.0
-numpy
-langchain-text-splitters
-
-# dev / test only
-pytest
-pytest-django
-pytest-mock
-ruff
+numpy==2.5.4
+langchain-text-splitters==1.1.3

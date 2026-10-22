@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { fetchCurrentUser, SESSION_EXPIRED_EVENT } from "../utils/api";
 
 const AuthContext = createContext(null);
@@ -13,9 +14,18 @@ const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
 export function AuthProvider({ children }) {
   // The access token is the single source of truth; user state is derived from
   // the JWT payload whenever the token changes.
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
+
+  // React Query caches by query key, not by account. Without this, the next
+  // student to sign in on the same browser reads the previous one's generations,
+  // documents and usage out of memory until each query refetches. Losing the
+  // token covers logout, a rejected refresh, and an undecodable token alike.
+  useEffect(() => {
+    if (!token) queryClient.clear();
+  }, [token, queryClient]);
 
   useEffect(() => {
     if (token) {

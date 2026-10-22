@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -63,15 +63,33 @@ export function useDocumentLibrary() {
     localStorage.setItem(SELECTED_IDS_KEY, JSON.stringify([...selectedIds]));
   }, [selectedIds]);
 
-  // Drop stored ids whose documents were deleted since the last visit.
+  // The provider lives above the routes, so it survives a sign-out and a
+  // different account signing in. Stored ids belong to whoever was here before:
+  // none of them are ready for the new user, so a request made before the list
+  // loads would be refused. Ref-initialized so a reload keeps the selection.
+  const ownerRef = useRef(user?.id);
+  useEffect(() => {
+    if (ownerRef.current === user?.id) return;
+    ownerRef.current = user?.id;
+    setSelectedIds(new Set());
+  }, [user?.id]);
+
+  // Drop stored ids whose documents were deleted since the last visit, and
+  // enforce the cap on a selection saved by an older build: the serializer
+  // refuses more than MAX_SELECTED_DOCS ids, so a stale over-cap workspace has
+  // to shrink here rather than 400 the next generation. Walking `documents`
+  // keeps the newest ids, matching selectAllReady.
   // isFetched (not isLoading) because the query stays disabled until auth
   // restores, and an unfetched list must not wipe the stored selection.
   useEffect(() => {
     if (!isFetched) return;
-    const valid = new Set(documents.map((doc) => doc.id));
     setSelectedIds((prev) => {
-      const next = new Set([...prev].filter((id) => valid.has(id)));
-      return next.size === prev.size ? prev : next;
+      const kept = documents
+        .filter((doc) => prev.has(doc.id))
+        .slice(0, MAX_SELECTED_DOCS)
+        .map((doc) => doc.id);
+      if (kept.length === prev.size) return prev;
+      return new Set(kept);
     });
   }, [documents, isFetched]);
 
@@ -123,13 +141,22 @@ export function useDocumentLibrary() {
     [uploadMut]
   );
 
-  const toggleDoc = useCallback((id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }, []);
+  // Unticking is always allowed; ticking past the cap is refused here rather than
+  // sent and rejected by the serializer's unlabeled max-length 400.
+  const toggleDoc = useCallback(
+    (id) => {
+      if (!selectedIds.has(id) && selectedIds.size >= MAX_SELECTED_DOCS) {
+        toast(`A generation can use at most ${MAX_SELECTED_DOCS} documents`);
+        return;
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+      });
+    },
+    [selectedIds]
+  );
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

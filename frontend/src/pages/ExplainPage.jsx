@@ -12,6 +12,7 @@ import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
+import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
 import { usePendingTopic } from "../utils/pendingTopic";
@@ -20,6 +21,7 @@ import { copyToClipboard } from "../utils/clipboard";
 export default function ExplainPage() {
   const queryClient = useQueryClient();
   const library = useLibrary();
+  const abort = useGenerationAbort();
   // Local state mirrors the form controls and the currently displayed result.
   // Picks up a topic typed into the home focus box, if one was stashed.
   const [topic, setTopic] = useState("");
@@ -30,16 +32,25 @@ export default function ExplainPage() {
   const [copied, setCopied] = useState(false);
   const { mutate, isPending: loading } = useMutation({
     mutationFn: () =>
-      generateAll(topic.trim(), "explain", { level, ...docIdsOption(library.selectedIds) }),
+      generateAll(
+        topic.trim(),
+        "explain",
+        { level, ...docIdsOption(library.selectedIds) },
+        abort.start()
+      ),
     onSuccess: (data) => {
       // Store the generated payload locally and refresh the filtered history
       // list so this result appears immediately below the tool.
       setResult(data);
       setActiveHistoryId(data.generation_id ?? null);
       queryClient.invalidateQueries({ queryKey: ["generations", "explain"] });
+      // The dashboard's budget meter reads this key and nothing else refreshes it.
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       toast.success("Explanation ready!");
     },
-    onError: (err) => toast.error(err.message || "Failed to explain. Try again.")
+    onError: (err) => {
+      if (!abort.isAbort(err)) toast.error(err.message || "Failed to explain. Try again.");
+    }
   });
 
   function handleExplain() {

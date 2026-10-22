@@ -13,6 +13,7 @@ import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
+import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
 import { generateAll } from "../utils/api";
 import { usePendingTopic } from "../utils/pendingTopic";
@@ -20,6 +21,7 @@ import { usePendingTopic } from "../utils/pendingTopic";
 export default function SummarizePage() {
   const queryClient = useQueryClient();
   const library = useLibrary();
+  const abort = useGenerationAbort();
   // The textarea content is sent as the "topic" field to the shared generation
   // endpoint, then persisted as the saved-history label.
   // Picks up notes typed into the home focus box, if any were stashed.
@@ -30,15 +32,23 @@ export default function SummarizePage() {
   const [activeHistoryId, setActiveHistoryId] = useState(null);
   const { mutate, isPending: loading } = useMutation({
     mutationFn: () =>
-      generateAll(notes.trim(), "summarize", { format, ...docIdsOption(library.selectedIds) }),
+      generateAll(
+        notes.trim(),
+        "summarize",
+        { format, ...docIdsOption(library.selectedIds) },
+        abort.start()
+      ),
     onSuccess: (data) => {
       // Refresh this tool's history cache after a successful saved generation.
       setResult(data);
       setActiveHistoryId(data.generation_id ?? null);
       queryClient.invalidateQueries({ queryKey: ["generations", "summarize"] });
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       toast.success("Summary ready!");
     },
-    onError: (err) => toast.error(err.message || "Failed to summarize.")
+    onError: (err) => {
+      if (!abort.isAbort(err)) toast.error(err.message || "Failed to summarize.");
+    }
   });
 
   function handleSummarize() {

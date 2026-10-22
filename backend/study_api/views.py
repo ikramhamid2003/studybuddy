@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 
 from django.core.cache import cache
 from django.http import StreamingHttpResponse
@@ -57,6 +58,8 @@ from .serializers import (
     GenerationModelSerializer,
     RegisterSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
 
@@ -197,7 +200,8 @@ def _ground_documents(user, document_ids, query):
 
     try:
         chunks = retrieve_chunks(doc_ids, str(query)[:_MAX_GROUNDING_QUERY_CHARS])
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
+        logger.exception("Document search failed for user=%s", user.pk)
         return Response(
             {"error": f"Document search failed: {e!s}"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -261,10 +265,16 @@ def _cached_json_response(prefix, user_msg, system, llm_call, docs=None):
     """Cache-wrapped LLM call shared by all JSON-returning tools."""
     try:
         # The full prompt text is the cache key input so different options do
-        # not accidentally share the same model response. Grounded calls carry
-        # their retrieved excerpts inside user_msg, so a different document set
-        # or a re-indexed document hashes to a different key automatically.
-        cache_key = prefix + hashlib.md5(user_msg.encode()).hexdigest()
+        # not accidentally share the same model response. A grounded call also
+        # folds in the document ids behind that excerpt: user_msg carries only the
+        # retrieved text, so two students who uploaded the same file would
+        # otherwise share one entry — and the cached payload embeds the owner's
+        # document ids and titles in `sources`. Ungrounded prompts stay shared
+        # across accounts, which is the dedup that actually saves provider money.
+        doc_scope = ",".join(
+            str(s["document_id"]) for s in (docs or {}).get("sources", [])
+        )
+        cache_key = prefix + hashlib.md5(f"{user_msg}|{doc_scope}".encode()).hexdigest()
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data, status=status.HTTP_200_OK)
@@ -277,11 +287,16 @@ def _cached_json_response(prefix, user_msg, system, llm_call, docs=None):
         cache.set(cache_key, data, timeout=60 * 60 * 24 * 7)
         return Response(data, status=status.HTTP_200_OK)
     except ValueError as e:
+        # The message reaches the client, but nothing else: Sentry never sees a
+        # handled exception, so a Groq outage or rate-limit storm would otherwise
+        # leave no server-side trace. Prompt text stays out of the log.
+        logger.exception("AI response failed schema parsing for tool=%s", prefix)
         return Response(
             {"error": f"Failed to parse AI response: {e!s}"},
             status=status.HTTP_502_BAD_GATEWAY,
         )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
+        logger.exception("AI request failed for tool=%s", prefix)
         return Response(
             {"error": f"AI request failed: {e!s}"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -398,7 +413,8 @@ def _chat_reply_response(message, history=None, docs=None):
     try:
         reply = chat_groq(system, history or [], message, max_tokens=600)
         return Response({"reply": reply, **extra}, status=status.HTTP_200_OK)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
+        logger.exception("Chat reply request failed")
         return Response(
             {"error": f"AI request failed: {e!s}"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -566,17 +582,15 @@ class ChatStreamView(APIView):
 
         def event_generator():
             full_reply_parts: list[str] = []
-            try:
-                for chunk in stream_chat_groq(system, history, message, max_tokens=600):
-                    # Send valid SSE frames that the React reader can parse one
-                    # at a time as the model streams.
-                    full_reply_parts.append(str(chunk))
-                    yield f"data: {json.dumps({'chunk': chunk})}\n\n".encode()
+            turn_recorded = False
 
+            def record_turn() -> None:
+                """Meter the turn and persist it, however the stream ended."""
+                nonlocal turn_recorded
+                turn_recorded = True
                 # Streamed chat reached the model, so it must count toward the
                 # daily budget. UsageLog is the meter for everything that is not
-                # a persisted Generation; read it while the context still holds
-                # the final chunk's token counts.
+                # a persisted Generation.
                 usage = take_last_usage()
                 if usage["input_tokens"] or usage["output_tokens"]:
                     UsageLog.objects.create(
@@ -590,18 +604,40 @@ class ChatStreamView(APIView):
 
                 if session is not None:
                     is_first_turn = not session.messages.exists()
-                    full_reply = "".join(full_reply_parts)
                     ChatMessage.objects.create(session=session, role="user", content=message)
-                    ChatMessage.objects.create(
-                        session=session, role="assistant", content=full_reply
-                    )
+                    full_reply = "".join(full_reply_parts)
+                    if full_reply:
+                        ChatMessage.objects.create(
+                            session=session, role="assistant", content=full_reply
+                        )
                     if is_first_turn:
                         session.title = _auto_title(message)
                     session.save()
 
+            try:
+                for chunk in stream_chat_groq(system, history, message, max_tokens=600):
+                    # Send valid SSE frames that the React reader can parse one
+                    # at a time as the model streams.
+                    full_reply_parts.append(str(chunk))
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n".encode()
+
+                record_turn()
                 yield f"data: {json.dumps({'done': True, 'session_id': session.id if session else None, 'sources': sources})}\n\n".encode()
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
+                logger.exception("Chat stream failed for user=%s", request.user.id)
                 yield f"data: {json.dumps({'error': str(e)})}\n\n".encode()
+            finally:
+                # A reader that hangs up makes WSGI throw GeneratorExit at the
+                # yield above, which skips both handlers; without this the tokens
+                # already spent and the partial reply would go unrecorded, and the
+                # daily budget would be bypassable by closing the tab.
+                if not turn_recorded:
+                    try:
+                        record_turn()
+                    except Exception:
+                        logger.exception(
+                            "Chat turn could not be recorded for user=%s", request.user.id
+                        )
 
         response = StreamingHttpResponse(
             event_generator(), content_type="text/event-stream"

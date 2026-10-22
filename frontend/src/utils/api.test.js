@@ -2,6 +2,7 @@ import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from "
 import {
   SESSION_EXPIRED_EVENT,
   deleteGeneration,
+  generateAll,
   listGenerations,
   sendChatStream,
   uploadDocument,
@@ -179,6 +180,121 @@ describe("streaming chat frame handling", () => {
 
     expect(onChunk).toHaveBeenCalledWith("ok");
     expect(onError).not.toHaveBeenCalled();
+  });
+});
+
+// Navigating away must cancel the in-flight request, otherwise the provider
+// still bills for a generation the user stopped waiting for.
+describe("request cancellation", () => {
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  // What fetch rejects with when the caller aborts, as browsers actually do it.
+  function abortError() {
+    const err = new Error("The user aborted a request.");
+    err.name = "AbortError";
+    return err;
+  }
+
+  test("forwards the caller's signal to fetch without polluting the body", async () => {
+    const controller = new AbortController();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, data: {} }),
+    });
+
+    await generateAll("gravity", "explain", { level: "beginner" }, controller.signal);
+
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toContain("/generate/");
+    expect(options.signal).toBe(controller.signal);
+    // The signal travels as its own argument, so it never reaches the provider.
+    expect(JSON.parse(options.body)).toEqual({
+      topic: "gravity",
+      type: "explain",
+      level: "beginner",
+    });
+  });
+
+  test("omits signal when the caller has none", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, data: {} }),
+    });
+
+    await generateAll("gravity", "explain");
+
+    expect(global.fetch.mock.calls[0][1].signal).toBeUndefined();
+  });
+
+  test("propagates the abort from a JSON request so pages can suppress their toast", async () => {
+    // Pages key their error toast on name === "AbortError"; swallowing it here
+    // would leave a killed request indistinguishable from a server failure.
+    const controller = new AbortController();
+    global.fetch = jest.fn().mockRejectedValue(abortError());
+
+    await expect(
+      generateAll("gravity", "explain", {}, controller.signal)
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  test("treats an aborted stream as a stop, not an error", async () => {
+    const controller = new AbortController();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: { getReader: () => ({ read: () => Promise.reject(abortError()) }) },
+    });
+
+    const onError = jest.fn();
+    const onDone = jest.fn();
+
+    await sendChatStream(
+      "hi",
+      [],
+      1,
+      jest.fn(),
+      onDone,
+      onError,
+      undefined,
+      controller.signal
+    );
+
+    expect(global.fetch.mock.calls[0][1].signal).toBe(controller.signal);
+    expect(onError).not.toHaveBeenCalled();
+    // A half-finished reply must not be reported as complete.
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  test("keeps reporting a real stream failure after a partial abort-free read", async () => {
+    const encoder = new TextEncoder();
+    let i = 0;
+    const frames = ['data: {"chunk":"Hel"}\n\n'];
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (i < frames.length) return { value: encoder.encode(frames[i++]), done: false };
+            throw new Error("connection reset");
+          },
+        }),
+      },
+    });
+
+    const onChunk = jest.fn();
+    const onDone = jest.fn();
+    const onError = jest.fn();
+
+    await sendChatStream("hi", [], 1, onChunk, onDone, onError);
+
+    expect(onChunk).toHaveBeenCalledWith("Hel");
+    expect(onError.mock.calls[0][0].message).toBe("connection reset");
+    expect(onDone).not.toHaveBeenCalled();
   });
 });
 

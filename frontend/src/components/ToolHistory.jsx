@@ -38,6 +38,8 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
       await deleteGeneration(item.id);
       // Invalidate the unfiltered key too, so the All page's list stays in sync.
       queryClient.invalidateQueries({ queryKey: ["generations"] });
+      // Deleting a generation removes its tokens from the dashboard's totals.
+      queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
       if (onDeleted) onDeleted(item.id);
       toast.success("Deleted from history");
     } catch (err) {

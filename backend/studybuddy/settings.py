@@ -33,7 +33,11 @@ def _env_list(name, default):
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-change-this-before-production-please"
 )
-DEBUG = _env_bool("DEBUG", True)
+# Off unless the env says otherwise: with this defaulting to True, one forgotten
+# variable on a deployment turned failed requests into tracebacks that dump the
+# settings module, and the API can return prompt text. Local dev sets DEBUG=True
+# in backend/.env (the README template includes it).
+DEBUG = _env_bool("DEBUG", False)
 ALLOWED_HOSTS = _env_list(
     "ALLOWED_HOSTS",
     "localhost,127.0.0.1,.onrender.com",
@@ -89,17 +93,43 @@ WSGI_APPLICATION = "studybuddy.wsgi.application"
 
 # Determine if we are testing (defined earlier in settings)
 if IS_TESTING:
-    # Use an isolated local database so tests do not mutate dev/prod data.
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db_test.sqlite3",
+    # Isolated local database so tests never mutate dev/prod data. SQLite can
+    # only reach the numpy similarity path, so CI may point TEST_DATABASE_URL at
+    # Postgres with pgvector — that is what lets the raw vector SQL run at all.
+    test_database_url = os.environ.get("TEST_DATABASE_URL")
+    if test_database_url:
+        DATABASES = {
+            "default": dj_database_url.parse(test_database_url, conn_max_age=0)
         }
-    }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db_test.sqlite3",
+            }
+        }
 else:
     # Render/Postgres can provide DATABASE_URL; local dev falls back to sqlite.
     db_url = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
-    DATABASES = {"default": dj_database_url.parse(db_url, conn_max_age=600, ssl_require=not DEBUG)}
+    # Encryption used to be inferred from DEBUG, so a deployment that left DEBUG
+    # on — which was its default until now — talked to Postgres in the clear. It
+    # gets its own switch: on for any Postgres URL, overridable with
+    # DB_SSL_REQUIRE. sqlite is excluded because its driver rejects OPTIONS.
+    scheme = db_url.split("://", 1)[0]
+    is_postgres = scheme in {"postgres", "postgresql", "pgsql", "postgis"}
+    DATABASES = {
+        "default": dj_database_url.parse(
+            db_url,
+            conn_max_age=600,
+            ssl_require=_env_bool("DB_SSL_REQUIRE", is_postgres),
+        )
+    }
+
+# The daily token budget and its 429 message both promise a midnight reset, and
+# the reset boundary is timezone.localdate(). Django's unset default here is
+# America/Chicago, which silently moved that reset to ~19:00 UTC.
+TIME_ZONE = "UTC"
+USE_TZ = True
 
 
 CACHES = {
@@ -190,8 +220,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Groq API — free at https://console.groq.com
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 # Per-million-token rates used to turn recorded usage into an estimated cost.
@@ -203,7 +231,7 @@ GROQ_PRICE_PER_M_OUTPUT = float(os.getenv("GROQ_PRICE_PER_M_OUTPUT", "0"))
 
 # Per-user token budget for the current day (input + output across every tool
 # and streamed chat). Requests are refused once it is spent; the count resets at
-# midnight in the server timezone. Set to 0 to disable the cap entirely.
+# midnight UTC (the TIME_ZONE set above). Set to 0 to disable the cap entirely.
 USER_TOKEN_LIMIT = int(os.getenv("USER_TOKEN_LIMIT", "10000"))
 
 # Firecrawl API — free tier at https://www.firecrawl.dev
@@ -241,6 +269,10 @@ EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+# The notification is sent inside the signup request, so an SMTP host that is
+# reachable-but-silent would stall that request on the OS TCP timeout (21s on
+# Windows, minutes on Linux — long enough for gunicorn to kill the worker).
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "5"))
 
 # GlitchTip Error Tracking (Sentry-compatible) — DISABLED for local dev
 # Set GLITCHTIP_DSN env var to enable in production. Local dev never needs error tracking.

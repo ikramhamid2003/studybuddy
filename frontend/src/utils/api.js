@@ -81,7 +81,7 @@ const SESSION_EXPIRED_MESSAGE = "Session expired. Please sign in again.";
 
 // ── Core request helper for explicit API routes ─────────────────────────────
 
-async function _request(path, body = {}, method = "POST") {
+async function _request(path, body = {}, method = "POST", signal) {
   // Centralizes auth headers and JSON-response handling for explicit endpoints.
   const response = await fetchWithRefresh(
     () =>
@@ -89,6 +89,7 @@ async function _request(path, body = {}, method = "POST") {
         method,
         headers: authHeaders(),
         ...(method === "GET" ? {} : { body: JSON.stringify(body) }),
+        ...(signal ? { signal } : {}),
       }),
   );
 
@@ -115,9 +116,12 @@ async function _request(path, body = {}, method = "POST") {
 
 // ── Generation tools ────────────────────────────────────────────────────────
 
-export const generateAll = async (topic, type, options = {}) =>
+export const generateAll = async (topic, type, options = {}, signal) =>
   // Every AI tool persists through POST /api/generate/ with its `type`.
-  _request("/generate/", { topic, type, ...options });
+  // `signal` is separate from `options` because options are serialized into the
+  // request body: a page the user left throws the result away, but the provider
+  // still bills a generation that runs to completion.
+  _request("/generate/", { topic, type, ...options }, "POST", signal);
 
 export const listGenerations = async (type) =>
   // Undefined filters are ignored by the backend, giving the All page all tools.
@@ -166,6 +170,7 @@ export const sendChatStream = async (
   onDone,
   onError,
   documentIds,
+  signal,
 ) => {
   // Streaming chat uses raw fetch instead of _request because the response is
   // an SSE byte stream, not a single JSON payload.
@@ -179,6 +184,7 @@ export const sendChatStream = async (
         session_id: sessionId ?? null,
         ...(documentIds?.length ? { document_ids: documentIds } : {}),
       }),
+      ...(signal ? { signal } : {}),
     }),
   );
 
@@ -242,6 +248,10 @@ export const sendChatStream = async (
 
     onDone(resultSessionId, resultSources);
   } catch (err) {
+    // An abort is always caller-initiated (the reader navigated away or switched
+    // chat), so it is not a failure to report — and onDone must not fire either,
+    // because the reply never completed. The caller resets its own UI.
+    if (err?.name === "AbortError") return;
     onError(err);
   }
 };

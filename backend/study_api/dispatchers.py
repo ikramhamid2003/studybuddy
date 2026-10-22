@@ -1,4 +1,5 @@
 # Lazy/safe import of LangChain — network calls during module init can block
+import logging
 import threading
 from datetime import timedelta
 from typing import Any
@@ -36,6 +37,7 @@ except Exception:  # noqa: BLE001
     ingest_document = rag_answer = retrieve_chunks = _rag_unavailable
     _HAS_RAG = False
 
+logger = logging.getLogger(__name__)
 
 CHAT_SUGGESTIONS_SYSTEM = (
     "You suggest short, concrete follow-up questions a student might ask next. "
@@ -115,17 +117,21 @@ def enforce_daily_token_limit(user) -> Response | None:
 
 def _action_usage_stats(data: dict[str, Any], request: Any) -> Response:
     """Return cumulative token usage and estimated cost for the authenticated user."""
-    generations = Generation.objects.filter(user=request.user)
-    total_input = sum(g.input_tokens or 0 for g in generations)
-    total_output = sum(g.output_tokens or 0 for g in generations)
-    total_cost = sum(g.cost or 0 for g in generations)
+    # Added in the database. Iterating the querysets here pulled every row of the
+    # user's history into Python — including each Generation's full `result` JSON —
+    # just to total three columns, so the dashboard slowed down for life.
+    generations = Generation.objects.filter(user=request.user).aggregate(
+        i=Sum("input_tokens"), o=Sum("output_tokens"), c=Sum("cost")
+    )
 
     # Generation already records per-tool usage; UsageLog adds anything that was
     # tracked separately, so the two are summed rather than treated as exclusive.
-    usage_logs = UsageLog.objects.filter(user=request.user)
-    total_input += sum(ul.input_tokens or 0 for ul in usage_logs)
-    total_output += sum(ul.output_tokens or 0 for ul in usage_logs)
-    total_cost += sum(ul.estimated_cost or 0 for ul in usage_logs)
+    usage_logs = UsageLog.objects.filter(user=request.user).aggregate(
+        i=Sum("input_tokens"), o=Sum("output_tokens"), c=Sum("estimated_cost")
+    )
+    total_input = (generations["i"] or 0) + (usage_logs["i"] or 0)
+    total_output = (generations["o"] or 0) + (usage_logs["o"] or 0)
+    total_cost = (generations["c"] or 0) + (usage_logs["c"] or 0)
 
     limit = daily_token_limit()
     used_today = tokens_used_today(request.user)
@@ -416,7 +422,8 @@ def _action_rag_query(data: dict[str, Any], request: Any) -> Response:
     try:
         chunks = retrieve_chunks(doc_ids, question, top_k=top_k)
         result = rag_answer(question, chunks)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
+        logger.exception("RAG query failed for user=%s", request.user.pk)
         return _error(f"RAG query failed: {e}", code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
     sources = [

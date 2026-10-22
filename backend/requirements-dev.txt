@@ -1,0 +1,11 @@
+# Test, lint and type-check tooling. CI and local contributors install this file;
+# a deploy never does — backend/build.sh installs requirements.txt alone.
+-r requirements.txt
+pytest==9.1.1
+pytest-django==4.14.0
+pytest-mock==3.16.0
+ruff==0.17.0
+# Type information for Django and Django REST Framework (editor/type-checker only)
+django-stubs~=6.0
+djangorestframework-stubs~=3.16
+types-requests~=2.33

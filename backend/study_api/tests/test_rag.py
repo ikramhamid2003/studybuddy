@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -113,6 +115,30 @@ def test_retrieve_chunks_numpy_fallback(mock_embed, ready_doc):
     assert len(chunks) == 2
     assert chunks[0]["chunk_index"] == 0
     assert "Newton's first law" in chunks[0]["text"]
+    assert chunks[0]["score"] > chunks[1]["score"]
+
+
+@pytest.mark.skipif(
+    connection.vendor != "postgresql",
+    reason="the vector SQL only runs on Postgres; SQLite exercises the numpy path",
+)
+@patch("study_api.rag_pipeline.embed_query")
+@patch("study_api.rag_pipeline._retrieve_numpy")
+def test_retrieve_chunks_uses_pgvector_when_available(
+    mock_numpy, mock_embed, ready_doc
+):
+    # The fallback is silent by design, so a broken ::vector cast or <=> operator
+    # would still leave every suite run green. Asserting that the numpy path was
+    # never entered is what makes that failure visible; CI runs this against a
+    # pgvector image through TEST_DATABASE_URL.
+    mock_embed.return_value = [0.99, 0.05, 0.0]
+
+    chunks = retrieve_chunks([ready_doc.id], "inertia and rest", top_k=2)
+
+    mock_numpy.assert_not_called()
+    assert len(chunks) == 2
+    assert chunks[0]["chunk_index"] == 0
+    assert chunks[0]["document_id"] == ready_doc.id
     assert chunks[0]["score"] > chunks[1]["score"]
 
 
@@ -713,6 +739,43 @@ def test_generate_rejects_documents_that_are_not_ready_or_not_mine(
 
 @patch("study_api.views.query_groq_json")
 @patch("study_api.views.retrieve_chunks")
+def test_generate_caps_the_document_list_at_the_prompt_budget(
+    mock_retrieve, mock_query, user
+):
+    # The frontend refuses a 26th selection, so this serializer limit is the
+    # contract both halves of the app must agree on — pin the boundary in both
+    # directions, or raising it here would silently break the UI cap.
+    doc_ids = [
+        Document.objects.create(
+            user=user, title=f"Doc {i}", filename=f"doc{i}.txt", status="ready"
+        ).id
+        for i in range(26)
+    ]
+    client = _client_for(user)
+
+    over = client.post(
+        "/api/generate/",
+        {"topic": "over cap", "type": "explain", "document_ids": doc_ids},
+        format="json",
+    )
+    assert over.status_code == 400
+    assert not Generation.objects.exists()
+    mock_retrieve.assert_not_called()
+    mock_query.assert_not_called()
+
+    mock_query.return_value = EXPLAIN_PAYLOAD
+    mock_retrieve.return_value = [_chunk(Document.objects.get(id=doc_ids[0]))]
+    at_limit = client.post(
+        "/api/generate/",
+        {"topic": "at cap", "type": "explain", "document_ids": doc_ids[:25]},
+        format="json",
+    )
+    assert at_limit.status_code == 200
+    mock_query.assert_called_once()
+
+
+@patch("study_api.views.query_groq_json")
+@patch("study_api.views.retrieve_chunks")
 def test_generate_without_documents_behaves_exactly_as_before(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -784,6 +847,88 @@ def test_changed_documents_do_not_reuse_a_cached_answer(
     # Same excerpts again: now the cache legitimately answers.
     client.post("/api/generate/", body, format="json")
     assert mock_query.call_count == 2
+
+
+@patch("study_api.views.query_groq_json")
+@patch("study_api.views.retrieve_chunks")
+def test_grounded_cache_is_scoped_per_user(
+    mock_retrieve, mock_query, user, other_user, ready_doc
+):
+    # The prompt carries only titles and excerpts, so two students who upload the
+    # same handout hash to the same key. The cached payload embeds the first
+    # student's document ids, which must never reach the second account.
+    cache.clear()
+    mock_query.return_value = EXPLAIN_PAYLOAD
+    twin = Document.objects.create(
+        user=other_user,
+        title="Physics Notes",
+        filename="physics.txt",
+        status="ready",
+    )
+    DocumentChunk.objects.create(
+        document=twin,
+        chunk_index=0,
+        text="Newton's first law states that an object remains at rest unless acted on by a net force.",
+        page_number=1,
+        embedding=[1.0, 0.0, 0.0],
+    )
+
+    mock_retrieve.return_value = [_chunk(ready_doc)]
+    mine = _client_for(user).post(
+        "/api/generate/",
+        {
+            "topic": "inertia cross-user cache",
+            "type": "explain",
+            "document_ids": [ready_doc.id],
+        },
+        format="json",
+    )
+
+    mock_retrieve.return_value = [_chunk(twin)]
+    theirs = _client_for(other_user).post(
+        "/api/generate/",
+        {
+            "topic": "inertia cross-user cache",
+            "type": "explain",
+            "document_ids": [twin.id],
+        },
+        format="json",
+    )
+
+    assert mock_query.call_count == 2
+    assert mine.data["sources"][0]["document_id"] == ready_doc.id
+    assert theirs.data["sources"][0]["document_id"] == twin.id
+
+    # Each account still gets its own dedup: a repeat is one call, not two.
+    _client_for(other_user).post(
+        "/api/generate/",
+        {
+            "topic": "inertia cross-user cache",
+            "type": "explain",
+            "document_ids": [twin.id],
+        },
+        format="json",
+    )
+    assert mock_query.call_count == 2
+
+
+@patch("study_api.views.query_groq_json")
+@patch("study_api.views.retrieve_chunks")
+def test_ungrounded_cache_stays_shared_across_users(
+    mock_retrieve, mock_query, user, other_user
+):
+    # Plain prompts are the dedup that actually saves provider money, so adding
+    # per-user scope to grounded calls must not split them.
+    cache.clear()
+    mock_query.return_value = EXPLAIN_PAYLOAD
+    body = {"topic": "ungrounded shared cache", "type": "explain"}
+
+    _client_for(user).post("/api/generate/", body, format="json")
+    second = _client_for(other_user).post("/api/generate/", body, format="json")
+
+    assert mock_query.call_count == 1
+    assert second.status_code == 200
+    assert "sources" not in second.data
 
 
 @patch("study_api.views.stream_chat_groq")
