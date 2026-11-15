@@ -8,8 +8,34 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    # Bounds the whole job: 4 attempts x 120s of curl plus slack must never
+    # approach the 360-minute GitHub default, and a hung socket must not
+    # burn a runner.
+    timeout-minutes: 15
     steps:
       - name: Ping health endpoint
         run: |
-          curl -sSf --max-time 60 https://studybuddy-api-hkgx.onrender.com/api/health/
-          echo "API responded"
+          URL="https://studybuddy-api-hkgx.onrender.com/api/health/"
+
+          # This is a keep-alive ping, not an uptime monitor. Render's free
+          # tier sleeps after 15 minutes of inactivity and this job only
+          # actually fires every few hours, so the request usually lands on a
+          # cold start: the connection is accepted but the answer takes far
+          # longer than a warm request, and a "still starting" response is
+          # not a fault either.
+          #
+          # So the ping waits out the cold start, and a non-200 is reported
+          # as a warning instead of failing the job. Failing here only ever
+          # meant "the ping was slow" - it never meant the API was down, and
+          # it mailed that every time.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+                   --max-time 120 --retry 3 --retry-delay 5 \
+                   --retry-max-time 600 --retry-all-errors \
+                   "$URL") || code="000"
+
+          if [ "$code" = "200" ]; then
+            echo "API responded (HTTP $code)"
+          else
+            echo "::warning title=Keep API warm::Render returned HTTP $code - the free instance may still be spinning up. Not a deployment failure."
+          fi
+          exit 0
