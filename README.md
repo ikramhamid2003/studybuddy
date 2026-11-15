@@ -6,7 +6,7 @@
 
 > An AI-powered study companion featuring **Explain**, **Summarize**, **Quiz Generator**, **Flashcard Creator**, an **All-in-One Studio** that runs every tool from one page, a **Real-Time Streaming AI Chatbot** with saved conversations, and **Document RAG** — upload your own notes, then ground *any* tool's output in their contents with cited sources.
 >
-> **Tech Stack:** React + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq` / `ChatGroq`) on the Groq API (`openai/gpt-oss-120b`) · Firecrawl for clean URL scraping · Gemini Embedding 2 for RAG embeddings · Neon PostgreSQL (pgvector retrieval with automatic fallback) · JWT · Pytest & Ruff
+> **Tech Stack:** React + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq` / `ChatGroq`) on the Groq API (`openai/gpt-oss-120b`) · Firecrawl for clean URL scraping · Gemini Embedding 2 for RAG embeddings · Neon PostgreSQL (pgvector retrieval with automatic fallback) · JWT · Pytest & Ruff · Docker Compose for an optional one-command local stack (pgvector Postgres + gunicorn + nginx)
 
 ---
 
@@ -19,11 +19,11 @@
   - 🎴 **Flashcard Creator:** Creates interactive 3D flip flashcards with hints and **Anki CSV export**.
   - 💬 **AI Study Buddy Chat:** Multi-turn conversational AI tutor with **real-time word-by-word streaming (SSE)**, **persisted chat sessions** (create, rename, delete) stored in PostgreSQL, and optional document grounding with per-message citations.
 - **🎛️ All-in-One Studio (`/all`):** Runs any tool with its full options in one place — including the **My documents** grounding picker — filters the combined generation history by tool, and lets you reopen or **delete** any saved result.
-- **🏠 Adaptive Home (`/`), one route with two faces:** Signed out, a landing page whose "try the router" demo runs the *real* `routeIntent` keyword router — not a mock. Signed in, a personalized dashboard assembled only from rows the API already returns: day streak, a 14-day activity sparkline, tool mix, an onboarding checklist whose ticks are earned by real generations / sessions / documents, next-step suggestions derived from your last topic, recent conversations, your document library, and cumulative tokens + priced cost from `GET /api/usage/` (previously an endpoint nothing consumed). The hero focus box routes whatever you type to the matching tool and hands the text over pre-filled through a one-shot `sessionStorage` hand-off. Every derived metric is a pure function of `(rows, now)` in `frontend/src/utils/personalize.js`, unit-tested with an injected clock so no number on the page can be fabricated.
-- **📎 Ground Any Tool in Your Documents:** The **My documents** picker is not confined to one page — Explain, Summarize, Quiz, Flashcards, Chat **and** the All-in-One Studio each carry the same document panel, so any generation can be grounded instead of answered from model memory. A selection that fits inside a 24,000-character budget is fed to the prompt **whole** (raw extracted text, no retrieval); anything larger or not yet extracted falls back to **top-k retrieval** over the selected documents. Selected excerpts are folded into the prompt with a "do not invent beyond these notes" preamble and the response comes back with **SOURCES** citations. While a selection is active, each page also shows a one-line note under its input — "The output will be based on the selected documents" — which disappears entirely when nothing is picked (`shared/GroundingNote.jsx`). Guards: document IDs must be owned by the caller *and* `ready` (a foreign or still-ingesting ID is refused with 400 before any LLM call), a grounding failure aborts with 400/503 rather than streaming or returning an ungrounded answer, the document set is part of the cached prompt key, so two different libraries never share one response, and one generation can cite at most **25 documents** — the picker refuses a 26th tick (removals are always allowed) and trims a selection restored from storage, because `GenerateSerializer`/`ChatSerializer` reject a longer `document_ids` list outright rather than truncating it.
+- **🏠 Adaptive Home (`/`), one route with two faces:** Signed out, a landing page whose "try the router" demo runs the *real* `routeIntent` keyword router — not a mock. Signed in, a personalized dashboard assembled only from rows the API already returns: day streak, a 14-day activity sparkline, tool mix, an onboarding checklist whose ticks are earned by real generations / sessions / documents, next-step suggestions derived from your last topic, recent conversations, your document library, and cumulative tokens + priced cost from `GET /api/usage/` (previously an endpoint nothing consumed). The hero focus box routes whatever you type to the matching tool and hands the text over pre-filled through a one-shot `sessionStorage` hand-off. Every derived metric is a pure function of `(rows, now)` in `frontend/src/utils/personalize.js`, unit-tested with an injected clock so no number on the page can be fabricated. **A failed request is never dressed up as an empty account:** the dashboard distinguishes *pending* from *empty* from *failed*, so an offline endpoint raises a rose alert banner naming each broken panel and its server message with a **Retry** button that refetches only the failed queries, an unknown metric renders `—` instead of a fabricated `0`, and the empty-state copy ("Nothing saved yet", "No saved conversations yet", "Upload a PDF…") appears only after a successful load. Setup progress and next-step suggestions stay hidden until generations, sessions and documents have all arrived, because a checklist computed from half-loaded data is a lie.
+- **📎 Ground Any Tool in Your Documents:** The **My documents** picker is not confined to one page — Explain, Summarize, Quiz, Flashcards, Chat **and** the All-in-One Studio each carry the same document panel, so any generation can be grounded instead of answered from model memory. A selection that fits inside a 24,000-character budget is fed to the prompt **whole** (raw extracted text, no retrieval); anything larger or not yet extracted falls back to **top-k retrieval** over the selected documents. Selected excerpts are folded into the prompt with a "do not invent beyond these notes" preamble and the response comes back with **SOURCES** citations. While a selection is active, each page also shows a one-line note under its input — "The output will be based on the selected documents" — which disappears entirely when nothing is picked (`shared/GroundingNote.jsx`). Guards: document IDs must be owned by the caller *and* `ready` (a foreign or still-ingesting ID is refused with 400 before any LLM call), a grounding failure aborts with 400/503 rather than streaming or returning an ungrounded answer, the document set is part of the cached prompt key, so two different libraries never share one response, and one generation can cite at most **25 documents** — the picker refuses a 26th tick (removals are always allowed) and trims a selection restored from storage, because `GenerateSerializer`/`ChatSerializer` reject a longer `document_ids` list outright rather than truncating it. The same limit is enforced by the backend on `POST /api/rag/query/`: an explicit selection longer than 25 is refused with **400** `"document_ids must contain at most 25 document IDs."` *before* the ids are parsed or any ownership lookup runs, while **omitting** the field still searches every ready owned document — the cap limits one selection, never the library.
 - **📄 Document Ingestion & Retrieval:** Upload **PDF, TXT, or MD** files from any tool page. Documents are ingested in a background thread (extract → chunk → embed with **Gemini Embedding 2**), retrieval runs over **pgvector** on PostgreSQL with a seamless in-process numpy cosine-similarity fallback, and answers are generated by **Groq** as plain text (no raw markdown) with citations back to the source documents. The standalone **Ask My Docs** page (`/rag`) was retired once every tool grounded itself from the shared selection; the `/api/rag/*` endpoints remain (`upload`, `documents`, status polling, `delete`, and the `query` endpoint the retired page used).
 - **🌐 Firecrawl Web Scraping:** Paste a URL into Explain, Summarize, Quiz, Flashcards, or Chat and the page is scraped with the **Firecrawl API** into clean markdown — JavaScript-rendered pages included — then handed to **Groq** for the final answer. Plain-text topics skip scraping entirely and go straight to **Groq**. If `FIRECRAWL_API_KEY` is not configured or a scrape fails, a built-in requests/BeautifulSoup scraper takes over automatically. Every fetch is **SSRF-guarded** (CWE-918): the URL scheme, blocklisted domains/paths, and the DNS-resolved IP are validated (loopback, private, and link-local ranges — including cloud metadata addresses — are refused, closing DNS-rebinding and encoded-IP bypasses), and redirects are followed manually with every hop re-validated (max 3 hops). Setting the optional `ALLOWED_SCRAPE_DOMAINS` adds a third gate — a comma-separated hostname allowlist matched by suffix, so `edu` admits `mit.edu` and `cs.mit.edu`; with it unset, scraping stays open to every host that passes the SSRF and blocklist checks.
-- **🦜 LangChain Integration:** All LLM calls go through `langchain-groq` (`ChatGroq`) in `langchain_client.py` — plain text, JSON, SSE streaming, and **structured output validated against Pydantic schemas** (Quiz & Flashcards). Structured calls use JSON prompting with `JsonOutputParser` rather than native tool-calling, so they also work on models that do not implement tools.
+- **🦜 LangChain Integration:** All LLM calls go through `langchain-groq` (`ChatGroq`) in `langchain_client.py` — plain text, JSON, SSE streaming, and **structured output validated against Pydantic schemas** (Quiz & Flashcards). Structured calls use JSON prompting with `JsonOutputParser` rather than native tool-calling, so they also work on models that do not implement tools. The client is built with a **30-second request timeout and `max_retries=0`**: a stalled provider then surfaces as an error instead of pinning a gunicorn thread until the worker is killed, and the SDK's own retries cannot multiply the structured-output fallback — that path makes at most **two** attempts (tool-calling, then JSON prompting), which is exactly what the test suite asserts.
 - **⚡ High-Performance Groq LLM API:** Fast, low-latency Groq models — `openai/gpt-oss-120b` by default, overridable with `GROQ_MODEL`.
 - **💾 Database Request Caching:** Identical LLM requests are cached in Django for 7 days (`studybuddy_cache` table), eliminating duplicate API costs and serving instant responses. The four JSON tools participate — keyed on the fully-expanded prompt (including any fetched web content and any grounded document excerpts) so changed options or a different document set never share a response — while live chat (history-dependent) and RAG queries (grounded in a changing document set) are never cached. Failed LLM calls are never cached.
 - **🔄 React Query Integration:** Efficient frontend data fetching, caching, and mutation state management; history and session lists invalidate automatically after a generate, rename, or delete — including the dashboard keys (`generations`, `chat_sessions`, `usage_stats`) that a tool page's mutation used to leave stale inside their 60-second `staleTime`, so the budget meter could keep showing the spend from before the turn. Losing the token — logout, a refused refresh, or a token this build can no longer decode — clears the whole query cache and drops the previous account's document selection, so the next student on the same browser never reads the last one's data out of memory.
@@ -33,7 +33,9 @@
 - **🧮 Token & Cost Tracking:** `langchain_client.py` reads each response's provider-reported token counts into a per-request `ContextVar` (`_record_usage` / `take_last_usage`), and `GenerateView` writes them onto the `Generation` row — `input_tokens`, `output_tokens`, and `cost` from the per-million rates in `settings.GROQ_PRICE_PER_M_INPUT` / `_OUTPUT` — which `GET /api/usage/` then aggregates. Measured 2026-10-16 through the live HTTP path: a cold `explain` recorded **209 in / 477 out**, and the identical repeat (a response-cache hit) recorded **0 / 0** while returning the same payload, because it never reaches the provider. Cost reads `0.0000` until both price variables are set for the configured model — an honest zero rather than a guessed rate.
 - **🚦 Per-User Daily Token Budget:** Each account gets a daily allowance (`USER_TOKEN_LIMIT`, default **10,000** tokens, `0` disables it). `tokens_used_today` sums the day's `Generation` and `UsageLog` tokens — and streamed chat now writes a `UsageLog` row so it counts too, closing the gap where only `/api/generate/` was metered. `GenerateView` and `ChatStreamView` call `enforce_daily_token_limit` **before** any model call and return **429** with a plain-language message once the budget is spent (a request can overshoot by at most one call, since a call's cost is unknown until it runs). A stream the reader abandons mid-reply still counts: `ChatStreamView` records the turn in a `finally`, because a disconnect arrives as `GeneratorExit` — which the ordinary error handler cannot catch — and unrecorded tokens would make the cap bypassable by simply closing the tab. `GET /api/usage/` additionally returns `daily_token_limit`, `tokens_used_today` and `tokens_remaining_today`, which the dashboard renders as a "Daily token budget" meter that turns amber near the cap and rose when spent.
 - **📊 Telemetry & Error Tracking:** Vercel Analytics & Speed Insights for Core Web Vitals, and **GlitchTip** (Sentry-compatible) error tracking on both frontend (`@sentry/react` with session replay) and backend (`sentry-sdk` Django integration).
-- **🛡️ Quality Gates:** Ruff Python linter, a **138-test Pytest suite**, ESLint, and **71 Jest tests** in 7 suites (API-client coverage including document-grounded streaming and request cancellation, session teardown, the reason an auth endpoint rejects a signup, document-selection ownership and the 25-document cap, a 31-test personalization suite for streaks / activity windows / tool mix / intent routing / suggestions / checklist, plus `Button`, `Card` and `Input` render tests) — all enforced in **GitHub Actions CI/CD**, which also checks for unmigrated model changes and runs the pgvector retrieval SQL against a real Postgres.
+- **🔎 Server-Reported Error Reasons:** the API client (`src/utils/api.js`) extracts the server's own reason out of a DRF error body instead of showing a generic label — field arrays (`{"topic": ["This field may not be blank."]}`), `non_field_errors`, and nested dictionaries such as `{"document_ids": {"0": ["A valid integer is required."]}}` are all unwrapped, with the precedence `error` → `detail` → first nested reason → `"<path> failed (HTTP <status>)"`. The helper (`rejectionMessage`) is exported from `api.js` and shared by every explicit-endpoint call, so a rejected signup, an over-long document selection and an offline dashboard all say what actually went wrong.
+- **🐳 Local Docker Stack (optional):** `docker compose up --build` brings up the whole app without a local Python or Node install — **pgvector Postgres** (the `vector` extension is created by an init script, and the database publishes no host port), the **Django backend** on `python:3.12-slim` running gunicorn with the same flags as Render (1 worker, 4 threads, 120 s timeout) and performing its migration-drift check, `migrate`, `createcachetable` and `collectstatic` on boot, and an **nginx-served React build** that proxies `/api/` to the backend with proxy buffering disabled so streamed chat still streams. Both ports bind to `127.0.0.1` only. See the **🐳 Docker Quickstart** section below.
+- **🛡️ Quality Gates:** Ruff Python linter, a **151-test Pytest suite**, ESLint, and **112 Jest tests** in 8 suites (API-client coverage including document-grounded streaming, request cancellation and server-reported error reasons, session teardown, the reason an auth endpoint rejects a signup, document-selection ownership and the 25-document cap, a 31-test personalization suite for streaks / activity windows / tool mix / intent routing / suggestions / checklist, a 14-test dashboard suite that keeps a failed request from masquerading as an empty account, plus `Button`, `Card` and `Input` render tests) — all enforced in **GitHub Actions CI/CD**, which also checks for unmigrated model changes and runs the pgvector retrieval SQL against a real Postgres.
 
 ---
 
@@ -45,26 +47,29 @@ Every figure below is reproducible from this repository — measured on the curr
 
 | Area | Count | How to verify |
 |------|-------|---------------|
-| Backend Python files / lines | 42 files · 6,105 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
-| Frontend source files / lines | 51 files · 9,116 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
+| Backend Python files / lines | 42 files · 6,275 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
+| Frontend source files / lines | 52 files · 9,435 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
 | API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
 | Frontend routes | 11 | `frontend/src/App.jsx` |
 | Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
-| Test modules · tests | 11 pytest files · 138 tests · 7 Jest files · 71 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
+| Test modules · tests | 11 pytest files · 151 tests · 8 Jest files · 112 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
 | Python dependencies · npm deps | 29 pinned · 22 runtime + 7 dev | `backend/requirements.txt` (install), `backend/requirements-dev.txt` (include `-r` line), `package.json` |
 | AI tools persisted per request type | 5 (`explain`, `summarize`, `quiz`, `flashcards`, `chat`) | `GenerateSerializer.type` choices |
 | Endpoints accepting `document_ids` | 3 (`/api/generate/` for all 5 tool types, `/api/chat/stream/`, `/api/rag/query/` — the last serves the retired Ask My Docs page's endpoint, no longer called by the UI) | `grep -n document_ids backend/study_api/views.py backend/study_api/dispatchers.py` |
-| Tests covering RAG + grounding | 62 of the 138 (`test_rag.py` 47 · `test_generations.py` 15) | `pytest --collect-only -q \| grep -c test_rag` and `grep -c test_generations` |
+| Tests covering RAG + grounding | 69 of the 151 (`test_rag.py` 54 · `test_generations.py` 15) | `pytest --collect-only -q \| grep -c test_rag` and `grep -c test_generations` |
+| Local Docker stack | 3 services (`db`, `backend`, `frontend`) | `docker compose config --services` |
 
-### Quality & build (backend measured 2026-10-22 · frontend re-measured 2026-10-22)
+### Quality & build (measured 2026-11-15 · Windows · Node 24.13.1 · Python 3.12.13)
 
 | Check | Result |
 |-------|--------|
 | `ruff check backend/` | **0 errors** (was 6) |
-| `pytest` | **137 passed, 1 skipped**, 0 failed · 138.44 s (the skip is the pgvector case, which needs the CI Postgres job; wall time varies with machine load — the same suite measured 104.85 s unattended and 266.17 s on an earlier run) |
-| `jest` (all 7 suites) | **71 passed**, 0 failed · 14.29 s (wall time varies with machine load — the same suites ran in 6.44 s on a quiet machine) |
-| `npm run build` | Compiled successfully · **207 kB** gzipped JS, **14.27 kB** gzipped CSS |
-| `npx eslint src --ext .js,.jsx` | **0 errors**, 1 warning (unused import) — ESLint is not `--max-warnings 0`, so CI stays green on warnings |
+| `pytest` | **150 passed, 1 skipped**, 0 failed · **151 collected** · 116.26 s (the skip is the pgvector case, which needs the CI Postgres job; wall time varies with machine load — the same suite measured 104.85 s unattended and 266.17 s on an earlier run) |
+| `jest` (all 8 suites) | **112 passed**, 0 failed · 6.80 s (wall time varies with machine load — the same suites ran in 14.29 s under load) |
+| `npm run build` | Compiled successfully · **207.55 kB** gzipped JS, **14.29 kB** gzipped CSS |
+| `npx eslint src --ext .js,.jsx` | **0 errors, 0 warnings** — ESLint is not `--max-warnings 0`, so CI stays green on warnings |
+| `docker compose up --build` | **Stack smoke-tested** (2026-11-15, Docker 29.9.2): all three services reach `healthy`; `GET /api/health/`, the OpenAPI schema, register → login → `auth/me`, the 401 guard on an unauthenticated call, `generations` / `sessions` / `rag/documents` / `usage`, and a real `POST /api/generate/` all succeed **through the nginx proxy**. A cold generation returned in 2,912 ms; the identical repeat was served from the response cache in 84 ms and billed **0 extra tokens**. `POST /api/chat/stream/` returned `text/event-stream` with 31 `chunk` frames and a closing `{"done": true, "session_id": null, "sources": []}` frame, first frame at 858 ms. Postgres confirmed `vector` 0.8.7, 36 applied migrations and the `studybuddy_cache` table |
+| `npm run build` (in the container image) | Compiled successfully · **117.76 kB** gzipped JS, 14.29 kB gzipped CSS — smaller than the 207.55 kB local build because the container sets `REACT_APP_GLITCHTIP_DSN=""`, so `@sentry/react` is not bundled (the local build reads `frontend/.env.production`, which sets a DSN) |
 
 ### Performance levers, with the value each one is set to
 
@@ -79,6 +84,7 @@ These are the mechanisms that actually control cost and latency — the numbers 
 | **Embedding dimension** | `RAG_EMBED_DIMENSIONS=768`, verified against the vectors actually stored per chunk | Retrieval is one 768-wide dot product per chunk. The dimension is configurable, and changing it (or the model) requires re-indexing every document. |
 | **Per-scope rate limits** | anon `60/h`, user `300/h`, generate `60/h`, rag `40/h`, chat `90/h` | Expensive LLM/RAG views get a tighter ceiling than cheap list and status calls, so a runaway client cannot exhaust the Groq quota through the cheapest route. |
 | **Max output tokens** | `800` default per call, `600` for chat | Caps the billed output of any single generation. |
+| **Provider call timeout & retries** | `request_timeout=30.0`, `max_retries=0` on the `ChatGroq` client | A stalled provider returns an error after 30 s instead of pinning a gunicorn thread until the `--timeout 120` worker is killed. The SDK's own retries are off, so the structured-output path makes at most **2** attempts (tool-calling, then JSON prompting) instead of 2 × N — verified by a test that asserts the per-call attempt count and the four httpx timeout phases. |
 | **Composite indexes** | 5 declared: `(user, created_at)`, `(user, type, created_at)` on generations; `(user, created_at)` on usage and documents; `(document, chunk_index)` on chunks | Keeps history, per-type filters and usage aggregation index-backed as rows accumulate. |
 | **SSE streaming** | `stream_chat_groq` → `text/event-stream` | The first visible token arrives while the rest is still being generated, instead of after the complete response. |
 | **pgvector with fallback** | vector index when the `vector` extension exists, else in-process numpy cosine | Retrieval never hard-fails on a database that cannot create extensions. |
@@ -87,6 +93,8 @@ These are the mechanisms that actually control cost and latency — the numbers 
 ### Measured end-to-end (2026-10-16, local dev stack)
 
 Conditions: `DEBUG=True`, Django dev server on `127.0.0.1:8000`, SQLite backend, Groq `openai/gpt-oss-120b`, Gemini embeddings for RAG. Prompts used unique nonces so nothing was pre-warmed. Latency rows are wall-clock from the client; token rows are provider-reported counts.
+
+**Scope of the 2026-11-15 refresh:** only the static and suite figures above were re-measured (file and line counts, test counts, lint, build, compose validation). No live-provider call was made, so this table below is the 2026-10-16 record and no new speedup or accuracy figure is claimed anywhere in this README.
 
 One caveat about that dev server: every local `runserver` on `:8000` in this environment was started with `--noreload`, so a listening process can predate the code being tested. The token-persistence figures quoted in Features were therefore re-measured against a freshly started server on its own port.
 
@@ -109,7 +117,7 @@ Read these honestly:
 
 No retrieval-accuracy or answer-quality benchmark exists across a question set, so no accuracy percentage is stated. Groq and Gemini throughput is provider-side, varies with account and load, and is only sampled above. Likewise, grounding every tool in the caller's documents is a behaviour with tests behind it, not a measured quality lift: the anti-hallucination instruction was verified on a single question whose answer is absent from the uploaded notes (the model abstained instead of inventing), and no study says how much grounded quiz or flashcard output beats ungrounded output.
 
-Token figures match the persistence path, and that path has limits worth stating: `GenerateView` writes provider-reported counts and the priced cost onto every `Generation` it creates and `/api/usage/` sums them, but the streaming chat and RAG endpoints create no `Generation` row — a grounded chat turn persists its message and citations, yet still contributes nothing to those totals. `cost` reads `0.0000` until `GROQ_PRICE_PER_M_INPUT` and `GROQ_PRICE_PER_M_OUTPUT` are configured for the running model.
+Token figures match the persistence path, and that path has limits worth stating: `GenerateView` writes provider-reported counts and the priced cost onto every `Generation` it creates, and `/api/usage/` sums those rows together with the `UsageLog` rows that streamed chat writes for each turn — so a streamed conversation is metered too, which is what makes chat spend count against the daily budget. The one path that still records nothing is `POST /api/rag/query/`: it is the endpoint of the retired Ask My Docs page, is not called by the UI, and creates neither row, so its tokens are absent from those totals. `cost` reads `0.0000` until `GROQ_PRICE_PER_M_INPUT` and `GROQ_PRICE_PER_M_OUTPUT` are configured for the running model.
 
 ---
 
@@ -128,17 +136,20 @@ studybuddy/
 │   │   │   ├── shared/       # ChatBubble, Flashcard, ScoreCard, SectionTitle, TypeBadge,
 │   │   │   │                 # DocumentPicker + DocumentSources + GroundingNote (the grounding
 │   │   │   │                 # panel reused by every tool page), the useDocumentLibrary() hook
-│   │   │   │                 # behind them (+2-test ownership suite) and useGenerationAbort()
-│   │   │   └── home/         # HomeDashboard (signed-in personalized face), HomeLanding (visitor
+│   │   │   │                 # behind them (+4-test ownership suite) and useGenerationAbort()
+│   │   │   └── home/         # HomeDashboard (signed-in personalized face, +14-test
+│   │   │                     # failure-semantics suite), HomeLanding (visitor
 │   │   │                     # face), Sparkline + ProgressRing (hand-rolled SVG, no chart lib)
 │   │   ├── pages/            # Home, All, Explain, Summarize, Quiz, Flashcards, Chat, Login, Register
 │   │   ├── context/          # AuthContext for JWT session management (+7-test cache-teardown and
 │   │   │                     # auth-rejection suite)
-│   │   ├── utils/            # api.js (explicit resource client), api.test.js (19-test Jest suite),
+│   │   ├── utils/            # api.js (explicit resource client + the shared rejectionMessage()
+│   │   │                     # error-reason extractor), api.test.js (46-test Jest suite),
 │   │   │                     # routeColors, clipboard,
 │   │   │                     # personalize.js (+31-test suite) and pendingTopic.js (home → tool pre-fill hand-off)
 │   │   ├── App.jsx           # Routing & React Query provider
-│   │   └── index.css         # Tailwind directives & menu / button / icon component classes
+│   │   ├── index.css         # Tailwind directives & menu / button / icon component classes
+│   │   └── .dockerignore     # Keeps node_modules / build / .env out of the image build context
 │   └── package.json
 │
 ├── backend/                    # Django REST Framework API
@@ -157,8 +168,10 @@ studybuddy/
 │   ├── pytest.ini
 │   ├── requirements.txt       # Runtime-only install used by build.sh
 │   ├── requirements-dev.txt   # pytest / ruff / type stubs — CI and local dev only, never deployed
+│   ├── .dockerignore          # Keeps venv / .env / sqlite out of the image build context
 │   └── .env                   # Local env vars (gitignored — never commit)
 │
+├── docker-compose.yml          # Local 3-service stack: pgvector db + gunicorn backend + nginx SPA
 ├── render.yaml                 # Render Blueprint (Infrastructure-as-Code)
 └── README.md
 ```
@@ -285,13 +298,53 @@ Frontend application runs at: **`http://localhost:3000`** and calls `http://loca
 
 ---
 
+## 🐳 Docker Quickstart (optional)
+
+Everything above works without Docker. If you would rather not install Python and Node locally, the Compose file brings the whole stack up with one command — it mirrors the deployed topology (gunicorn + nginx + Postgres) rather than the hot-reloading dev servers. The stack was smoke-tested end to end on 2026-11-15 (Docker 29.9.2): all three services reach `healthy`, and every endpoint below answers correctly through the nginx proxy.
+
+### Prerequisites
+- **Docker Desktop** (Windows/macOS) or **Docker Engine + Compose v2** (Linux).
+- A **`backend/.env`** file. Compose reads it through `env_file:`, and it is gitignored, so a fresh clone has none — copy the template from the **⚙️ 1. Backend Setup** section above (at minimum `GROQ_API_KEY` and `GEMINI_API_KEY`) and save it as `backend/.env` before starting. Without it the stack refuses to start.
+
+### Run it
+```bash
+# From the repository root
+docker compose up --build
+```
+
+| Service | What it is | Notes |
+|---------|------------|-------|
+| `db` | `pgvector/pgvector:pg16` | The `vector` extension is created by an init script on first boot, so the **pgvector** retrieval path is exercised locally — not the numpy fallback. It publishes **no host port**; only the backend talks to it. Data lives in the `postgres_data` volume. |
+| `backend` | `python:3.12-slim` + gunicorn | Runtime-only dependencies (the same `requirements.txt` Render installs), a non-root user, and gunicorn configured exactly like `render.yaml`: **1 worker, 4 threads, 120 s timeout**. On boot it runs the **migration-drift check** (`makemigrations --check`), then `migrate`, `createcachetable` and `collectstatic`. Health-checked at `/api/health/`. |
+| `frontend` | `node:24` build served by `nginx:1.28-alpine` | The SPA is built with `REACT_APP_API_URL=/api` and nginx proxies `/api/` to the backend. `proxy_buffering off` keeps **streamed chat streaming** instead of buffering it, and `client_max_body_size 21m` covers the 20 MB (`RAG_MAX_UPLOAD_MB`) document upload. The image build is ~90 kB gzipped JS smaller than a local `npm run build` because GlitchTip is disabled here. |
+
+### Where it runs
+- App: **`http://localhost:3000`** · API: **`http://localhost:8000`** — both bound to `127.0.0.1` only.
+- Override with `FRONTEND_PORT` / `BACKEND_PORT` (e.g. `FRONTEND_PORT=4000 docker compose up`).
+
+### What differs from the manual setup
+- **No hot reload.** The frontend is a production build behind nginx; re-run `docker compose up --build frontend` after changing `frontend/src`. The backend has no `--reload` either.
+- **Real Postgres + pgvector**, so the numpy cosine fallback is *not* the path being exercised here — use the manual setup if you want to test that branch.
+- **Signup emails are off** (`SIGNUP_NOTIFICATION_EMAIL` is emptied by the compose environment) and GlitchTip is disabled, exactly as in a deployment.
+- Compose's `environment:` block overrides anything the same key sets in `backend/.env`, so the stack always points at its own `db` service with `DEBUG=false`.
+
+### Stop and reset
+```bash
+docker compose down        # stop the stack, keep the database volume
+docker compose down -v     # stop it and delete the Postgres volume
+```
+
+> **Troubleshooting:** if the backend exits immediately, the migration-drift check found a model change with no migration file — run `python manage.py makemigrations` locally and commit the result. If the port is already taken, set `BACKEND_PORT`/`FRONTEND_PORT` to free ports.
+
+---
+
 ## 🧪 3. Running Quality Checks & Tests
 
 ### Backend Tests & Linting
 ```bash
 cd backend
 
-# Run Pytest suite (138 tests; the pgvector case skips on SQLite)
+# Run Pytest suite (151 tests; the pgvector case skips on SQLite)
 pytest
 
 # Run Ruff lint checks
@@ -305,7 +358,7 @@ cd frontend
 # Run ESLint
 npm run lint
 
-# Run Jest tests (7 suites, 71 tests)
+# Run Jest tests (8 suites, 112 tests)
 npm test -- --watchAll=false
 ```
 
@@ -352,7 +405,7 @@ The frontend uses explicit resource endpoints. Authentication routes are public;
 | `GET` | `/api/rag/documents/` | JWT | List the caller's uploaded documents |
 | `GET` | `/api/rag/documents/<id>/` | JWT | Poll document status (`pending`, `processing`, `ready`, `error`) |
 | `DELETE` | `/api/rag/documents/<id>/` | JWT | Delete a document and its indexed chunks |
-| `POST` | `/api/rag/query/` | JWT | Ask a question grounded in ready documents (endpoint of the retired Ask My Docs page; no longer called by the UI) |
+| `POST` | `/api/rag/query/` | JWT | Ask a question grounded in ready documents (endpoint of the retired Ask My Docs page; no longer called by the UI). An explicit `document_ids` list longer than 25 is refused with 400 `"document_ids must contain at most 25 document IDs."` before the ids are parsed or any ownership lookup runs; **omitting** the field searches every ready document the caller owns |
 
 ### System
 | Method | Endpoint | Auth | Description |
@@ -364,6 +417,8 @@ The frontend uses explicit resource endpoints. Authentication routes are public;
 ---
 
 ## 🚀 4. Deployment
+
+> **The Compose stack is not a deployment path.** [`docker-compose.yml`](docker-compose.yml) is the *local* mirror of the Render topology — the same gunicorn flags (1 worker, 4 threads, 120 s timeout) and the same `/api/health/` probe — so a local run behaves like the deployed service. Production is Render + Neon + Vercel, described below.
 
 ### Backend (Render + Neon)
 1. Create a free PostgreSQL database on [Neon](https://neon.tech) and copy its connection string.
