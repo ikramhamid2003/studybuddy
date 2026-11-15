@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .dispatchers import MAX_DOCUMENT_SELECTION
 from .models import ChatMessage, ChatSession, Generation
 
 
@@ -42,7 +43,7 @@ class ChatSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1),
         required=False,
         allow_empty=True,
-        max_length=25,
+        max_length=MAX_DOCUMENT_SELECTION,
         default=list,
     )
 
@@ -132,7 +133,7 @@ class GenerateSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1),
         required=False,
         allow_empty=True,
-        max_length=25,
+        max_length=MAX_DOCUMENT_SELECTION,
         default=list,
     )
 

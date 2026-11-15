@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import Button from "../Button";
 import {
   fetchUsageStats,
   listChatSessions,
@@ -95,7 +96,7 @@ function StatTile({ icon: Icon, label, value, sub, tone = "indigo" }) {
     violet: "bg-violet-50 text-violet-600 border-violet-100",
   };
   return (
-    <div className="lift-hover rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div role="group" aria-label={label} className="lift-hover rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg border ${tones[tone]}`}>
           <Icon size={15} />
@@ -115,29 +116,41 @@ export default function HomeDashboard() {
   const now = useMemo(() => new Date(), []);
 
   const queryOptions = { enabled: Boolean(user), staleTime: 60000, retry: false };
-  const { data: generations, isLoading: loadingGenerations } = useQuery({
+  const generationsQuery = useQuery({
     queryKey: ["generations"],
     // Wrapped so react-query's context object never reaches `listGenerations`,
     // which would serialize it into a `?type=[object Object]` filter.
     queryFn: () => listGenerations(),
     ...queryOptions,
   });
-  const { data: sessions } = useQuery({
+  const sessionsQuery = useQuery({
     queryKey: ["chat_sessions"],
     queryFn: listChatSessions,
     ...queryOptions,
   });
-  const { data: documents } = useQuery({
+  const documentsQuery = useQuery({
     queryKey: ["rag_documents"],
     queryFn: listDocuments,
     ...queryOptions,
   });
-  const { data: usage } = useQuery({
+  const usageQuery = useQuery({
     queryKey: ["usage_stats"],
     queryFn: fetchUsageStats,
     ...queryOptions,
   });
 
+  const { data: generations, isLoading: loadingGenerations } = generationsQuery;
+  const { data: sessions } = sessionsQuery;
+  const { data: documents } = documentsQuery;
+  const { data: usage } = usageQuery;
+  const failedQueries = [
+    { label: "Saved results", query: generationsQuery },
+    { label: "Conversations", query: sessionsQuery },
+    { label: "Documents", query: documentsQuery },
+    { label: "Usage", query: usageQuery },
+  ].filter(({ query }) => query.isError);
+  const hasGenerations = generations !== undefined;
+  const hasStudyData = hasGenerations && sessions !== undefined && documents !== undefined;
   const rows = generations || [];
   const chatSessions = sessions || [];
   const docs = documents || [];
@@ -181,6 +194,27 @@ export default function HomeDashboard() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+      {failedQueries.length > 0 && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-900">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Couldn't load some dashboard data.</p>
+            <ul className="mt-1 space-y-1 text-xs">
+              {failedQueries.map(({ label, query }) => (
+                <li key={label} className="break-words">{label}: {query.error?.message || "Request failed."}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs">Previously loaded data is kept where available. You can still use the study tools.</p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={failedQueries.some(({ query }) => query.isFetching)}
+            onClick={() => failedQueries.forEach(({ query }) => query.refetch())}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
       {/* ── Personalized hero ── */}
       <section className="relative overflow-hidden rounded-3xl border border-indigo-900/20 bg-indigo-950 shadow-elevated">
         <div className="pointer-events-none absolute inset-0 bg-hero-gradient opacity-90" aria-hidden="true" />
@@ -200,7 +234,11 @@ export default function HomeDashboard() {
                 {user?.username ? <span className="text-indigo-200">, {user.username}</span> : null}
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-indigo-100/80">
-                {rows.length === 0
+                {!hasGenerations
+                  ? loadingGenerations
+                    ? "Loading your saved results…"
+                    : "Your saved results are unavailable right now. You can still start something new below."
+                  : rows.length === 0
                   ? "Nothing saved yet — type what you are studying below and StudyBuddy picks the right tool for it."
                   : `${rows.length} saved ${rows.length === 1 ? "result" : "results"}${
                       favourite ? `, and ${favourite.label} is your most-used tool` : ""
@@ -210,7 +248,7 @@ export default function HomeDashboard() {
             <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2.5 backdrop-blur-sm">
               <Flame size={17} className={streak > 0 ? "text-amber-300" : "text-indigo-300"} />
               <div className="leading-tight">
-                <p className="font-display text-lg font-bold text-white">{streak}</p>
+                <p className="font-display text-lg font-bold text-white">{hasGenerations ? streak : "—"}</p>
                 <p className="text-[10px] font-medium uppercase tracking-wider text-indigo-200">
                   day {streak === 1 ? "streak" : "streak"}
                 </p>
@@ -261,7 +299,7 @@ export default function HomeDashboard() {
               { label: "Talk to the tutor", route: "/chat", icon: MessageSquare },
             ].map(({ label, route, icon: Icon }) => (
               <button
-                key={route}
+                key={label}
                 type="button"
                 onClick={() => openTool(route, draft)}
                 className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-indigo-100 transition-colors hover:border-white/30 hover:bg-white/15 hover:text-white motion-reduce:transition-none"
@@ -276,13 +314,13 @@ export default function HomeDashboard() {
 
       {/* ── Momentum strip ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Flame} tone="amber" label="Day streak" value={streak} sub={today ? `${today} today` : "nothing today"} />
-        <StatTile icon={Clock} tone="indigo" label="Saved this week" value={thisWeek} sub={weekDelta} />
+        <StatTile icon={Flame} tone="amber" label="Day streak" value={hasGenerations ? streak : "—"} sub={hasGenerations ? (today ? `${today} today` : "nothing today") : undefined} />
+        <StatTile icon={Clock} tone="indigo" label="Saved this week" value={hasGenerations ? thisWeek : "—"} sub={hasGenerations ? weekDelta : undefined} />
         <StatTile
           icon={Zap}
           tone="violet"
           label="Tokens used"
-          value={loadingGenerations && !usage ? "—" : formatCompactCount(totalTokens)}
+          value={usage ? formatCompactCount(totalTokens) : "—"}
           sub={usage ? `${formatCompactCount(usage.total_output_tokens)} out` : undefined}
         />
         <StatTile icon={Coins} tone="emerald" label="Estimated cost" value={usage ? formatCostUsd(usage.total_estimated_cost) : "—"} sub="provider-priced" />
@@ -329,6 +367,8 @@ export default function HomeDashboard() {
         >
           {loadingGenerations ? (
             <Skeleton className="h-[56px] w-full" />
+          ) : !hasGenerations ? (
+            <p className="text-sm text-slate-500">Saved activity is unavailable. Retry the request above.</p>
           ) : rows.length === 0 ? (
             <p className="text-sm text-slate-500">
               Your activity chart fills in as soon as you save your first result.
@@ -367,52 +407,67 @@ export default function HomeDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title={progress === 100 ? "All set up" : "Get set up"}>
-          <div className="flex items-center gap-4">
-            <ProgressRing progress={progress} label={progress === 100 ? "done" : "setup"} />
-            <p className="text-xs leading-relaxed text-slate-500">
-              {progress === 100
-                ? "You have used every part of the workspace. The suggestions below now follow your own history."
-                : `${checklist.filter((item) => item.done).length} of ${checklist.length} done — each tick comes from something you actually saved.`}
+        <SectionCard title={hasStudyData && progress === 100 ? "All set up" : "Get set up"}>
+          {!hasStudyData ? (
+            <p className="text-sm text-slate-500">
+              {generationsQuery.isError || sessionsQuery.isError || documentsQuery.isError
+                ? "Setup progress is unavailable until your study data loads."
+                : "Loading setup progress…"}
             </p>
-          </div>
-          <ul className="mt-4 space-y-1.5">
-            {checklist.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(item.route)}
-                  disabled={item.done}
-                  className={`flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors motion-reduce:transition-none ${
-                    item.done
-                      ? "cursor-default border-emerald-100 bg-emerald-50/60"
-                      : "border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40"
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold ${
-                      item.done ? "border-emerald-400 bg-emerald-500 text-white" : "border-slate-300 text-transparent"
-                    }`}
-                  >
-                    ✓
-                  </span>
-                  <span className="min-w-0">
-                    <span className={`block text-xs font-semibold ${item.done ? "text-emerald-800" : "text-slate-800"}`}>
-                      {item.label}
-                    </span>
-                    <span className="block text-[11px] leading-snug text-slate-500">{item.hint}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                <ProgressRing progress={progress} label={progress === 100 ? "done" : "setup"} />
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {progress === 100
+                    ? "You have used every part of the workspace. The suggestions below now follow your own history."
+                    : `${checklist.filter((item) => item.done).length} of ${checklist.length} done — each tick comes from something you actually saved.`}
+                </p>
+              </div>
+              <ul className="mt-4 space-y-1.5">
+                {checklist.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(item.route)}
+                      disabled={item.done}
+                      className={`flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors motion-reduce:transition-none ${
+                        item.done
+                          ? "cursor-default border-emerald-100 bg-emerald-50/60"
+                          : "border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40"
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold ${
+                          item.done ? "border-emerald-400 bg-emerald-500 text-white" : "border-slate-300 text-transparent"
+                        }`}
+                      >
+                        ✓
+                      </span>
+                      <span className="min-w-0">
+                        <span className={`block text-xs font-semibold ${item.done ? "text-emerald-800" : "text-slate-800"}`}>
+                          {item.label}
+                        </span>
+                        <span className="block text-[11px] leading-snug text-slate-500">{item.hint}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </SectionCard>
       </div>
 
       {/* ── Suggestions + tool mix ── */}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-3">
-          {nextSteps.map((step) => (
+          {!hasStudyData && (
+            <p className="text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
+              Suggestions will appear when your study data is available.
+            </p>
+          )}
+          {hasStudyData && nextSteps.map((step) => (
             <button
               key={step.id}
               type="button"
@@ -434,7 +489,11 @@ export default function HomeDashboard() {
         </div>
 
         <SectionCard title="Your tool mix">
-          {mix.length === 0 ? (
+          {loadingGenerations ? (
+            <Skeleton className="h-20 w-full" />
+          ) : !hasGenerations ? (
+            <p className="text-sm text-slate-500">Your tool mix is unavailable. Retry the request above.</p>
+          ) : mix.length === 0 ? (
             <p className="text-sm text-slate-500">No generations yet — your mix appears here once you save one.</p>
           ) : (
             <ul className="space-y-3">
@@ -486,7 +545,11 @@ export default function HomeDashboard() {
             </button>
           }
         >
-          {chatSessions.length === 0 ? (
+          {sessionsQuery.isLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : sessions === undefined ? (
+            <p className="text-sm text-slate-500">Conversations are unavailable. Retry the request above.</p>
+          ) : chatSessions.length === 0 ? (
             <p className="text-sm text-slate-500">
               No saved conversations yet. The tutor keeps every chat, so you can pick one back up later.
             </p>
@@ -530,7 +593,11 @@ export default function HomeDashboard() {
             </button>
           }
         >
-          {docs.length === 0 ? (
+          {documentsQuery.isLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : documents === undefined ? (
+            <p className="text-sm text-slate-500">Your document library is unavailable. Retry the request above.</p>
+          ) : docs.length === 0 ? (
             <p className="text-sm text-slate-500">
               Upload a PDF, TXT or MD file and every tool can ground its answer in it, with citations.
             </p>

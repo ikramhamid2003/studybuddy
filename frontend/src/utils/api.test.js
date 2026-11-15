@@ -1,6 +1,5 @@
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from "util";
 import {
-  SESSION_EXPIRED_EVENT,
   deleteGeneration,
   generateAll,
   listGenerations,
@@ -53,6 +52,106 @@ describe("explicit endpoint request handling", () => {
     await expect(listGenerations("explain")).rejects.toThrow(
       "/generations/?type=explain failed (HTTP 400)"
     );
+  });
+
+  test.each([
+    ["field arrays", { topic: ["This field may not be blank."] }, "This field may not be blank."],
+    ["field strings", { type: "Invalid generation type." }, "Invalid generation type."],
+    [
+      "nested document indices",
+      { document_ids: { 0: ["A valid integer is required."] } },
+      "A valid integer is required.",
+    ],
+    [
+      "nested fields",
+      { options: { documents: [{ id: ["Unknown document."] }] } },
+      "Unknown document.",
+    ],
+    ["non_field_errors", { non_field_errors: ["Select a topic or document."] }, "Select a topic or document."],
+    [
+      "the first useful reason",
+      { topic: [], document_ids: [null, 42, {}, "", "  ", "Document unavailable.", "Later reason."] },
+      "Document unavailable.",
+    ],
+  ])("generateAll surfaces %s", async (_label, body, message) => {
+    mockResponse({ ok: false, status: 400, json: async () => body });
+
+    await expect(generateAll("gravity", "explain")).rejects.toThrow(new Error(message));
+  });
+
+  test.each([
+    [
+      "error before detail and fields",
+      { topic: ["Field reason."], detail: "Detail reason.", error: "Error reason." },
+      "Error reason.",
+    ],
+    ["detail before fields", { topic: ["Field reason."], detail: "Detail reason." }, "Detail reason."],
+    ["empty error", { error: "", detail: "Detail reason." }, "Detail reason."],
+    ["blank error", { error: "  ", detail: "Detail reason." }, "Detail reason."],
+    [
+      "non-string error",
+      { error: { topic: ["Nested reason."] }, detail: "Detail reason." },
+      "Detail reason.",
+    ],
+    [
+      "empty detail",
+      { error: "", detail: "", topic: ["Field reason."] },
+      "Field reason.",
+    ],
+    [
+      "blank detail",
+      { error: false, detail: "  ", topic: ["Field reason."] },
+      "Field reason.",
+    ],
+    [
+      "non-string detail",
+      { error: {}, detail: 400, topic: ["Field reason."] },
+      "Field reason.",
+    ],
+  ])("generateAll respects message precedence: %s", async (_label, body, message) => {
+    mockResponse({ ok: false, status: 400, json: async () => body });
+
+    await expect(generateAll("gravity", "explain")).rejects.toThrow(new Error(message));
+  });
+
+  test.each([
+    null,
+    {},
+    [],
+    "",
+    "Unstructured response",
+    400,
+    false,
+    { error: "", detail: "  ", topic: [] },
+    { error: {}, detail: { status: 400 }, document_ids: { 0: [null, false, 42, {}] } },
+    { ok: false, count: 0 },
+  ])("generateAll falls back for a body without messages: %p", async (body) => {
+    mockResponse({ ok: false, status: 400, json: async () => body });
+
+    await expect(generateAll("gravity", "explain")).rejects.toThrow(
+      new Error("/generate/ failed (HTTP 400)")
+    );
+  });
+
+  test("generateAll keeps the path and status for non-JSON failures", async () => {
+    mockResponse({
+      ok: false,
+      status: 502,
+      json: async () => { throw new SyntaxError("Unexpected token <"); },
+    });
+
+    await expect(generateAll("gravity", "explain")).rejects.toThrow(
+      new Error("/generate/ failed (HTTP 502)")
+    );
+  });
+
+  test.each([
+    [{ id: 7, topic: "gravity" }, { id: 7, topic: "gravity" }],
+    [{ ok: true, data: { id: 7, topic: "gravity" } }, { id: 7, topic: "gravity" }],
+  ])("generateAll preserves successful responses: %p", async (body, expected) => {
+    mockResponse({ ok: true, status: 200, json: async () => body });
+
+    await expect(generateAll("gravity", "explain")).resolves.toEqual(expected);
   });
 
   test("rejects when the envelope reports failure on an HTTP 200", async () => {

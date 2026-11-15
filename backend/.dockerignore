@@ -1,0 +1,12 @@
+# Keep the build context small and free of local state: the venv is ~194 MB
+# of files that the image rebuilds from requirements.txt anyway, and .env
+# holds secrets that must never travel to the Docker daemon.
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+db.sqlite3
+db_test.sqlite3
+staticfiles/
+.env

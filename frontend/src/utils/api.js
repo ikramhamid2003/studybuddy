@@ -81,6 +81,28 @@ const SESSION_EXPIRED_MESSAGE = "Session expired. Please sign in again.";
 
 // ── Core request helper for explicit API routes ─────────────────────────────
 
+export function rejectionMessage(json, fallback) {
+  // Only structured bodies carry API errors; don't iterate primitive strings.
+  if (!json || typeof json !== "object") return fallback;
+  for (const message of [json.error, json.detail]) {
+    if (typeof message === "string" && message.trim()) return message;
+  }
+
+  // DRF reasons can be field arrays, non_field_errors, or nested dictionaries
+  // (for example, document_ids keyed by the invalid item's integer index).
+  function firstReason(value) {
+    if (typeof value === "string") return value.trim() ? value : null;
+    if (!value || typeof value !== "object") return null;
+    for (const child of Object.values(value)) {
+      const reason = firstReason(child);
+      if (reason) return reason;
+    }
+    return null;
+  }
+
+  return firstReason(json) || fallback;
+}
+
 async function _request(path, body = {}, method = "POST", signal) {
   // Centralizes auth headers and JSON-response handling for explicit endpoints.
   const response = await fetchWithRefresh(
@@ -106,10 +128,8 @@ async function _request(path, body = {}, method = "POST", signal) {
   }
 
   if (!response.ok || !json || json.ok === false) {
-    // Surface the server's own message when there is one, and always include
-    // the action and HTTP status so failures are diagnosable from the UI.
-    const msg = json?.error || json?.detail || `${path} failed (HTTP ${response.status})`;
-    throw new Error(msg);
+    // Surface the server's reason, falling back to the action and HTTP status.
+    throw new Error(rejectionMessage(json, `${path} failed (HTTP ${response.status})`));
   }
   return json.ok === true ? json.data : json;
 }

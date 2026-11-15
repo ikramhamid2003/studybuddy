@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchCurrentUser, SESSION_EXPIRED_EVENT } from "../utils/api";
+import { fetchCurrentUser, rejectionMessage, SESSION_EXPIRED_EVENT } from "../utils/api";
 
 const AuthContext = createContext(null);
 
@@ -10,20 +10,6 @@ const DEFAULT_API_URL =
     : "http://localhost:8000/api";
 
 const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
-
-// Auth endpoints answer an invalid payload with DRF's field-error dict, so the
-// only human-readable reason sits under whichever key the server chose to
-// reject — {"email": ["Enter a valid email address."]} or {"non_field_errors":
-// [...]}. Reading just `detail` (or just `username`) threw that reason away and
-// left the student with a generic label they could only diagnose in devtools.
-function rejectionMessage(json, fallback) {
-  if (typeof json?.detail === "string") return json.detail;
-  for (const value of Object.values(json ?? {})) {
-    const reason = Array.isArray(value) ? value[0] : value;
-    if (typeof reason === "string" && reason) return reason;
-  }
-  return fallback;
-}
 
 export function AuthProvider({ children }) {
   // The access token is the single source of truth; user state is derived from

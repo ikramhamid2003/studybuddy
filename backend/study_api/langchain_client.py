@@ -84,6 +84,9 @@ def _get_llm(streaming: bool = False, max_tokens: int = 800):
         temperature=0.4,
         max_tokens=max_tokens,
         streaming=streaming,
+        request_timeout=30.0,
+        # SDK retries would multiply the structured-output fallback's attempts.
+        max_retries=0,
     )
 
 

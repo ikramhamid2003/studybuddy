@@ -1,0 +1,8 @@
+# node_modules is ~472 MB and is reinstalled by `npm ci` inside the image;
+# .env files hold local API URLs and DSNs and must never travel to the
+# Docker daemon.
+node_modules/
+build/
+coverage/
+.env
+.env.*

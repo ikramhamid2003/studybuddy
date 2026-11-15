@@ -1,0 +1,144 @@
+name: studybuddy
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studybuddy
+      POSTGRES_USER: studybuddy
+      # Local-only credentials; the database has no published host port.
+      POSTGRES_PASSWORD: studybuddy-local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    configs:
+      - source: postgres_init
+        target: /docker-entrypoint-initdb.d/01-pgvector.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "studybuddy", "-d", "studybuddy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+        WORKDIR /app
+        COPY requirements.txt ./
+        RUN pip install --no-cache-dir -r requirements.txt \
+            && useradd --create-home --uid 10001 app
+        COPY --chown=app:app manage.py ./
+        COPY --chown=app:app studybuddy ./studybuddy
+        COPY --chown=app:app study_api ./study_api
+        RUN mkdir -p /app/staticfiles && chown app:app /app/staticfiles
+        USER app
+        EXPOSE 8000
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 40s
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://studybuddy:studybuddy-local@db:5432/studybuddy
+      DB_SSL_REQUIRE: "false"
+      DEBUG: "false"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CSRF_TRUSTED_ORIGINS: http://localhost:${FRONTEND_PORT:-3000},http://127.0.0.1:${FRONTEND_PORT:-3000},http://localhost:${BACKEND_PORT:-8000},http://127.0.0.1:${BACKEND_PORT:-8000}
+      SIGNUP_NOTIFICATION_EMAIL: ""
+      GLITCHTIP_DSN: ""
+    command:
+      - sh
+      - -c
+      - |
+        python manage.py makemigrations --check --dry-run &&
+        python manage.py migrate --noinput &&
+        python manage.py createcachetable &&
+        python manage.py collectstatic --noinput &&
+        exec gunicorn studybuddy.wsgi:application \
+          --bind 0.0.0.0:8000 --workers 1 --threads 4 \
+          --timeout 120 --graceful-timeout 30 --keep-alive 5 \
+          --access-logfile - --error-logfile -
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile_inline: |
+        FROM node:24-bookworm-slim AS build
+        WORKDIR /app
+        COPY package.json package-lock.json ./
+        RUN npm ci --legacy-peer-deps
+        COPY public ./public
+        COPY src ./src
+        COPY tailwind.config.js postcss.config.js ./
+        ENV REACT_APP_API_URL=/api REACT_APP_GLITCHTIP_DSN=""
+        ENV NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=16"
+        RUN npm run build
+
+        FROM nginx:1.28-alpine
+        COPY --from=build /app/build /usr/share/nginx/html
+        EXPOSE 80
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+    configs:
+      - source: frontend_nginx
+        target: /etc/nginx/conf.d/default.conf
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+configs:
+  postgres_init:
+    content: |
+      CREATE EXTENSION IF NOT EXISTS vector;
+  frontend_nginx:
+    content: |
+      server {
+          listen 80;
+          server_name _;
+          root /usr/share/nginx/html;
+          index index.html;
+          client_max_body_size 21m;
+
+          location /api/ {
+              proxy_pass http://backend:8000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $$host;
+              proxy_set_header X-Real-IP $$remote_addr;
+              proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $$scheme;
+              proxy_set_header Connection "";
+              # Streaming chat must reach the browser without proxy buffering.
+              proxy_buffering off;
+              proxy_cache off;
+              proxy_read_timeout 180s;
+          }
+
+          location / {
+              try_files $$uri $$uri/ /index.html;
+          }
+      }
+
+volumes:
+  postgres_data:

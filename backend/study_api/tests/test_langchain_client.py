@@ -1,8 +1,10 @@
 
 from unittest.mock import patch
 
+import httpx
 import pytest
 from django.conf import settings
+from groq import APITimeoutError
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
@@ -95,6 +97,39 @@ def test_stream_groq(mock_get_llm):
 
 class _DummySchema(BaseModel):
     answer: str
+
+
+@pytest.mark.parametrize(
+    "call,args,streaming,attempts",
+    [
+        (query_groq, ("sys", "user"), False, 1),
+        (query_groq_json, ("sys", "user"), False, 1),
+        (query_groq_structured, ("sys", "user", _DummySchema), False, 2),
+        (chat_groq, ("sys", [], "user"), False, 1),
+        (stream_groq, ("sys", "user"), True, 1),
+        (stream_chat_groq, ("sys", [], "user"), True, 1),
+    ],
+)
+def test_groq_calls_have_timeouts_without_sdk_retries(call, args, streaming, attempts, monkeypatch):
+    monkeypatch.setenv("NO_PROXY", "*")
+    with (
+        patch.object(settings, "GROQ_API_KEY", "fake_key"),
+        patch("httpx.Client.send", side_effect=httpx.ReadTimeout("stalled response")) as send,
+        pytest.raises(APITimeoutError),
+    ):
+        result = call(*args)
+        if streaming:
+            list(result)
+
+    assert send.call_count == attempts
+    for attempt in send.call_args_list:
+        request = attempt.args[0]
+        assert request.extensions["timeout"] == {
+            "connect": 30.0,
+            "read": 30.0,
+            "write": 30.0,
+            "pool": 30.0,
+        }
 
 
 @patch("study_api.langchain_client._get_llm")

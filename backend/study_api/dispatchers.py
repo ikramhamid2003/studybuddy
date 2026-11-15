@@ -212,6 +212,11 @@ def _action_chat_suggestions(data: dict[str, Any], request: Any) -> Response:
 
 RAG_MAX_UPLOAD_MB = 20  # fallback; settings value used when available
 
+# One request may ground an answer in at most this many documents. The DRF
+# serializers (document_ids max_length) and the frontend picker
+# (MAX_SELECTED_DOCS) mirror this number; keep the three in step.
+MAX_DOCUMENT_SELECTION = 25
+
 
 def _doc_dict(doc: Document) -> dict[str, Any]:
     """Serialize a Document model instance to a JSON-safe dict."""
@@ -392,6 +397,15 @@ def _action_rag_query(data: dict[str, Any], request: Any) -> Response:
     if raw_doc_ids is not None:
         if not isinstance(raw_doc_ids, list):
             return _error("document_ids must be a list of document IDs.")
+        # Cap the raw selection before it is parsed: an over-long list is
+        # refused before any id lookup, ownership check or retrieval, so a
+        # 26-item payload never reaches the database. Omitting document_ids
+        # still searches every ready owned document — the cap limits one
+        # explicit selection, not the caller's library.
+        if len(raw_doc_ids) > MAX_DOCUMENT_SELECTION:
+            return _error(
+                f"document_ids must contain at most {MAX_DOCUMENT_SELECTION} document IDs."
+            )
         parsed_ids = []
         for d in raw_doc_ids:
             try:

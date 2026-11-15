@@ -379,6 +379,123 @@ def test_rag_query_edge_cases(user, ready_doc):
     assert resp_none_ready.status_code == 400
 
 
+@patch("study_api.dispatchers.retrieve_chunks")
+@patch("study_api.dispatchers.rag_answer")
+def test_rag_query_endpoint_caps_explicit_document_ids(
+    mock_answer, mock_retrieve, user, ready_doc
+):
+    doc_ids = [ready_doc.id] + [
+        Document.objects.create(
+            user=user, title=f"Doc {i}", filename=f"doc{i}.txt", status="ready"
+        ).id
+        for i in range(25)
+    ]
+    client = _client_for(user)
+    question = "What is inertia?"
+
+    with patch("study_api.dispatchers.ready_document_ids") as mock_ready:
+        over_limit = client.post(
+            "/api/rag/query/",
+            {"question": question, "document_ids": doc_ids},
+            format="json",
+        )
+        assert over_limit.status_code == 400
+        assert over_limit.data == {
+            "ok": False,
+            "error": "document_ids must contain at most 25 document IDs.",
+        }
+        mock_ready.assert_not_called()
+    mock_retrieve.assert_not_called()
+    mock_answer.assert_not_called()
+
+    mock_retrieve.return_value = [_chunk(ready_doc)]
+    mock_answer.return_value = {"answer": "Inertia resists changes in motion."}
+    at_limit = client.post(
+        "/api/rag/query/",
+        {"question": question, "document_ids": doc_ids[:25]},
+        format="json",
+    )
+
+    assert at_limit.status_code == 200
+    assert at_limit.data["ok"] is True
+    assert at_limit.data["data"]["sources"][0]["document_id"] == ready_doc.id
+    mock_retrieve.assert_called_once_with(doc_ids[:25], question, top_k=5)
+    mock_answer.assert_called_once_with(question, mock_retrieve.return_value)
+
+
+@pytest.mark.parametrize(
+    "document_ids",
+    [
+        [1] * 26,
+        [1] * 25 + ["not-an-id"],
+        [1] * 25 + [None],
+        ["not-an-id"] * 26,
+    ],
+    ids=["duplicates", "invalid-string", "invalid-null", "all-invalid"],
+)
+@patch("study_api.dispatchers.ready_document_ids")
+@patch("study_api.dispatchers.retrieve_chunks")
+@patch("study_api.dispatchers.rag_answer")
+def test_rag_query_endpoint_caps_raw_list_before_parsing(
+    mock_answer, mock_retrieve, mock_ready, user, document_ids
+):
+    resp = _client_for(user).post(
+        "/api/rag/query/",
+        {"question": "What is inertia?", "document_ids": document_ids},
+        format="json",
+    )
+
+    assert resp.status_code == 400
+    assert resp.data == {
+        "ok": False,
+        "error": "document_ids must contain at most 25 document IDs.",
+    }
+    mock_ready.assert_not_called()
+    mock_retrieve.assert_not_called()
+    mock_answer.assert_not_called()
+
+
+@pytest.mark.parametrize("explicit_selection", [True, False], ids=["at-cap", "omitted"])
+@patch("study_api.dispatchers.retrieve_chunks")
+@patch("study_api.dispatchers.rag_answer")
+def test_rag_query_endpoint_preserves_ready_owned_document_scope(
+    mock_answer, mock_retrieve, user, other_user, ready_doc, explicit_selection
+):
+    # Omission must still search every ready owned document, even above the cap.
+    owned_ids = [ready_doc.id] + [
+        Document.objects.create(
+            user=user, title=f"Doc {i}", filename=f"doc{i}.txt", status="ready"
+        ).id
+        for i in range(25)
+    ]
+    foreign = Document.objects.create(
+        user=other_user, title="Theirs", filename="secret.txt", status="ready"
+    )
+    pending = Document.objects.create(
+        user=user, title="Indexing", filename="pending.txt", status="processing"
+    )
+    failed = Document.objects.create(
+        user=user, title="Failed", filename="failed.txt", status="error"
+    )
+    question = "What is inertia?"
+    body = {"question": question}
+    if explicit_selection:
+        body["document_ids"] = owned_ids[:22] + [foreign.id, pending.id, failed.id]
+    mock_retrieve.return_value = [_chunk(ready_doc)]
+    mock_answer.return_value = {"answer": "Inertia resists changes in motion."}
+
+    resp = _client_for(user).post("/api/rag/query/", body, format="json")
+
+    assert resp.status_code == 200
+    assert resp.data["ok"] is True
+    mock_retrieve.assert_called_once()
+    searched_ids = mock_retrieve.call_args.args[0]
+    expected_ids = owned_ids[:22] if explicit_selection else owned_ids
+    assert len(searched_ids) == len(expected_ids)
+    assert set(searched_ids) == set(expected_ids)
+    mock_answer.assert_called_once_with(question, mock_retrieve.return_value)
+
+
 # ── Stale-ingest recovery ────────────────────────────────────────────────────
 # Ingestion runs in a daemon thread and the uploaded bytes are never persisted,
 # so a deploy or restart mid-ingest destroys the work. Without a reap the row
