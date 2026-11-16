@@ -1,0 +1,55 @@
+Photosynthesis — Study Notes (Biology 101)
+
+Topic 1: The light-dependent reactions
+
+Photosynthesis converts light energy into chemical energy stored in sugar. It happens in
+two linked stages: the light-dependent reactions, which capture light, and the
+Calvin cycle (light-independent reactions), which fixes carbon dioxide.
+
+The light-dependent reactions take place in the thylakoid membranes of the chloroplast.
+The two photosystems involved are Photosystem II (PSII) and Photosystem I (PSI). PSII
+absorbs light at roughly 680 nm and 700 nm, splits water, and releases oxygen as a
+by-product. PSI absorbs light at around 700 nm and uses the energy to reduce NADP+ into
+NADPH.
+
+The electron transport chain between the two photosystems pumps protons into the
+thylakoid space. Water is split at Photosystem II: 2 H2O -> 4 H+ + 4 e- + O2. The oxygen
+released by this reaction is the oxygen that animals breathe. The protons accumulate
+inside the thylakoid, and when they flow back through ATP synthase they drive the
+synthesis of ATP from ADP and inorganic phosphate. ATP synthase is therefore an
+example of chemiosmosis.
+
+The chain is closed by NADP+ reductase at the end of Photosystem I, which transfers the
+excited electrons to NADP+ to form NADPH. So the light-dependent reactions produce
+three things: ATP, NADPH and oxygen.
+
+Topic 2: The Calvin cycle
+
+The Calvin cycle takes place in the stroma of the chloroplast and does not need light
+directly, although it depends on the ATP and NADPH made in the thylakoids. The enzyme
+responsible for fixing carbon dioxide is RuBisCO (ribulose-1,5-bisphosphate
+carboxylase/oxygenase), which attaches CO2 to ribulose-1,5-bisphosphate (RuBP). The
+result splits into two molecules of 3-phosphoglycerate (3-PGA). Reduction uses ATP and
+NADPH to convert 3-PGA into glyceraldehyde-3-phosphate (G3P), and about 10 of every 12
+G3P molecules are used to regenerate RuBP, consuming further ATP.
+
+RuBisCO is not efficient: it reacts with oxygen about once every few hundred turnovers,
+a process called photorespiration, which wastes energy and releases CO2. C4 and CAM
+plants concentrate CO2 around RuBisCO to reduce photorespiration, which is why they are
+better adapted to hot, dry climates.
+
+Topic 3: Limiting factors
+
+The rate of photosynthesis depends on light intensity, carbon dioxide concentration and
+temperature. Light intensity and CO2 concentration are saturation factors: their effect
+levels off once the limiting factor is no longer scarce. Temperature has an optimum,
+because the enzymes involved (RuBisCO in particular) denature at high temperatures. A
+classic school experiment measures the rate by counting the number of bubbles released
+from an aquatic plant (Elodea) per minute, which is a proxy for oxygen production.
+
+Review questions
+
+1. Which photosystem splits water, and what is the by-product?
+2. What are the three products of the light-dependent reactions?
+3. Why does RuBisCO cause photorespiration, and how do C4 plants avoid it?
+4. How does chemiosmosis connect the electron transport chain to ATP production?
