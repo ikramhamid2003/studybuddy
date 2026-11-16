@@ -1,8 +1,7 @@
 # 📚 StudyBuddy AI — Documentation
 
 The root [`README.md`](../README.md) is the 60-second tour: what the app is, the live
-link, the demo account, screenshots, the highlights, and how to run it locally. This
-folder is everything else.
+link, the highlights, and how to run it locally. This folder is everything else.
 
 ## Reading order
 
@@ -16,7 +15,8 @@ folder is everything else.
 | **[Performance](performance.md)** | "By the numbers": scale, measured latencies, the cost levers, and what this repo does *not* claim. |
 | **[Quality](quality.md)** | The test suites, the CI jobs, and the exact commands that re-measure every number quoted in this repo. |
 
-## Screenshots and the demo GIF
+## Sample document
 
-The images in the root README live in [`assets/`](assets/README.md), which also
-documents how each one was captured and how to regenerate them.
+[`assets/sample-notes.txt`](assets/sample-notes.txt) is a short set of Biology 101 study
+notes — upload it from any tool page to try document grounding locally.
+[`assets/README.md`](assets/README.md) documents it.

@@ -70,12 +70,3 @@ hand. Run these to reproduce them:
 The measured end-to-end latency table in [Performance](performance.md) is **not**
 reproduced by these commands — it needs live provider calls, so it keeps its original
 2026-10-16 conditions block and sample sizes.
-
----
-
-## Screenshots and the demo GIF
-
-The README's images are generated from the deployed site by
-[`scripts/capture/`](../scripts/capture/capture.mjs) and rebuilt with
-[`scripts/capture/build-gif.sh`](../scripts/capture/build-gif.sh). See
-[`assets/README.md`](assets/README.md) for the exact procedure.

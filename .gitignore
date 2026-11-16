@@ -34,11 +34,6 @@ graphify-out/
 *_debug.txt
 pyrefly_errors*.txt
 
-# README asset capture — the frames and the throwaway Chrome profile are
-# rebuilt by scripts/capture/capture.mjs and never committed.
-scripts/capture/.frames/
-scripts/capture/.chrome-profile/
-
 # OS
 .DS_Store
 Thumbs.db

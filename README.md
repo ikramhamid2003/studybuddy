@@ -4,30 +4,8 @@
 
 🌐 **Live app:** [https://studybuddy-omega-gray.vercel.app/](https://studybuddy-omega-gray.vercel.app/) · **API:** [https://studybuddy-api-hkgx.onrender.com/api](https://studybuddy-api-hkgx.onrender.com/api) (Swagger UI at [`/api/docs/`](https://studybuddy-api-hkgx.onrender.com/api/docs/))
 
-**Demo account** (shared, on a free-tier deployment — please be gentle):
-
-| Username | Password |
-|----------|----------|
-| `studybuddy_demo` | `studybuddy2026` |
-
-> The demo account is shared and today's 10,000-token budget is partly spent by the
-> captures, so it can run out — it resets at midnight UTC. Register your own free
-> account for a private, empty library.
-
----
-
-## 🎬 Demo
-
-![StudyBuddy AI demo — landing page, sign-in, the personalized dashboard, a document-grounded answer with citations, and a streaming chat reply](docs/assets/demo.gif)
-
-*One tour: the landing page → signing in → the personalized dashboard → a grounded explanation that cites your own notes → a chat reply streaming in word by word.*
-
-| | |
-|---|---|
-| ![The public landing page](docs/assets/landing.png) | ![The signed-in dashboard with streak, activity, checklist and token budget](docs/assets/dashboard.png) |
-| **Landing** — the "try the router" demo runs the real keyword router, not a mock. | **Dashboard** — streak, 14-day activity, tool mix, checklist and the daily token budget, every metric derived from rows the API returned. |
-| ![A document-grounded explanation with the SOURCES panel](docs/assets/grounded-answer.png) | ![A chat reply arriving token by token](docs/assets/chat-stream.png) |
-| **Grounded answer** — the same prompt, answered from your uploaded notes, with the sources it used. | **Streaming chat** — SSE word by word, saved as a session you can pick up later. |
+> Create your own free account on the live app — it runs on a free tier, so the
+> 10,000-token daily budget is per account and starts fresh for you.
 
 ---
 

@@ -19,7 +19,7 @@ studybuddy/
 │   ├── deployment.md             # Render + Neon + Vercel
 │   ├── performance.md            # "By the numbers"
 │   ├── quality.md                # Test suites + CI
-│   └── assets/                   # Screenshots, the demo GIF, a sample document
+│   └── assets/                   # A sample document to try document grounding with
 ├── frontend/                     # React + Tailwind CSS UI
 │   ├── public/
 │   ├── src/
@@ -65,11 +65,6 @@ studybuddy/
 │   ├── .env.example              # Placeholder env template — copy to .env and fill in
 │   ├── .dockerignore             # Keeps venv / .env / sqlite out of the image build context
 │   └── .env                      # Local env vars (gitignored — never commit)
-│
-├── scripts/
-│   └── capture/                  # Regenerates the README's screenshots and demo GIF from the deployed site
-│       ├── capture.mjs           # Zero-dependency Chrome DevTools Protocol driver (Node 24+)
-│       └── build-gif.sh          # ffmpeg command that turns the captured frames into demo.gif
 │
 ├── docker-compose.yml            # Local 3-service stack: pgvector db + gunicorn backend + nginx SPA
 ├── render.yaml                   # Render Blueprint (Infrastructure-as-Code)
