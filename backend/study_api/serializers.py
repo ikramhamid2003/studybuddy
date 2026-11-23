@@ -1,4 +1,6 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -51,11 +53,29 @@ class ChatSerializer(serializers.Serializer):
 class RegisterSerializer(serializers.ModelSerializer):
     """Registration payload that delegates password hashing to create_user."""
 
-    password = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
         fields = ("username", "email", "password")
+
+    def validate_email(self, value):
+        """Optional, but one address may back only one account."""
+
+        value = (value or "").strip()
+        if value and User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+        return value
+
+    def validate(self, attrs):
+        # Run Django's configured validators (length, common, numeric-only,
+        # similarity to the username/email) and surface them as field errors.
+        candidate = User(username=attrs.get("username", ""), email=attrs.get("email", ""))
+        try:
+            validate_password(attrs["password"], user=candidate)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
 
     def create(self, validated_data):
         user = User.objects.create_user(

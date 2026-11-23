@@ -21,8 +21,8 @@ export default function RegisterPage() {
     if (!username.trim() || !email.trim() || !password.trim()) {
       return toast.error("Please fill in all fields");
     }
-    if (password.length < 6) {
-      return toast.error("Password must be at least 6 characters long");
+    if (password.length < 8) {
+      return toast.error("Password must be at least 8 characters long");
     }
     if (password !== confirmPassword) {
       return toast.error("Passwords do not match");
@@ -39,7 +39,7 @@ export default function RegisterPage() {
     }
   }
 
-  const passwordError = password.length > 0 && password.length < 6 ? "Minimum 6 characters" : undefined;
+  const passwordError = password.length > 0 && password.length < 8 ? "Minimum 8 characters" : undefined;
   const confirmError = confirmPassword.length > 0 && confirmPassword !== password ? "Passwords do not match" : undefined;
   const usernameError = username.length > 0 && username.length < 3 ? "Minimum 3 characters" : undefined;
   const emailError = email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "Enter a valid email" : undefined;
@@ -89,7 +89,7 @@ export default function RegisterPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 6 characters"
+              placeholder="Minimum 8 characters"
               leftIcon={<Key className="w-4 h-4" />}
               rightIcon={showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               onRightIconClick={() => setShowPassword(!showPassword)}

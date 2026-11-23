@@ -58,6 +58,13 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
 ]
 
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -183,6 +190,7 @@ REST_FRAMEWORK = {
         "generate": os.getenv("THROTTLE_GENERATE_RATE", "60/hour"),
         "rag": os.getenv("THROTTLE_RAG_RATE", "40/hour"),
         "chat": os.getenv("THROTTLE_CHAT_RATE", "90/hour"),
+        "auth": os.getenv("THROTTLE_AUTH_RATE", "20/hour"),
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -205,6 +213,18 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
+
+# HTTPS hardening. Off by default so plain-http local setups (docker compose on
+# localhost) keep working; render.yaml turns it on. TLS is terminated and
+# redirected at the platform edge, so no SECURE_SSL_REDIRECT here.
+FORCE_HTTPS = _env_bool("FORCE_HTTPS", False)
+if FORCE_HTTPS:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -284,8 +304,9 @@ else:
         sentry_sdk.init(
             dsn=GLITCHTIP_DSN,
             integrations=[DjangoIntegration()],
-            traces_sample_rate=1.0,
-            send_default_pii=True,
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+            # Prompts and uploaded notes are private study content.
+            send_default_pii=False,
         )
     except Exception as e:  # noqa: BLE001
         print(f"[Warning] Sentry init failed: {e}", file=sys.stderr)
