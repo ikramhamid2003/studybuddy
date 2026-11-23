@@ -11,10 +11,13 @@ import ipaddress
 import logging
 import re
 import socket
+import threading
+from contextlib import contextmanager
 from typing import TypedDict
 from urllib.parse import urljoin, urlparse
 
 import requests
+import urllib3.util.connection as _urllib3_connection
 from bs4 import BeautifulSoup
 from django.conf import settings
 
@@ -123,6 +126,14 @@ def _is_safe_url(url):
         for pattern in BLOCKED_IP_PATTERNS:
             if re.match(pattern, hostname, re.IGNORECASE):
                 return False, "Private/local URLs are not allowed"
+        # Literal IPs (including IPv6 ranges the string patterns miss, such as
+        # fc00::/7 and IPv4-mapped forms) are judged by the address itself.
+        try:
+            literal = ipaddress.ip_address(hostname)
+        except ValueError:
+            literal = None
+        if literal is not None and not literal.is_global:
+            return False, "Private/local URLs are not allowed"
         if not _hostname_allowed(hostname):
             return (
                 False,
@@ -214,40 +225,97 @@ def fetch_url_content(url: str, timeout: int = 15) -> FetchedContent:
     return _fetch_with_requests(url, timeout)
 
 
-def _host_is_public(hostname: str) -> bool:
-    """True when *hostname* DNS-resolves only to public/global IP addresses.
+def _resolve_public_ips(hostname: str) -> list[str] | None:
+    """DNS-resolve *hostname* once and return its addresses, or None if unsafe.
 
-    Guards against hostnames that point into internal networks (DNS
-    rebinding), encoded IP forms (octal/hex/decimal), and IPv6 loopback
-    variants that pass the string checks in _is_safe_url.
+    None means the name did not resolve or at least one answer is not a public
+    (global) address, which covers internal networks, encoded IP forms
+    (octal/hex/decimal) and IPv6 loopback variants that pass the string checks
+    in _is_safe_url. The returned addresses are what the caller must connect to:
+    resolving again at connect time would let a rebinding DNS server answer with
+    a public address for the check and a private one for the request.
     """
     try:
         infos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
     except (OSError, ValueError):
-        return False
-    if not infos:
-        return False
+        return None
+    ips: list[str] = []
     for info in infos:
         try:
-            if not ipaddress.ip_address(info[4][0]).is_global:
-                return False
+            address = ipaddress.ip_address(info[4][0])
         except ValueError:
-            return False
-    return True
+            return None
+        if not address.is_global:
+            return None
+        if str(address) not in ips:
+            ips.append(str(address))
+    return ips or None
+
+
+def _host_is_public(hostname: str) -> bool:
+    """True when *hostname* DNS-resolves only to public/global IP addresses."""
+    return _resolve_public_ips(hostname) is not None
+
+
+# Per-thread hostname -> vetted addresses. urllib3 resolves names itself when it
+# connects, so a vetted answer is injected there instead of trusting a second lookup.
+_pins = threading.local()
+_original_create_connection = _urllib3_connection.create_connection
+
+
+def _pinned_create_connection(address, *args, **kwargs):
+    host, port = address
+    ips = getattr(_pins, "map", {}).get(str(host).lower().strip("[]"))
+    if not ips:
+        return _original_create_connection(address, *args, **kwargs)
+    last_error: OSError | None = None
+    for ip in ips:
+        try:
+            return _original_create_connection((ip, port), *args, **kwargs)
+        except OSError as exc:
+            last_error = exc
+    raise last_error or OSError("No pinned address was reachable")
+
+
+_urllib3_connection.create_connection = _pinned_create_connection
+
+
+@contextmanager
+def _pinned_dns(hostname: str, ips: list[str]):
+    """Make this thread connect to *ips* whenever it connects to *hostname*.
+
+    TLS is unaffected: certificate verification and SNI still use the hostname.
+    """
+    mapping = getattr(_pins, "map", None)
+    if mapping is None:
+        mapping = _pins.map = {}
+    key = hostname.lower().strip("[]")
+    previous = mapping.get(key)
+    mapping[key] = ips
+    try:
+        yield
+    finally:
+        if previous is None:
+            mapping.pop(key, None)
+        else:
+            mapping[key] = previous
 
 
 def _safe_get(url: str, timeout: int):
     """GET *url*, following redirects manually so every hop re-passes the SSRF gates.
 
-    Returns (response, error_reason); response is None when a hop was rejected
-    as unsafe or the redirect chain exceeded MAX_REDIRECTS.
+    Each hop is resolved once, vetted, and then fetched from exactly those
+    addresses. Returns (response, error_reason); response is None when a hop was
+    rejected as unsafe or the redirect chain exceeded MAX_REDIRECTS.
     """
     current_url = url
     for _ in range(MAX_REDIRECTS + 1):
         hostname = urlparse(current_url).hostname or ""
-        if not hostname or not _host_is_public(hostname):
+        ips = _resolve_public_ips(hostname) if hostname else None
+        if not ips:
             return None, "Private/local URLs are not allowed"
-        response = requests.get(current_url, headers=HEADERS, timeout=timeout, allow_redirects=False)
+        with _pinned_dns(hostname, ips):
+            response = requests.get(current_url, headers=HEADERS, timeout=timeout, allow_redirects=False)
         if response.status_code in (301, 302, 303, 307, 308):
             location = response.headers.get("Location")
             if not location:
