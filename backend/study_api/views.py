@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .dispatchers import (
     _action_generation_delete,
@@ -48,6 +49,7 @@ from .serializers import (
     GenerationModelSerializer,
     RegisterSerializer,
 )
+from .throttles import AuthRateThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +255,9 @@ class ChatStreamView(APIView):
 
                 record_turn()
                 yield f"data: {json.dumps({'done': True, 'session_id': session.id if session else None, 'sources': sources})}\n\n".encode()
-            except Exception as e:
+            except Exception:
                 logger.exception("Chat stream failed for user=%s", request.user.id)
-                yield f"data: {json.dumps({'error': str(e)})}\n\n".encode()
+                yield f"data: {json.dumps({'error': 'The AI request failed. Please try again.'})}\n\n".encode()
             finally:
                 # A reader that hangs up makes WSGI throw GeneratorExit at the
                 # yield above, which skips both handlers; without this the tokens
@@ -320,6 +322,7 @@ class RegisterView(APIView):
     """POST /api/auth/register/ — Register a new user."""
 
     permission_classes = (AllowAny,)
+    throttle_classes = (AuthRateThrottle,)
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -336,6 +339,12 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(TokenObtainPairView):
+    """POST /api/auth/login/ — token login with a brute-force throttle."""
+
+    throttle_classes = (AuthRateThrottle,)
 
 
 class MeView(APIView):

@@ -920,7 +920,9 @@ def test_retrieval_failure_does_not_generate(mock_retrieve, mock_query, user, re
     )
 
     assert resp.status_code == 503
-    assert "embedding provider is down" in resp.data["error"]
+    assert "Document search failed" in resp.data["error"]
+    # Provider internals are logged, never returned to the client.
+    assert "embedding provider is down" not in resp.data["error"]
     assert not Generation.objects.exists()
     mock_query.assert_not_called()
 
