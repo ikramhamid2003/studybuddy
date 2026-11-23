@@ -62,7 +62,7 @@ def test_firecrawl_used_when_key_configured(mock_post, mock_get, settings):
     mock_get.assert_not_called()
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_no_key_skips_firecrawl(mock_post, mock_get, mock_public, settings):
@@ -77,7 +77,7 @@ def test_no_key_skips_firecrawl(mock_post, mock_get, mock_public, settings):
     mock_get.assert_called_once()
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_firecrawl_http_error_falls_back_to_direct_scrape(mock_post, mock_get, mock_public, settings):
@@ -93,7 +93,7 @@ def test_firecrawl_http_error_falls_back_to_direct_scrape(mock_post, mock_get, m
     mock_get.assert_called_once()
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_firecrawl_success_false_falls_back(mock_post, mock_get, mock_public, settings):
@@ -110,7 +110,7 @@ def test_firecrawl_success_false_falls_back(mock_post, mock_get, mock_public, se
     assert result["title"] == "Direct Title"
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_firecrawl_empty_markdown_falls_back(mock_post, mock_get, mock_public, settings):
@@ -226,7 +226,7 @@ def test_host_is_public_rejects_unresolvable_host(mock_resolve):
     assert _host_is_public("nonexistent.invalid") is False
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=False)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=None)
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_direct_fetch_blocks_private_dns_resolution(mock_post, mock_get, mock_public, settings):
@@ -240,7 +240,7 @@ def test_direct_fetch_blocks_private_dns_resolution(mock_post, mock_get, mock_pu
     mock_get.assert_not_called()
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_redirect_to_private_target_is_blocked(mock_post, mock_get, mock_public, settings):
@@ -255,7 +255,7 @@ def test_redirect_to_private_target_is_blocked(mock_post, mock_get, mock_public,
     assert mock_get.call_count == 1
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_redirect_to_private_dns_target_is_blocked(mock_post, mock_get, mock_public, settings):
@@ -275,7 +275,7 @@ def test_redirect_to_private_dns_target_is_blocked(mock_post, mock_get, mock_pub
     assert mock_get.call_count == 1
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_safe_redirect_is_followed(mock_post, mock_get, mock_public, settings):
@@ -294,7 +294,7 @@ def test_safe_redirect_is_followed(mock_post, mock_get, mock_public, settings):
     assert mock_get.call_args_list[1].args[0] == "https://example.com/article-2"
 
 
-@patch("study_api.content_fetcher._host_is_public", return_value=True)
+@patch("study_api.content_fetcher._resolve_public_ips", return_value=["93.184.216.34"])
 @patch("study_api.content_fetcher.requests.get")
 @patch("study_api.content_fetcher.requests.post")
 def test_redirect_loop_is_capped(mock_post, mock_get, mock_public, settings):
@@ -306,3 +306,60 @@ def test_redirect_loop_is_capped(mock_post, mock_get, mock_public, settings):
     assert result["success"] is False
     assert "Too many redirects" in result["error"]
     assert mock_get.call_count == 4
+
+
+# ── DNS pinning ─────────────────────────────────────────────────────────────
+
+
+def test_request_connects_to_the_vetted_address_not_a_second_lookup():
+    """The connection goes to the IP that passed the check, never a re-resolved one."""
+    import http.server
+    import threading
+
+    from study_api.content_fetcher import _safe_get
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"pinned-ok")
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        # "pinned.test" does not resolve anywhere; reaching the server proves the
+        # vetted address was used instead of a fresh DNS lookup.
+        with patch(
+            "study_api.content_fetcher._resolve_public_ips", return_value=["127.0.0.1"]
+        ):
+            response, error = _safe_get(f"http://pinned.test:{port}/", timeout=5)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert error == ""
+    assert response is not None
+    assert response.text == "pinned-ok"
+
+
+def test_pin_is_removed_after_the_request():
+    from study_api.content_fetcher import _pinned_dns, _pins
+
+    with _pinned_dns("scoped.example", ["93.184.216.34"]):
+        assert _pins.map["scoped.example"] == ["93.184.216.34"]
+    assert "scoped.example" not in _pins.map
+
+
+def test_ipv6_unique_local_literal_is_blocked():
+    from study_api.content_fetcher import _is_safe_url
+
+    safe, _ = _is_safe_url("http://[fc00::1]/")
+    assert safe is False
+    safe, _ = _is_safe_url("http://[::ffff:10.0.0.1]/")
+    assert safe is False
