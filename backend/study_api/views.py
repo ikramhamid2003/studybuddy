@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .content_fetcher import process_topic_with_url
 from .dispatchers import (
@@ -32,6 +33,7 @@ from .langchain_client import (
     stream_chat_groq,
     take_last_usage,
 )
+from .throttles import AuthRateThrottle
 
 # Lazy/safe import of the RAG pipeline — the server must start even when its
 # heavy dependencies are missing (same guard dispatchers.py uses).
@@ -200,10 +202,10 @@ def _ground_documents(user, document_ids, query):
 
     try:
         chunks = retrieve_chunks(doc_ids, str(query)[:_MAX_GROUNDING_QUERY_CHARS])
-    except Exception as e:
+    except Exception:
         logger.exception("Document search failed for user=%s", user.pk)
         return Response(
-            {"error": f"Document search failed: {e!s}"},
+            {"error": "Document search failed. Please try again."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
     if not chunks:
@@ -286,19 +288,19 @@ def _cached_json_response(prefix, user_msg, system, llm_call, docs=None):
             data = {**data, "sources": docs["sources"], "grounded_in": docs["document_titles"]}
         cache.set(cache_key, data, timeout=60 * 60 * 24 * 7)
         return Response(data, status=status.HTTP_200_OK)
-    except ValueError as e:
+    except ValueError:
         # The message reaches the client, but nothing else: Sentry never sees a
         # handled exception, so a Groq outage or rate-limit storm would otherwise
         # leave no server-side trace. Prompt text stays out of the log.
         logger.exception("AI response failed schema parsing for tool=%s", prefix)
         return Response(
-            {"error": f"Failed to parse AI response: {e!s}"},
+            {"error": "Failed to parse AI response. Please try again."},
             status=status.HTTP_502_BAD_GATEWAY,
         )
-    except Exception as e:
+    except Exception:
         logger.exception("AI request failed for tool=%s", prefix)
         return Response(
-            {"error": f"AI request failed: {e!s}"},
+            {"error": "AI request failed. Please try again."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
@@ -413,10 +415,10 @@ def _chat_reply_response(message, history=None, docs=None):
     try:
         reply = chat_groq(system, history or [], message, max_tokens=600)
         return Response({"reply": reply, **extra}, status=status.HTTP_200_OK)
-    except Exception as e:
+    except Exception:
         logger.exception("Chat reply request failed")
         return Response(
-            {"error": f"AI request failed: {e!s}"},
+            {"error": "AI request failed. Please try again."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
@@ -623,9 +625,9 @@ class ChatStreamView(APIView):
 
                 record_turn()
                 yield f"data: {json.dumps({'done': True, 'session_id': session.id if session else None, 'sources': sources})}\n\n".encode()
-            except Exception as e:
+            except Exception:
                 logger.exception("Chat stream failed for user=%s", request.user.id)
-                yield f"data: {json.dumps({'error': str(e)})}\n\n".encode()
+                yield f"data: {json.dumps({'error': 'The AI request failed. Please try again.'})}\n\n".encode()
             finally:
                 # A reader that hangs up makes WSGI throw GeneratorExit at the
                 # yield above, which skips both handlers; without this the tokens
@@ -690,6 +692,7 @@ class RegisterView(APIView):
     """POST /api/auth/register/ — Register a new user."""
 
     permission_classes = (AllowAny,)
+    throttle_classes = (AuthRateThrottle,)
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -706,6 +709,12 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(TokenObtainPairView):
+    """POST /api/auth/login/ — token login with a brute-force throttle."""
+
+    throttle_classes = (AuthRateThrottle,)
 
 
 class MeView(APIView):
