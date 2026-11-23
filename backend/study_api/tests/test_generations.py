@@ -36,7 +36,7 @@ def test_generate_rejects_unknown_type(auth_client):
     assert not Generation.objects.exists()
 
 
-@patch("study_api.views.query_groq_json")
+@patch("study_api.generation.query_groq_json")
 def test_generate_explain_persists_generation(mock_query, auth_client):
     # Mock the LLM call so the test focuses on persistence and response shape.
     mock_query.return_value = {
@@ -60,7 +60,7 @@ def test_generate_explain_persists_generation(mock_query, auth_client):
     assert generation.result["explanation"] == "test explanation"
 
 
-@patch("study_api.views.query_groq_structured")
+@patch("study_api.generation.query_groq_structured")
 def test_generate_quiz_persists_generation(mock_query, auth_client):
     mock_query.return_value = QuizResponse.model_validate(
         {
@@ -87,7 +87,7 @@ def test_generate_quiz_persists_generation(mock_query, auth_client):
     assert generation.result["questions"][0]["question"] == "Q?"
 
 
-@patch("study_api.views.query_groq_structured")
+@patch("study_api.generation.query_groq_structured")
 def test_generate_flashcards_persists_generation(mock_query, auth_client):
     mock_query.return_value = FlashcardsResponse.model_validate(
         {"flashcards": [{"id": 1, "front": "F", "back": "B", "hint": "H"}]}
@@ -103,7 +103,7 @@ def test_generate_flashcards_persists_generation(mock_query, auth_client):
     assert generation.result["flashcards"][0]["front"] == "F"
 
 
-@patch("study_api.views.query_groq_json")
+@patch("study_api.generation.query_groq_json")
 def test_generate_summarize_persists_generation(mock_query, auth_client):
     mock_query.return_value = {
         "summary": "test summary",
@@ -123,7 +123,7 @@ def test_generate_summarize_persists_generation(mock_query, auth_client):
     assert generation.type == "summarize"
 
 
-@patch("study_api.views.chat_groq")
+@patch("study_api.generation.chat_groq")
 def test_generate_chat_persists_generation(mock_chat, auth_client):
     mock_chat.return_value = "quick answer"
 
@@ -138,7 +138,7 @@ def test_generate_chat_persists_generation(mock_chat, auth_client):
     assert generation.result["reply"] == "quick answer"
 
 
-@patch("study_api.views.query_groq_json")
+@patch("study_api.generation.query_groq_json")
 def test_failed_generation_is_not_persisted(mock_query, auth_client):
     # Failed model calls should not leave partial history records behind.
     mock_query.side_effect = Exception("groq down")
@@ -150,7 +150,7 @@ def test_failed_generation_is_not_persisted(mock_query, auth_client):
     assert not Generation.objects.exists()
 
 
-@patch("study_api.views.query_groq_json")
+@patch("study_api.generation.query_groq_json")
 def test_generate_explain_uses_level_param(mock_query, auth_client):
     mock_query.return_value = {"explanation": "x"}
 
@@ -164,7 +164,7 @@ def test_generate_explain_uses_level_param(mock_query, auth_client):
     assert "advanced level" in user_msg
 
 
-@patch("study_api.views.query_groq_structured")
+@patch("study_api.generation.query_groq_structured")
 def test_generate_quiz_uses_custom_params(mock_query, auth_client):
     mock_query.return_value = QuizResponse.model_validate(
         {
@@ -201,7 +201,7 @@ def test_generate_rejects_out_of_range_params(auth_client):
     assert not Generation.objects.exists()
 
 
-@patch("study_api.views.chat_groq")
+@patch("study_api.generation.chat_groq")
 def test_generate_chat_uses_history(mock_chat, auth_client):
     mock_chat.return_value = "following along"
 

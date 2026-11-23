@@ -118,7 +118,7 @@ def test_expensive_generate_action_has_stricter_limit(tight_generate_limit, auth
     """generate uses the generate scope, so it trips before the global user ceiling."""
     from unittest.mock import patch
 
-    with patch("study_api.views.query_groq_json") as mock_query:
+    with patch("study_api.generation.query_groq_json") as mock_query:
         mock_query.return_value = {"explanation": "x"}
         first = auth_client.post(
             "/api/generate/",

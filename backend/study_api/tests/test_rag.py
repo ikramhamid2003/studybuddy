@@ -637,8 +637,8 @@ EXPLAIN_PAYLOAD = {
 }
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_explain_is_grounded_in_selected_documents(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -665,8 +665,8 @@ def test_generate_explain_is_grounded_in_selected_documents(
     assert generation.result["sources"][0]["document_id"] == ready_doc.id
 
 
-@patch("study_api.views.query_groq_structured")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_structured")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_quiz_and_flashcards_are_grounded_too(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -698,8 +698,8 @@ def test_generate_quiz_and_flashcards_are_grounded_too(
     assert resp.data["grounded_in"] == ["Physics Notes"]
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_small_selection_is_fed_whole_without_retrieval(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -721,14 +721,14 @@ def test_small_selection_is_fed_whole_without_retrieval(
     assert resp.data["sources"][0]["document_id"] == ready_doc.id
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_oversized_selection_falls_back_to_retrieval(
     mock_retrieve, mock_query, user, ready_doc
 ):
-    from study_api import views
+    from study_api import generation
 
-    ready_doc.raw_text = "x" * (views._FULL_DOC_CHAR_BUDGET + 1)
+    ready_doc.raw_text = "x" * (generation._FULL_DOC_CHAR_BUDGET + 1)
     ready_doc.save(update_fields=["raw_text"])
     mock_retrieve.return_value = [_chunk(ready_doc)]
     mock_query.return_value = EXPLAIN_PAYLOAD
@@ -744,8 +744,8 @@ def test_oversized_selection_falls_back_to_retrieval(
     assert "Newton's first law" in mock_query.call_args.args[1]
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_selection_with_an_unextracted_doc_falls_back_to_retrieval(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -770,7 +770,7 @@ def test_selection_with_an_unextracted_doc_falls_back_to_retrieval(
     mock_retrieve.assert_called_once()
 
 
-@patch("study_api.views.query_groq_structured")
+@patch("study_api.generation.query_groq_structured")
 def test_flashcards_retry_recovers_from_a_schema_violation(mock_query, user):
     from study_api.schemas import FlashcardsResponse
 
@@ -793,7 +793,7 @@ def test_flashcards_retry_recovers_from_a_schema_violation(mock_query, user):
     assert resp.data["flashcards"][0]["hint"] == "h"
 
 
-@patch("study_api.views.query_groq_structured")
+@patch("study_api.generation.query_groq_structured")
 def test_flashcards_second_schema_violation_surfaces_as_502(mock_query, user):
     mock_query.side_effect = ValueError("flashcards.7.hint Field required")
 
@@ -808,8 +808,8 @@ def test_flashcards_second_schema_violation_surfaces_as_502(mock_query, user):
     assert "Failed to parse AI response" in resp.data["error"]
 
 
-@patch("study_api.views.chat_groq")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.chat_groq")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_chat_can_be_grounded(mock_retrieve, mock_chat, user, ready_doc):
     mock_retrieve.return_value = [_chunk(ready_doc)]
     mock_chat.return_value = "According to your notes, inertia keeps a body at rest."
@@ -825,8 +825,8 @@ def test_generate_chat_can_be_grounded(mock_retrieve, mock_chat, user, ready_doc
     assert resp.data["grounded_in"] == ["Physics Notes"]
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_rejects_documents_that_are_not_ready_or_not_mine(
     mock_retrieve, mock_query, user, other_user
 ):
@@ -854,8 +854,8 @@ def test_generate_rejects_documents_that_are_not_ready_or_not_mine(
     mock_query.assert_not_called()
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_caps_the_document_list_at_the_prompt_budget(
     mock_retrieve, mock_query, user
 ):
@@ -891,8 +891,8 @@ def test_generate_caps_the_document_list_at_the_prompt_budget(
     mock_query.assert_called_once()
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_generate_without_documents_behaves_exactly_as_before(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -908,8 +908,8 @@ def test_generate_without_documents_behaves_exactly_as_before(
     assert "sources" not in resp.data
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_retrieval_failure_does_not_generate(mock_retrieve, mock_query, user, ready_doc):
     mock_retrieve.side_effect = RuntimeError("embedding provider is down")
 
@@ -925,8 +925,8 @@ def test_retrieval_failure_does_not_generate(mock_retrieve, mock_query, user, re
     mock_query.assert_not_called()
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_empty_retrieval_reports_instead_of_answering_anyway(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -943,8 +943,8 @@ def test_empty_retrieval_reports_instead_of_answering_anyway(
     mock_query.assert_not_called()
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_changed_documents_do_not_reuse_a_cached_answer(
     mock_retrieve, mock_query, user, ready_doc
 ):
@@ -966,8 +966,8 @@ def test_changed_documents_do_not_reuse_a_cached_answer(
     assert mock_query.call_count == 2
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_grounded_cache_is_scoped_per_user(
     mock_retrieve, mock_query, user, other_user, ready_doc
 ):
@@ -1029,8 +1029,8 @@ def test_grounded_cache_is_scoped_per_user(
     assert mock_query.call_count == 2
 
 
-@patch("study_api.views.query_groq_json")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.query_groq_json")
+@patch("study_api.generation.retrieve_chunks")
 def test_ungrounded_cache_stays_shared_across_users(
     mock_retrieve, mock_query, user, other_user
 ):
@@ -1049,7 +1049,7 @@ def test_ungrounded_cache_stays_shared_across_users(
 
 
 @patch("study_api.views.stream_chat_groq")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.retrieve_chunks")
 def test_chat_stream_is_grounded_and_cites_documents(
     mock_retrieve, mock_stream, user, ready_doc
 ):
@@ -1073,7 +1073,7 @@ def test_chat_stream_is_grounded_and_cites_documents(
 
 
 @patch("study_api.views.stream_chat_groq")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.retrieve_chunks")
 def test_chat_stream_refuses_documents_that_are_not_ready(mock_retrieve, mock_stream, user):
     pending = Document.objects.create(
         user=user, title="Later", filename="l.txt", status="processing"
@@ -1091,7 +1091,7 @@ def test_chat_stream_refuses_documents_that_are_not_ready(mock_retrieve, mock_st
 
 
 @patch("study_api.views.stream_chat_groq")
-@patch("study_api.views.retrieve_chunks")
+@patch("study_api.generation.retrieve_chunks")
 def test_chat_stream_without_documents_stays_ungrounded(mock_retrieve, mock_stream, user):
     mock_stream.return_value = ["plain answer"]
 
