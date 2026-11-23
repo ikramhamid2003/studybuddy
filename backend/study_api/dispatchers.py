@@ -1,6 +1,5 @@
 # Lazy/safe import of LangChain — network calls during module init can block
 import logging
-import threading
 from datetime import timedelta
 from typing import Any
 
@@ -12,6 +11,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
+from .ingestion import MAX_ATTEMPTS, enqueue
+from .ingestion import kick_worker as kick_ingest_worker
 from .models import (
     ChatSession,
     Document,
@@ -244,15 +245,28 @@ def _reap_stale_documents(user: User) -> None:
     stops. Reaping lazily on read keeps it bounded to the requesting user and
     needs no scheduler. A thread that is merely slow will still finish and
     overwrite the status with 'ready'.
+
+    A document whose upload bytes are still stored is put back in the queue
+    (up to MAX_ATTEMPTS tries) rather than failed; only one without bytes, or
+    out of attempts, is reported as an error.
     """
 
     timeout = settings.RAG_INGEST_TIMEOUT_SECONDS
     now = timezone.now()
-    Document.objects.filter(
+    stale = Document.objects.filter(
         user=user,
         status__in=("pending", "processing"),
         updated_at__lt=now - timedelta(seconds=timeout),
-    ).update(
+    )
+    retry_ids = list(
+        stale.filter(upload__attempts__lt=MAX_ATTEMPTS).values_list("id", flat=True)
+    )
+    if retry_ids:
+        Document.objects.filter(id__in=retry_ids).update(
+            status="pending", updated_at=now
+        )
+        kick_ingest_worker()
+    stale.exclude(id__in=retry_ids).update(
         status="error",
         error_message=(
             "Processing was interrupted by a server restart. "
@@ -267,8 +281,8 @@ def _action_rag_upload(data: dict[str, Any], request: Any) -> Response:
     """Receive an uploaded file, create a Document record, and start ingestion.
 
     The file arrives via multipart/form-data in request.FILES['file'].
-    Ingestion (extract → chunk → embed → store) runs in a background thread
-    so the HTTP response is immediate and the UI can poll for status.
+    Ingestion (extract → chunk → embed → store) runs from a durable queue
+    (see ingestion.py) so the HTTP response is immediate and the UI can poll.
     """
     from django.conf import settings as dj_settings
 
@@ -305,19 +319,11 @@ def _action_rag_upload(data: dict[str, Any], request: Any) -> Response:
         status="pending",
     )
 
-    # Kick off ingestion in a background thread to return immediately.
-    def _run_ingest(doc_id: int, content: bytes) -> None:
-        try:
-            ingest_document(doc_id, content)
-        except Exception:  # noqa: BLE001, S110 — ingest_document already updates doc.status to 'error'
-            pass
-        finally:
-            # Clean up the thread-local database connection to avoid leaks
-            from django.db import connection
-            connection.close()
-
-    thread = threading.Thread(target=_run_ingest, args=(doc.id, file_bytes), daemon=True)
-    thread.start()
+    # Persist the bytes first, then wake the worker: the response is immediate
+    # and a restart before ingestion finishes requeues the work instead of
+    # losing it.
+    enqueue(doc, file_bytes)
+    kick_ingest_worker()
 
     return _ok(_doc_dict(doc), status=status.HTTP_201_CREATED)
 

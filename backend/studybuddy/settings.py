@@ -252,11 +252,15 @@ RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "800"))
 RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
 RAG_MAX_UPLOAD_MB = int(os.getenv("RAG_MAX_UPLOAD_MB", "20"))
-# Ingestion runs in a daemon thread and the uploaded bytes are never persisted,
-# so a restart mid-ingest kills the work with nothing to resume from. Documents
-# left in pending/processing past this age are reported as failed instead of
-# leaving the UI polling forever.
+# Uploaded bytes are stored until ingestion finishes, so a restart mid-ingest
+# requeues the document (up to ingestion.MAX_ATTEMPTS times). Documents left in
+# pending/processing past this age are requeued or, when out of attempts,
+# reported as failed instead of leaving the UI polling forever.
 RAG_INGEST_TIMEOUT_SECONDS = int(os.getenv("RAG_INGEST_TIMEOUT_SECONDS", "600"))
+# Drain the ingestion queue from a thread inside the web process. Turn off when
+# a separate `manage.py process_ingest_queue` worker runs; tests drive the queue
+# explicitly instead.
+RAG_START_WORKER_THREAD = _env_bool("RAG_START_WORKER_THREAD", not IS_TESTING)
 
 # Signup email notifications. Configure these as Render environment variables.
 SIGNUP_NOTIFICATION_EMAIL = os.getenv("SIGNUP_NOTIFICATION_EMAIL", "")

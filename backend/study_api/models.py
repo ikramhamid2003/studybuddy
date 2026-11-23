@@ -198,3 +198,24 @@ class DocumentChunk(models.Model):
 
     def __str__(self):
         return f"Chunk {self.chunk_index} of {self.document.title}"
+
+
+class DocumentUpload(models.Model):
+    """Raw uploaded bytes awaiting (or mid-) ingestion.
+
+    Exists only while a document is in the queue: it is deleted once ingestion
+    finishes, and the extracted text lives on Document.raw_text from then on.
+    Keeping it is what lets a restart requeue the work instead of losing it.
+    """
+
+    document = models.OneToOneField(
+        Document, on_delete=models.CASCADE, related_name="upload"
+    )
+    data = models.BinaryField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = models.Manager()
+
+    def __str__(self):
+        return f"Upload for document {self.document_id} (attempt {self.attempts})"
