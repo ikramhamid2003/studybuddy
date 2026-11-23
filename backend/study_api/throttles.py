@@ -58,3 +58,19 @@ class StudyBuddyUserRateThrottle(UserRateThrottle):
     """Global authenticated ceiling that sits alongside ActionRateThrottle."""
 
     scope = "user"
+
+
+class AuthRateThrottle(SimpleRateThrottle):
+    """Per-client ceiling on register/login to blunt brute force and signup abuse.
+
+    Keyed on the client address (the proxy-forwarded one when present), since
+    the callers are not authenticated yet.
+    """
+
+    scope = "auth"
+
+    def get_cache_key(self, request, view) -> str | None:
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": self.get_ident(request),
+        }

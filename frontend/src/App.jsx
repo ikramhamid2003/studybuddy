@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -5,19 +6,41 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
-import AllPage from "./pages/AllPage";
-import ExplainPage from "./pages/ExplainPage";
-import SummarizePage from "./pages/SummarizePage";
-import QuizPage from "./pages/QuizPage";
-import FlashcardsPage from "./pages/FlashcardsPage";
-import ChatPage from "./pages/ChatPage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DocumentLibraryProvider } from "./context/DocumentLibraryContext";
 
+// Each tool page loads on first visit instead of with the landing page. Chat
+// alone pulls in the markdown renderer, so this keeps it off the first paint.
+const AllPage = lazy(() => import("./pages/AllPage"));
+const ExplainPage = lazy(() => import("./pages/ExplainPage"));
+const SummarizePage = lazy(() => import("./pages/SummarizePage"));
+const QuizPage = lazy(() => import("./pages/QuizPage"));
+const FlashcardsPage = lazy(() => import("./pages/FlashcardsPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+
 const queryClient = new QueryClient();
+
+function PageSpinner() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center" role="status" aria-label="Loading">
+      <div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// One shell for every signed-in tool page: auth gate, layout, error boundary.
+function Workspace({ children }) {
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </Layout>
+    </ProtectedRoute>
+  );
+}
 
 // Keeps private study tools behind authentication while the current session is
 // still being restored from local storage.
@@ -80,6 +103,7 @@ export default function App() {
             }}
           />
           <DocumentLibraryProvider>
+          <Suspense fallback={<PageSpinner />}>
           <Routes>
             {/* Public Pages */}
             <Route path="/" element={<HomePage />} />
@@ -87,82 +111,17 @@ export default function App() {
             <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
             
             {/* Protected Workspace Pages */}
-            <Route
-              path="/all"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <AllPage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/explain"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <ExplainPage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/summarize"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <SummarizePage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/quiz"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <QuizPage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/flashcards"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <FlashcardsPage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ErrorBoundary>
-                      <ChatPage />
-                    </ErrorBoundary>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/all" element={<Workspace><AllPage /></Workspace>} />
+            <Route path="/explain" element={<Workspace><ExplainPage /></Workspace>} />
+            <Route path="/summarize" element={<Workspace><SummarizePage /></Workspace>} />
+            <Route path="/quiz" element={<Workspace><QuizPage /></Workspace>} />
+            <Route path="/flashcards" element={<Workspace><FlashcardsPage /></Workspace>} />
+            <Route path="/chat" element={<Workspace><ChatPage /></Workspace>} />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
           </DocumentLibraryProvider>
           <Analytics />
           <SpeedInsights />

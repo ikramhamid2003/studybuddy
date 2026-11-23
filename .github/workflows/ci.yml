@@ -32,6 +32,14 @@ jobs:
         run: |
           ruff check backend/
 
+      - name: Audit Python dependencies
+        # Advisory for now: a newly published CVE should surface in the log
+        # without blocking unrelated work. Flip continue-on-error off to enforce.
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
+
       - name: Check for Unmigrated Model Changes
         env:
           GROQ_API_KEY: "fake_key"
@@ -139,3 +147,16 @@ jobs:
         run: |
           cd frontend
           npm test -- --watchAll=false
+
+      - name: Production build
+        env:
+          CI: false
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Audit production npm dependencies
+        continue-on-error: true
+        run: |
+          cd frontend
+          npm audit --omit=dev --audit-level=high

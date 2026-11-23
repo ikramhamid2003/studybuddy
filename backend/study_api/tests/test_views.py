@@ -103,3 +103,60 @@ def test_chat_stream_view(mock_stream, auth_client):
     assert "hello" in chunks
     assert "stream" in chunks
 
+
+
+# ── Registration hardening ──────────────────────────────────────────────────
+
+
+def _register(client, **overrides):
+    payload = {
+        "username": "newuser",
+        "email": "new@example.com",
+        "password": "a-Decent-passphrase-91",
+        **overrides,
+    }
+    return client.post("/api/auth/register/", payload, format="json")
+
+
+def test_register_rejects_common_password(api_client):
+    resp = _register(api_client, password="password123")
+    assert resp.status_code == 400
+    assert "password" in resp.data
+
+
+def test_register_rejects_password_similar_to_username(api_client):
+    resp = _register(api_client, username="studentname", password="studentname1")
+    assert resp.status_code == 400
+    assert "password" in resp.data
+
+
+def test_register_rejects_duplicate_email_case_insensitively(api_client):
+    assert _register(api_client).status_code == 201
+    resp = _register(api_client, username="other", email="NEW@example.com")
+    assert resp.status_code == 400
+    assert "email" in resp.data
+
+
+def test_register_allows_blank_email_for_several_accounts(api_client):
+    assert _register(api_client, username="a1", email="").status_code == 201
+    assert _register(api_client, username="b2", email="").status_code == 201
+
+
+def test_auth_endpoints_are_throttled(api_client, monkeypatch):
+    from django.core.cache import cache
+
+    from study_api.throttles import AuthRateThrottle
+
+    cache.clear()
+    monkeypatch.setattr(AuthRateThrottle, "THROTTLE_RATES", {"auth": "2/hour"})
+    codes = [
+        api_client.post(
+            "/api/auth/login/",
+            {"username": "nobody", "password": "wrong"},
+            format="json",
+        ).status_code
+        for _ in range(3)
+    ]
+    assert codes[:2] == [401, 401]
+    assert codes[2] == 429
+    cache.clear()

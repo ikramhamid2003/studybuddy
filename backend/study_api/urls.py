@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .serializers import UsernameTokenObtainPairSerializer
 from .views import (
@@ -11,6 +11,7 @@ from .views import (
     GenerateView,
     GenerationDetailView,
     GenerationListView,
+    LoginView,
     MeView,
     RagDocumentDetailView,
     RagDocumentsView,
@@ -41,7 +42,7 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="auth_register"),
     path(
         "auth/login/",
-        TokenObtainPairView.as_view(serializer_class=UsernameTokenObtainPairSerializer),
+        LoginView.as_view(serializer_class=UsernameTokenObtainPairSerializer),
         name="token_obtain_pair",
     ),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
