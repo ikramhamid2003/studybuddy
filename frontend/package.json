@@ -6,7 +6,7 @@
     "node": "24.x"
   },
   "dependencies": {
-    "@sentry/react": "^10.59.0",
+    "@sentry/react": "^11.16.0",
     "@tanstack/react-query": "^5.108.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.1.0",
