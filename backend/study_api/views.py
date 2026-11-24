@@ -213,6 +213,8 @@ class ChatStreamView(APIView):
         sources = docs["sources"] if docs else []
 
         def event_generator():
+            # Usage accumulates per context; start this turn from zero.
+            reset_last_usage()
             full_reply_parts: list[str] = []
             turn_recorded = False
 

@@ -182,8 +182,8 @@ def _llm_call_with_retry(llm_call, system, user_msg):
 
     Occasional samples violate the schema (a missing field, JSON cut at the
     token budget); a regeneration at the same temperature clears most of them,
-    so only a second failure surfaces as a 502. The failed attempt's token
-    usage is not recorded — take_last_usage reads the final call only.
+    so only a second failure surfaces as a 502. Both attempts' tokens are
+    metered: the provider charged for the failed one too.
     """
 
     try:

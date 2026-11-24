@@ -7,6 +7,7 @@ feature read as dead — that GenerateView writes the counts and the priced cost
 onto the Generation row that /api/usage/ reports from.
 """
 
+import contextlib
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -22,6 +23,7 @@ from study_api.dispatchers import enforce_daily_token_limit, tokens_used_today
 from study_api.langchain_client import (
     _extract_usage,
     estimate_cost_usd,
+    reset_last_usage,
     take_last_usage,
 )
 from study_api.models import Generation, UsageLog
@@ -75,7 +77,8 @@ def test_extract_usage_returns_none_when_absent():
 
 
 def test_take_last_usage_clears_after_reading():
-    # Without the reset a worker thread would carry usage into the next request.
+    # Reading hands the total over and clears it, so it cannot be billed twice.
+    reset_last_usage()
     with patch(
         "study_api.langchain_client._get_llm",
         return_value=FakeLLM(EXPLAIN_JSON, {"input_tokens": 5, "output_tokens": 6}),
@@ -85,6 +88,93 @@ def test_take_last_usage_clears_after_reading():
         query_groq_json("sys", "user")
         assert take_last_usage() == {"input_tokens": 5, "output_tokens": 6}
         assert take_last_usage() == {"input_tokens": 0, "output_tokens": 0}
+
+
+def test_usage_accumulates_across_calls_until_read():
+    from study_api.langchain_client import _add_usage
+
+    reset_last_usage()
+    _add_usage({"input_tokens": 10, "output_tokens": 4})
+    _add_usage({"input_tokens": 3, "output_tokens": 2})
+    assert take_last_usage() == {"input_tokens": 13, "output_tokens": 6}
+
+
+def test_failed_attempt_is_metered_when_retry_succeeds():
+    """A schema-invalid first sample still cost tokens; the retry must add, not replace."""
+    from study_api.generation import _llm_call_with_retry
+    from study_api.langchain_client import _add_usage
+
+    reset_last_usage()
+    attempts = []
+
+    def flaky(system, user):
+        _add_usage({"input_tokens": 100, "output_tokens": 50})
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise ValueError("bad schema")
+        return {"ok": True}
+
+    assert _llm_call_with_retry(flaky, "s", "u") == {"ok": True}
+    assert take_last_usage() == {"input_tokens": 200, "output_tokens": 100}
+
+
+def test_structured_fallback_meters_both_calls():
+    from study_api.langchain_client import query_groq_structured
+    from study_api.schemas import QuizResponse
+
+    class Fake:
+        def __init__(self):
+            self.calls = 0
+
+        def with_structured_output(self, schema, include_raw=True):
+            class S:
+                def invoke(self, messages):
+                    raw = AIMessage(content="x")
+                    raw.usage_metadata = {
+                        "input_tokens": 30, "output_tokens": 20, "total_tokens": 50,
+                    }
+                    return {"raw": raw, "parsed": None, "parsing_error": "bad"}
+
+            return S()
+
+        def invoke(self, messages):
+            msg = AIMessage(content='{"questions": []}')
+            msg.usage_metadata = {"input_tokens": 30, "output_tokens": 5, "total_tokens": 35}
+            return msg
+
+    reset_last_usage()
+    # The empty quiz may fail validation (a ValueError); usage is what matters.
+    with (
+        patch("study_api.langchain_client._get_llm", return_value=Fake()),
+        contextlib.suppress(ValueError),
+    ):
+        query_groq_structured("sys", "user", QuizResponse)
+    assert take_last_usage() == {"input_tokens": 60, "output_tokens": 25}
+
+
+def test_streamed_usage_counts_once_and_survives_a_dropped_reader():
+    from study_api.langchain_client import stream_chat_groq
+
+    class Chunk:
+        def __init__(self, text, usage=None):
+            self.content = text
+            self.usage_metadata = usage
+            self.response_metadata = {}
+
+    running = {"input_tokens": 9, "output_tokens": 4, "total_tokens": 13}
+
+    class Fake:
+        def stream(self, messages):
+            yield Chunk("a", running)  # providers may repeat the running total
+            yield Chunk("b", running)
+            yield Chunk("c", running)
+
+    reset_last_usage()
+    with patch("study_api.langchain_client._get_llm", return_value=Fake()):
+        gen = stream_chat_groq("sys", [], "hi")
+        next(gen)
+        gen.close()  # reader hung up mid-stream
+    assert take_last_usage() == {"input_tokens": 9, "output_tokens": 4}
 
 
 # ── Cost estimation ─────────────────────────────────────────────────────────

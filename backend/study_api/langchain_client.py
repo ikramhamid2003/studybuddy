@@ -12,16 +12,18 @@ logger = logging.getLogger(__name__)
 
 # Token counts are reported out-of-band rather than added to each return value,
 # because every caller already depends on these functions returning a
-# str/dict/model. A ContextVar keeps the value local to the request, and each
-# call clears it first so a worker thread can never attribute the previous
-# request's tokens to the current Generation row.
+# str/dict/model. A ContextVar keeps the value local to the request. It holds
+# the running total of every model call made since the last reset, so a retried
+# or fallback call is billed in full. Because nothing here clears it per call,
+# each request entry point must call reset_last_usage() before its first model
+# call, or a worker thread would attribute the previous request's tokens to it.
 _LAST_USAGE: ContextVar[dict[str, int] | None] = ContextVar(
     "studybuddy_last_usage", default=None
 )
 
 
 def take_last_usage() -> dict[str, int]:
-    """Return the token counts from this context's most recent LLM call, then clear them."""
+    """Return the tokens spent by every LLM call since the last reset, then clear them."""
 
     usage = _LAST_USAGE.get()
     _LAST_USAGE.set(None)
@@ -64,10 +66,22 @@ def _extract_usage(message) -> dict[str, int] | None:
     return {"input_tokens": int(input_tokens), "output_tokens": int(output_tokens)}
 
 
+def _add_usage(usage: dict[str, int] | None) -> None:
+    """Add one call's tokens to this context's running total."""
+
+    if not usage:
+        return
+    total = _LAST_USAGE.get() or {"input_tokens": 0, "output_tokens": 0}
+    _LAST_USAGE.set(
+        {
+            "input_tokens": total["input_tokens"] + usage["input_tokens"],
+            "output_tokens": total["output_tokens"] + usage["output_tokens"],
+        }
+    )
+
+
 def _record_usage(message) -> None:
-    usage = _extract_usage(message)
-    if usage:
-        _LAST_USAGE.set(usage)
+    _add_usage(_extract_usage(message))
 
 
 def _get_llm(streaming: bool = False, max_tokens: int = 800):
@@ -93,7 +107,6 @@ def _get_llm(streaming: bool = False, max_tokens: int = 800):
 def query_groq(system: str, user: str, max_tokens: int = 800) -> str:
     """Drop-in replacement: plain text response."""
     llm = _get_llm(max_tokens=max_tokens)
-    _LAST_USAGE.set(None)
     # System + user messages keep instructions separate from student content.
     result = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
     _record_usage(result)
@@ -104,7 +117,6 @@ def query_groq_json(system: str, user: str, max_tokens: int = 800) -> dict:
     """Drop-in replacement: parsed JSON response, using LangChain's JsonOutputParser
     instead of your hand-rolled regex extract_json()."""
     llm = _get_llm(max_tokens=max_tokens)
-    _LAST_USAGE.set(None)
     # The parser discards the message object, so invoke the model directly to
     # keep access to its usage metadata before handing the text to the parser.
     result = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
@@ -115,13 +127,19 @@ def query_groq_json(system: str, user: str, max_tokens: int = 800) -> dict:
 def stream_groq(system: str, user: str, max_tokens: int = 800):
     """Drop-in replacement: yields text chunks for your SSE endpoint."""
     llm = _get_llm(streaming=True, max_tokens=max_tokens)
-    _LAST_USAGE.set(None)
-    for chunk in llm.stream([SystemMessage(content=system), HumanMessage(content=user)]):
-        # Usage, when the provider sends it, rides on the final chunk.
-        _record_usage(chunk)
-        # Streaming may include metadata-only chunks; skip those for SSE output.
-        if chunk.content:
-            yield str(chunk.content)
+    final_usage = None
+    try:
+        for chunk in llm.stream([SystemMessage(content=system), HumanMessage(content=user)]):
+            # Usage, when the provider sends it, rides on the final chunk. Keep
+            # the latest rather than summing: some providers repeat the running
+            # total on every chunk.
+            final_usage = _extract_usage(chunk) or final_usage
+            # Streaming may include metadata-only chunks; skip those for SSE output.
+            if chunk.content:
+                yield str(chunk.content)
+    finally:
+        # Runs even when the reader hangs up, so a cut-off reply still counts.
+        _add_usage(final_usage)
 
 
 # ── Structured output (Quiz / Flashcards) ───────────────────────────────────
@@ -138,7 +156,6 @@ def query_groq_structured(
     """
     llm = _get_llm(max_tokens=max_tokens)
     messages = [SystemMessage(content=system), HumanMessage(content=user)]
-    _LAST_USAGE.set(None)
 
     try:
         # include_raw keeps the AIMessage so we can still record token usage.
@@ -197,7 +214,6 @@ def chat_groq(system: str, history: list[dict], message: str, max_tokens: int = 
     transcript string — no more regex-stripping 'Study Buddy:' prefixes."""
     llm = _get_llm(max_tokens=max_tokens)
     messages = build_message_history(system, history, message)
-    _LAST_USAGE.set(None)
     result = llm.invoke(messages)
     _record_usage(result)
     return str(result.content).strip()
@@ -209,9 +225,12 @@ def stream_chat_groq(
     """Streaming version of chat_groq, for the SSE chat endpoint."""
     llm = _get_llm(streaming=True, max_tokens=max_tokens)
     messages = build_message_history(system, history, message)
-    _LAST_USAGE.set(None)
-    for chunk in llm.stream(messages):
-        _record_usage(chunk)
-        # LangChain may emit empty structural chunks; only forward visible text.
-        if chunk.content:
-            yield chunk.content
+    final_usage = None
+    try:
+        for chunk in llm.stream(messages):
+            final_usage = _extract_usage(chunk) or final_usage
+            # LangChain may emit empty structural chunks; only forward visible text.
+            if chunk.content:
+                yield chunk.content
+    finally:
+        _add_usage(final_usage)
