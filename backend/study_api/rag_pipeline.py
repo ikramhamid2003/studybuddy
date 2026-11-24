@@ -265,6 +265,33 @@ def _source_text_for_reindex(doc: Document) -> tuple[str, int]:
     return "\n\n".join(chunk_texts), max(1, int(doc.page_count or 1))
 
 
+def _enforce_chunk_caps(doc: Document, new_chunks: int) -> None:
+    """Refuse a document that would blow the per-document or per-user chunk budget.
+
+    A cap of 0 (or less) disables that check. The user total excludes this
+    document's own existing chunks, since a re-index replaces them.
+    """
+    from .models import DocumentChunk
+
+    per_doc = int(getattr(settings, "RAG_MAX_CHUNKS_PER_DOCUMENT", 0) or 0)
+    if per_doc > 0 and new_chunks > per_doc:
+        raise ValueError(
+            f"This document is too large to index ({new_chunks:,} sections; the limit is "
+            f"{per_doc:,}). Split it into smaller files and upload them separately."
+        )
+
+    per_user = int(getattr(settings, "RAG_MAX_CHUNKS_PER_USER", 0) or 0)
+    if per_user > 0:
+        others = DocumentChunk.objects.filter(document__user=doc.user_id).exclude(
+            document=doc
+        ).count()
+        if others + new_chunks > per_user:
+            raise ValueError(
+                "Your library is full: indexing this document would exceed the "
+                f"{per_user:,}-section limit. Delete a document you no longer need and try again."
+            )
+
+
 def _rechunk_and_embed(doc: Document, text: str, page_count: int) -> None:
     """Chunk *text*, embed, and replace all DocumentChunk rows for *doc*."""
     from .models import DocumentChunk
@@ -272,6 +299,9 @@ def _rechunk_and_embed(doc: Document, text: str, page_count: int) -> None:
     chunks = chunk_text(text, page_count)
     if not chunks:
         raise ValueError("Document produced no chunks after splitting.")
+
+    # Checked before embedding: the embedding calls are the part that costs money.
+    _enforce_chunk_caps(doc, len(chunks))
 
     texts = [c["text"] for c in chunks]
     vectors = embed_texts(texts)
