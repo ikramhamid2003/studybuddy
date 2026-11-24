@@ -143,10 +143,12 @@ def test_structured_fallback_meters_both_calls():
             return msg
 
     reset_last_usage()
-    with patch("study_api.langchain_client._get_llm", return_value=Fake()):
-        # The empty quiz may fail validation (a ValueError); usage is what matters.
-        with contextlib.suppress(ValueError):
-            query_groq_structured("sys", "user", QuizResponse)
+    # The empty quiz may fail validation (a ValueError); usage is what matters.
+    with (
+        patch("study_api.langchain_client._get_llm", return_value=Fake()),
+        contextlib.suppress(ValueError),
+    ):
+        query_groq_structured("sys", "user", QuizResponse)
     assert take_last_usage() == {"input_tokens": 60, "output_tokens": 25}
 
 
