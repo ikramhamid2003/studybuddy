@@ -272,6 +272,11 @@ RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "800"))
 RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
 RAG_MAX_UPLOAD_MB = int(os.getenv("RAG_MAX_UPLOAD_MB", "20"))
+# Library caps keep one account from running up unbounded embedding calls and
+# storage. A value of 0 disables that check.
+RAG_MAX_DOCUMENTS_PER_USER = int(os.getenv("RAG_MAX_DOCUMENTS_PER_USER", "25"))
+RAG_MAX_CHUNKS_PER_DOCUMENT = int(os.getenv("RAG_MAX_CHUNKS_PER_DOCUMENT", "2000"))
+RAG_MAX_CHUNKS_PER_USER = int(os.getenv("RAG_MAX_CHUNKS_PER_USER", "10000"))
 # Uploaded bytes are stored until ingestion finishes, so a restart mid-ingest
 # requeues the document (up to ingestion.MAX_ATTEMPTS times). Documents left in
 # pending/processing past this age are requeued or, when out of attempts,

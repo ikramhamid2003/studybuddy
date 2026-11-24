@@ -306,6 +306,13 @@ def _action_rag_upload(data: dict[str, Any], request: Any) -> Response:
     if ext not in allowed_ext:
         return _error("Unsupported file type. Upload a PDF, TXT, or MD file.")
 
+    max_docs = int(getattr(dj_settings, "RAG_MAX_DOCUMENTS_PER_USER", 0) or 0)
+    if max_docs > 0 and Document.objects.filter(user=request.user).count() >= max_docs:
+        return _error(
+            f"You can keep up to {max_docs} documents. Delete one before uploading another.",
+            status.HTTP_409_CONFLICT,
+        )
+
     file_bytes = file_obj.read()
     raw_title = (data.get("title") or "").strip() or filename
     title = raw_title[:500]

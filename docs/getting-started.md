@@ -59,6 +59,9 @@ below.
 | `RAG_CHUNK_OVERLAP` | no | `150` | Chunk overlap (18.75% of the chunk) so answers straddling a boundary are not missed. |
 | `RAG_TOP_K` | no | `5` | Chunks retrieved per query. |
 | `RAG_MAX_UPLOAD_MB` | no | `20` | Upload size ceiling. |
+| `RAG_MAX_DOCUMENTS_PER_USER` | no | `25` | Documents one account may keep; further uploads get a 409. `0` disables. |
+| `RAG_MAX_CHUNKS_PER_DOCUMENT` | no | `2000` | Sections one document may produce; larger files fail before any embedding call. `0` disables. |
+| `RAG_MAX_CHUNKS_PER_USER` | no | `10000` | Total indexed sections per account. `0` disables. |
 | `SIGNUP_NOTIFICATION_EMAIL` | no | `""` (feature off) | Recipient for the signup-notification email. Filling this one value activates the feature. |
 | `DEFAULT_FROM_EMAIL` | no | — | Must equal `EMAIL_HOST_USER` for Gmail, or the send is rejected. |
 | `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` / `EMAIL_USE_TLS` | no | `smtp.gmail.com` / `587` / — / — / `true` | SMTP transport. Gmail needs a **16-character App Password**, not the account password. |
