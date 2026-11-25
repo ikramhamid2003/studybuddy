@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@sentry/react": "^10.59.0",
-    "@tanstack/react-query": "^5.108.1",
+    "@tanstack/react-query": "^5.108.2",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.1.0",
     "lucide-react": "^1.77.0",
