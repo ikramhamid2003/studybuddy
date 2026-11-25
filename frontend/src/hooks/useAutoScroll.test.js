@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import useAutoScroll from "./useAutoScroll";
 
 function setup(initial) {
-  const scrollIntoView = jest.fn();
+  const scrollIntoView = vi.fn();
   const bottomRef = { current: { scrollIntoView } };
   const view = renderHook((props) => useAutoScroll({ bottomRef, ...props }), {
     initialProps: initial,
@@ -14,7 +14,7 @@ function setup(initial) {
 }
 
 beforeEach(() => {
-  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+  window.matchMedia = vi.fn().mockReturnValue({ matches: false });
 });
 
 test("follows new content while the reader is at the bottom", () => {
@@ -55,7 +55,7 @@ test("sending a message always jumps back to the bottom", () => {
 });
 
 test("skips smooth scrolling when the user prefers reduced motion", () => {
-  window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+  window.matchMedia = vi.fn().mockReturnValue({ matches: true });
   const { rerender, scrollIntoView } = setup({ changeKey: "1", lastIsUser: false });
   scrollIntoView.mockClear();
 

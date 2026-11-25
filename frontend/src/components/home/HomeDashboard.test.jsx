@@ -4,15 +4,15 @@ import { MemoryRouter } from "react-router-dom";
 import HomeDashboard from "./HomeDashboard";
 import { fetchUsageStats, listChatSessions, listDocuments, listGenerations } from "../../utils/api";
 
-jest.mock("../../context/AuthContext", () => ({
+vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ user: { id: 3, username: "Ada" } }),
 }));
 
-jest.mock("../../utils/api", () => ({
-  fetchUsageStats: jest.fn(),
-  listChatSessions: jest.fn(),
-  listDocuments: jest.fn(),
-  listGenerations: jest.fn(),
+vi.mock("../../utils/api", () => ({
+  fetchUsageStats: vi.fn(),
+  listChatSessions: vi.fn(),
+  listDocuments: vi.fn(),
+  listGenerations: vi.fn(),
 }));
 
 const usage = {
@@ -42,7 +42,7 @@ function section(title) {
 }
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   localStorage.clear();
   listGenerations.mockResolvedValue([]);
   listChatSessions.mockResolvedValue([]);

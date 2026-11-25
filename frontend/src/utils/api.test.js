@@ -23,7 +23,7 @@ describe("explicit endpoint request handling", () => {
   });
 
   function mockResponse({ ok, status, json }) {
-    global.fetch = jest.fn().mockResolvedValue({ ok, status, json });
+    global.fetch = vi.fn().mockResolvedValue({ ok, status, json });
   }
 
   test("surfaces the server message from a JSON error envelope", async () => {
@@ -193,13 +193,13 @@ describe("explicit endpoint request handling", () => {
 describe("streaming chat frame handling", () => {
   afterEach(() => {
     global.fetch = realFetch;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function mockStream(frames) {
     const encoder = new TextEncoder();
     let i = 0;
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       body: {
@@ -219,10 +219,10 @@ describe("streaming chat frame handling", () => {
     // user saw a dead chat with only a console line.
     mockStream(['data: {"error":"model_not_found"}\n\n']);
 
-    const onError = jest.fn();
-    const onDone = jest.fn();
+    const onError = vi.fn();
+    const onDone = vi.fn();
 
-    await sendChatStream("hi", [], 1, jest.fn(), onDone, onError);
+    await sendChatStream("hi", [], 1, vi.fn(), onDone, onError);
 
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0][0].message).toBe("model_not_found");
@@ -236,10 +236,10 @@ describe("streaming chat frame handling", () => {
       'data: {"done":true,"session_id":42,"sources":[]}\n\n',
     ]);
 
-    const onChunk = jest.fn();
-    const onDone = jest.fn();
+    const onChunk = vi.fn();
+    const onDone = vi.fn();
 
-    await sendChatStream("hi", [], null, onChunk, onDone, jest.fn());
+    await sendChatStream("hi", [], null, onChunk, onDone, vi.fn());
 
     expect(onChunk.mock.calls.map((call) => call[0])).toEqual(["Hel", "lo"]);
     expect(onDone).toHaveBeenCalledWith(42, []);
@@ -251,8 +251,8 @@ describe("streaming chat frame handling", () => {
       'data: {"done":true,"session_id":42,"sources":[{"document_title":"Notes"}]}\n\n',
     ]);
 
-    const onDone = jest.fn();
-    await sendChatStream("hi", [], null, jest.fn(), onDone, jest.fn(), [7, 8]);
+    const onDone = vi.fn();
+    await sendChatStream("hi", [], null, vi.fn(), onDone, vi.fn(), [7, 8]);
 
     const [, options] = global.fetch.mock.calls[0];
     expect(JSON.parse(options.body).document_ids).toEqual([7, 8]);
@@ -262,20 +262,20 @@ describe("streaming chat frame handling", () => {
   test("omits document_ids when nothing is selected", async () => {
     mockStream(['data: {"done":true,"session_id":42,"sources":[]}\n\n']);
 
-    await sendChatStream("hi", [], null, jest.fn(), jest.fn(), jest.fn());
+    await sendChatStream("hi", [], null, vi.fn(), vi.fn(), vi.fn());
 
     const [, options] = global.fetch.mock.calls[0];
     expect(JSON.parse(options.body).document_ids).toBeUndefined();
   });
 
   test("skips a malformed frame and keeps reading the stream", async () => {
-    jest.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
     mockStream(['data: {not json}\n\n', 'data: {"chunk":"ok"}\n\n']);
 
-    const onChunk = jest.fn();
-    const onError = jest.fn();
+    const onChunk = vi.fn();
+    const onError = vi.fn();
 
-    await sendChatStream("hi", [], null, onChunk, jest.fn(), onError);
+    await sendChatStream("hi", [], null, onChunk, vi.fn(), onError);
 
     expect(onChunk).toHaveBeenCalledWith("ok");
     expect(onError).not.toHaveBeenCalled();
@@ -298,7 +298,7 @@ describe("request cancellation", () => {
 
   test("forwards the caller's signal to fetch without polluting the body", async () => {
     const controller = new AbortController();
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ ok: true, data: {} }),
@@ -318,7 +318,7 @@ describe("request cancellation", () => {
   });
 
   test("omits signal when the caller has none", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ ok: true, data: {} }),
@@ -333,7 +333,7 @@ describe("request cancellation", () => {
     // Pages key their error toast on name === "AbortError"; swallowing it here
     // would leave a killed request indistinguishable from a server failure.
     const controller = new AbortController();
-    global.fetch = jest.fn().mockRejectedValue(abortError());
+    global.fetch = vi.fn().mockRejectedValue(abortError());
 
     await expect(
       generateAll("gravity", "explain", {}, controller.signal)
@@ -342,20 +342,20 @@ describe("request cancellation", () => {
 
   test("treats an aborted stream as a stop, not an error", async () => {
     const controller = new AbortController();
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       body: { getReader: () => ({ read: () => Promise.reject(abortError()) }) },
     });
 
-    const onError = jest.fn();
-    const onDone = jest.fn();
+    const onError = vi.fn();
+    const onDone = vi.fn();
 
     await sendChatStream(
       "hi",
       [],
       1,
-      jest.fn(),
+      vi.fn(),
       onDone,
       onError,
       undefined,
@@ -372,7 +372,7 @@ describe("request cancellation", () => {
     const encoder = new TextEncoder();
     let i = 0;
     const frames = ['data: {"chunk":"Hel"}\n\n'];
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       body: {
@@ -385,9 +385,9 @@ describe("request cancellation", () => {
       },
     });
 
-    const onChunk = jest.fn();
-    const onDone = jest.fn();
-    const onError = jest.fn();
+    const onChunk = vi.fn();
+    const onDone = vi.fn();
+    const onError = vi.fn();
 
     await sendChatStream("hi", [], 1, onChunk, onDone, onError);
 

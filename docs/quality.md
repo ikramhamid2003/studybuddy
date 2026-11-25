@@ -7,7 +7,7 @@
 | Suite | Command | Size |
 |-------|---------|------|
 | Backend (pytest) | `cd backend && pytest` | **11 modules · 151 tests** — one of them (the pgvector case) skips on SQLite |
-| Frontend (Jest) | `cd frontend && npm test -- --watchAll=false` | **8 suites · 112 tests** |
+| Frontend (Vitest) | `cd frontend && npm test` | **19 suites · 169 tests** |
 | Python lint (Ruff) | `cd backend && ruff check .` | 0 errors |
 | Frontend lint (ESLint) | `cd frontend && npm run lint` | 0 errors, 0 warnings (ESLint is not `--max-warnings 0`, so CI stays green on warnings) |
 | Type check | `uvx pyrefly check --min-severity warn` | warnings are hidden at the default severity. Configs: `pyrefly.toml` (root + backend) and `pyrightconfig.json` |
@@ -37,7 +37,7 @@ Runs on every push and pull request to `main`, in three jobs:
 |-----|--------------|
 | **Backend Quality & Tests** | Python 3.12 → `ruff check backend/` → the **migration-drift check** (`python manage.py makemigrations --check --dry-run`, the same gate `backend/build.sh` runs before a deploy migrates) → the full pytest suite. |
 | **RAG pgvector SQL** | A `pgvector/pgvector:pg16` Postgres service, `CREATE EXTENSION IF NOT EXISTS vector` on `template1` (deliberately not a migration — a deployment whose database user cannot create extensions must still be able to fall back), then `pytest study_api/tests/test_rag.py -k pgvector`. |
-| **Frontend Quality & Tests** | Node 24 (matching `engines.node`) → `npm ci --legacy-peer-deps` → `npm run lint` → `npm test -- --watchAll=false`. The lockfile is not allowed to disagree with `package.json`: there is no `|| npm install` fallback, so a drifted lockfile fails the build instead of silently resolving something else. |
+| **Frontend Quality & Tests** | Node 24 (matching `engines.node`) → `npm ci --legacy-peer-deps` → `npm run lint` → `npm test`. The lockfile is not allowed to disagree with `package.json`: there is no `|| npm install` fallback, so a drifted lockfile fails the build instead of silently resolving something else. |
 
 A fourth workflow, **Keep API Warm** (`.github/workflows/keepalive.yml`), pings
 `/api/health/` every 10 minutes so Render's free instance does not spin down. That ping
@@ -54,7 +54,7 @@ hand. Run these to reproduce them:
 | Figure | Command |
 |--------|---------|
 | Pytest test count | `cd backend && pytest --collect-only -q` |
-| Jest test count | `cd frontend && npm test -- --watchAll=false` |
+| Frontend test count | `cd frontend && npm test` |
 | Python lint | `cd backend && ruff check .` |
 | Frontend lint | `cd frontend && npm run lint` |
 | Production build size | `cd frontend && npm run build` |

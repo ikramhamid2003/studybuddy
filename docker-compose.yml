@@ -82,9 +82,8 @@ services:
         WORKDIR /app
         COPY package.json package-lock.json ./
         RUN npm ci --legacy-peer-deps
-        COPY public ./public
+        COPY index.html vite.config.mjs tailwind.config.js postcss.config.js ./
         COPY src ./src
-        COPY tailwind.config.js postcss.config.js ./
         ENV REACT_APP_API_URL=/api REACT_APP_GLITCHTIP_DSN=""
         ENV NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=16"
         RUN npm run build

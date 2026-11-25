@@ -4,7 +4,7 @@ import SessionRow from "./SessionRow";
 const session = { id: 7, title: "Organic chemistry" };
 
 function setup(props = {}) {
-  const handlers = { onSelect: jest.fn(), onRename: jest.fn(), onDelete: jest.fn() };
+  const handlers = { onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn() };
   render(<SessionRow session={session} active={false} collapsed={false} {...handlers} {...props} />);
   return handlers;
 }

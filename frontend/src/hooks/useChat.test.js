@@ -12,15 +12,15 @@ import {
 } from "../utils/api";
 import { LAST_CHAT_SESSION_KEY, WELCOME } from "../components/chat/chatConstants";
 
-jest.mock("react-hot-toast", () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
-jest.mock("../utils/pendingTopic", () => ({ usePendingTopic: jest.fn() }));
-jest.mock("../utils/api", () => ({
-  sendChatStream: jest.fn(),
-  listChatSessions: jest.fn(),
-  createChatSession: jest.fn(),
-  getChatSession: jest.fn(),
-  renameChatSession: jest.fn(),
-  deleteChatSession: jest.fn(),
+vi.mock("react-hot-toast", () => ({ __esModule: true, default: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("../utils/pendingTopic", () => ({ usePendingTopic: vi.fn() }));
+vi.mock("../utils/api", () => ({
+  sendChatStream: vi.fn(),
+  listChatSessions: vi.fn(),
+  createChatSession: vi.fn(),
+  getChatSession: vi.fn(),
+  renameChatSession: vi.fn(),
+  deleteChatSession: vi.fn(),
 }));
 
 const library = { selectedIds: new Set() };
@@ -33,7 +33,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   listChatSessions.mockResolvedValue([]);
 });
@@ -163,7 +163,7 @@ test("renaming updates the title in the session list", async () => {
 });
 
 test("deleting the open chat removes it and starts a fresh one", async () => {
-  jest.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(window, "confirm").mockReturnValue(true);
   listChatSessions.mockResolvedValue([{ id: 1, title: "A" }]);
   getChatSession.mockResolvedValue({ messages: [] });
   deleteChatSession.mockResolvedValue({});
@@ -179,7 +179,7 @@ test("deleting the open chat removes it and starts a fresh one", async () => {
 });
 
 test("declining the delete confirmation leaves the chat alone", async () => {
-  jest.spyOn(window, "confirm").mockReturnValue(false);
+  vi.spyOn(window, "confirm").mockReturnValue(false);
   listChatSessions.mockResolvedValue([{ id: 1, title: "A" }]);
   getChatSession.mockResolvedValue({ messages: [] });
   const { result } = setup();

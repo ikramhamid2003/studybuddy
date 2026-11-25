@@ -17,7 +17,7 @@
 - **Per-user daily token budget** — 10,000 tokens/day by default, refused with a 429 and drawn as a live meter on the dashboard.
 - **SSRF-hardened scraping** — DNS-resolved IP validation, per-hop redirect re-checks and an optional domain allowlist on every URL fetch.
 - **Every tool in one workspace** — Explain, Summarize, Quiz, Flashcards, Chat and the All-in-One Studio, plus a dashboard that knows what you studied.
-- **Quality gates in CI** — Ruff, a migration-drift check, 151 Pytest tests (including a pgvector job against real Postgres), ESLint and 112 Jest tests.
+- **Quality gates in CI** — Ruff, a migration-drift check, 151 Pytest tests (including a pgvector job against real Postgres), ESLint and 169 Vitest tests.
 - **Predictable provider behaviour** — a 30 s request timeout with SDK retries off, and structured output validated against Pydantic schemas.
 
 ---

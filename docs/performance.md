@@ -15,7 +15,7 @@ take a live LLM call to obtain is called out as unmeasured instead of being esti
 | API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
 | Frontend routes | 11 | `frontend/src/App.jsx` |
 | Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
-| Test modules · tests | 11 pytest files · 151 tests · 8 Jest files · 112 tests | `pytest --collect-only -q`; `npm test -- --watchAll=false` |
+| Test modules · tests | 11 pytest files · 151 tests · 19 Vitest files · 169 tests | `pytest --collect-only -q`; `npm test` |
 | Dependencies | 29 pinned Python (22 runtime + 7 dev) · 18 npm (12 runtime + 6 dev) | `backend/requirements.txt` (install), `backend/requirements-dev.txt` (include `-r` line), `frontend/package.json` |
 | AI tools persisted per request type | 5 (`explain`, `summarize`, `quiz`, `flashcards`, `chat`) | `GenerateSerializer.type` choices |
 | Endpoints accepting `document_ids` | 3 (`/api/generate/` for all 5 tool types, `/api/chat/stream/`, `/api/rag/query/` — the last serves the retired Ask My Docs page's endpoint, no longer called by the UI) | `grep -n document_ids backend/study_api/views.py backend/study_api/dispatchers.py` |

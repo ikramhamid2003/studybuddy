@@ -32,7 +32,7 @@ describe("session teardown", () => {
   test("logout empties the query cache the next account would otherwise inherit", async () => {
     localStorage.setItem("token", jwtFor({ user_id: 3, username: "ada" }));
     localStorage.setItem("refresh", "refresh-token");
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
 
     const queryClient = newQueryClient();
     queryClient.setQueryData(["generations", "explain"], [{ id: 1, topic: "private" }]);
@@ -54,7 +54,7 @@ describe("session teardown", () => {
     // Covers the paths that lose the token on their own: a refresh that the
     // server refuses and a stored token this app can no longer decode.
     localStorage.setItem("token", "not-a-jwt");
-    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const queryClient = newQueryClient();
     queryClient.setQueryData(["generations"], [{ id: 1 }]);
 
@@ -92,7 +92,7 @@ describe("rejection messages", () => {
       .current;
 
   const rejected = (body) =>
-    jest.fn().mockResolvedValue({ ok: false, status: 400, json: async () => body });
+    vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => body });
 
   test("signup names the reason when the server rejects the email", async () => {
     // DRF keys the error dict by field, and `ada@b.c.` is accepted by the
@@ -121,7 +121,7 @@ describe("rejection messages", () => {
   });
 
   test("an unparseable body falls back to the generic label", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 502,
       json: async () => {

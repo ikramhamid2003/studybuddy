@@ -8,7 +8,7 @@ describe("Card", () => {
   });
 
   test("becomes a button when onClick is provided", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(
       <Card onClick={onClick} hover>
         Clickable card
@@ -20,7 +20,7 @@ describe("Card", () => {
   });
 
   test("activates on Enter when clickable", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Card onClick={onClick}>Keyboard card</Card>);
     fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
     expect(onClick).toHaveBeenCalledTimes(1);
