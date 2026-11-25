@@ -69,7 +69,7 @@ function DocumentCard({ doc, selected, onToggle, onDelete }) {
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <StatusBadge status={doc.status} />
           {doc.status === "ready" && (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500">
               {doc.chunk_count} chunks · {doc.page_count}p · {formatBytes(doc.file_size)}
             </span>
           )}
@@ -83,7 +83,7 @@ function DocumentCard({ doc, selected, onToggle, onDelete }) {
 
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 flex-shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-500 flex-shrink-0"
         title="Delete document"
       >
         <Trash2 size={14} />
@@ -212,20 +212,20 @@ export default function DocumentPicker({
           {processingCount > 0 && !isUploading && (
             <Loader2 size={13} className="animate-spin text-blue-500" />
           )}
-          <ChevronDown size={15} className={`text-slate-400 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
+          <ChevronDown size={15} className={`text-slate-500 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
           <div className="absolute left-0 top-full z-30 mt-2 flex w-[min(26rem,calc(100vw-2.5rem))] flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
             <div className="flex items-center justify-between gap-2">
               <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
-                <BookOpen size={14} className="flex-shrink-0 text-slate-400" />
+                <BookOpen size={14} className="flex-shrink-0 text-slate-500" />
                 <span className="truncate">{title}</span>
               </h3>
               {selectedIds.size > 0 ? (
                 <button
                   onClick={clearSelection}
-                  className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400 hover:text-slate-600"
+                  className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-500 hover:text-slate-600"
                 >
                   <X size={11} /> Clear
                 </button>
@@ -248,7 +248,7 @@ export default function DocumentPicker({
                 ))}
               </div>
             ) : documents.length === 0 ? (
-              <div className="py-6 text-center text-slate-400">
+              <div className="py-6 text-center text-slate-500">
                 <FileText size={26} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">No documents yet</p>
                 <p className="mt-1 text-xs">PDF, TXT, or MD · up to {RAG_MAX_MB} MB</p>
@@ -275,7 +275,7 @@ export default function DocumentPicker({
               </p>
             )}
             {selectedIds.size === 0 && (
-              <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-2.5 py-1.5">
+              <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-2.5 py-1.5">
                 {readyCount > 0
                   ? `Nothing selected — ${hint}.`
                   : "Upload a document and wait for it to finish indexing."}

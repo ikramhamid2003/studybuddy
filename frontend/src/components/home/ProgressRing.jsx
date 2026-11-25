@@ -36,7 +36,7 @@ export default function ProgressRing({ progress = 0, size = 72, stroke = 7, labe
         <span className="font-display text-base font-bold leading-none text-slate-900">
           {clamped}%
         </span>
-        {label && <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-400">{label}</span>}
+        {label && <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-500">{label}</span>}
       </div>
     </div>
   );

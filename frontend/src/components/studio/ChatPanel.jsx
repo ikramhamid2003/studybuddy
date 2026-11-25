@@ -25,8 +25,8 @@ export default function ChatPanel({
       <Card variant="elevated">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-slate-500" />
-            <span className="text-slate-500 text-xs font-mono uppercase tracking-wider">Chat Sessions</span>
+            <MessageSquare size={14} className="text-slate-400" />
+            <span className="text-slate-400 text-xs font-mono uppercase tracking-wider">Chat Sessions</span>
           </div>
           <Button variant="secondary" size="sm" onClick={onNewChat} color="rose">
             <Plus size={14} />
@@ -34,7 +34,7 @@ export default function ChatPanel({
           </Button>
         </div>
         {sessions.length === 0 ? (
-          <p className="text-slate-600 text-xs">No saved chats yet. Start a conversation above.</p>
+          <p className="text-slate-400 text-xs">No saved chats yet. Start a conversation above.</p>
         ) : (
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             {sessions.map((session) => (
@@ -92,7 +92,7 @@ export default function ChatPanel({
                   <Send size={15} />
                 </Button>
               </div>
-              <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
+              <p className="text-slate-400 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
             </div>
           </div>
         </Card>

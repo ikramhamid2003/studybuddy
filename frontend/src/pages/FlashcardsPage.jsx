@@ -181,8 +181,8 @@ export default function FlashcardsPage() {
           <div className="w-16 h-16 rounded-2xl bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-800">
             <Layers className="text-slate-500" size={32} />
           </div>
-          <p className="text-slate-400 text-sm font-medium mb-1">No flashcards yet</p>
-          <p className="text-slate-600 text-xs font-light max-w-xs mx-auto">
+          <p className="text-slate-500 text-sm font-medium mb-1">No flashcards yet</p>
+          <p className="text-slate-600 text-xs max-w-xs mx-auto">
             Enter a topic above to generate your first flashcard deck
           </p>
         </Card>

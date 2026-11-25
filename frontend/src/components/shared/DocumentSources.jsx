@@ -15,11 +15,11 @@ function SourceCard({ source, index }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-slate-700 truncate">{source.document_title}</p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Page {source.page_number ?? "?"} · relevance {(score * 100).toFixed(0)}%
           </p>
         </div>
-        {expanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+        {expanded ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
       </button>
       {expanded && (
         <div className="px-3.5 py-2.5 bg-white border-t border-slate-100">

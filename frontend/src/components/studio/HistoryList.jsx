@@ -22,8 +22,8 @@ export default function HistoryList({ history, loading, selectedTab, onTabChange
           <div className="w-14 h-14 rounded-2xl bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-800">
             <History className="text-slate-500" size={28} />
           </div>
-          <p className="text-slate-400 text-sm font-medium mb-1">No saved generations yet</p>
-          <p className="text-slate-600 text-xs font-light max-w-xs mx-auto">
+          <p className="text-slate-500 text-sm font-medium mb-1">No saved generations yet</p>
+          <p className="text-slate-600 text-xs max-w-xs mx-auto">
             Generate something above and it will show up here automatically.
           </p>
         </Card>

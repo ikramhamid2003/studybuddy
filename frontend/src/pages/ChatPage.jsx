@@ -107,9 +107,9 @@ export default function ChatPage() {
                 {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
               </button>
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
-              <span className="text-slate-500 text-xs font-mono">AI Online</span>
+              <span className="text-slate-400 text-xs font-mono">AI Online</span>
               {activeSessionId && (
-                <span className="text-slate-600 text-[10px] font-mono px-2 py-0.5 bg-slate-800/50 rounded">
+                <span className="text-slate-400 text-[10px] font-mono px-2 py-0.5 bg-slate-800/50 rounded">
                   #{activeSessionId}
                 </span>
               )}
@@ -135,7 +135,7 @@ export default function ChatPage() {
             {/* Quick suggestions on first load */}
             {messages.length === 1 && (
               <Card variant="outlined" className="animate-fade-up">
-                <p className="text-slate-500 text-xs font-mono mb-2">Try asking:</p>
+                <p className="text-slate-400 text-xs font-mono mb-2">Try asking:</p>
                 <div className="grid grid-cols-2 gap-2">
                   {SUGGESTIONS.map((s) => (
                     <button
@@ -191,7 +191,7 @@ export default function ChatPage() {
                 <Send size={15} />
               </Button>
             </div>
-            <p className="text-slate-500 text-xs mt-1.5 ml-1">Press Enter to send</p>
+            <p className="text-slate-400 text-xs mt-1.5 ml-1">Press Enter to send</p>
           </div>
         </div>
       </div>

@@ -237,7 +237,7 @@ DropdownDivider.propTypes = {
 export function DropdownHeader({ children, className = "" }) {
   return (
     <div
-      className={`px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider ${className}`}
+      className={`px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider ${className}`}
     >
       {children}
     </div>

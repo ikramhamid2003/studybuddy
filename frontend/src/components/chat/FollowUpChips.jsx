@@ -40,13 +40,13 @@ export default function FollowUpChips({ sessionId, onPick }) {
       {/* Match the assistant bubble's avatar gutter so chips align with text. */}
       <div className="w-8 flex-shrink-0" />
       <div className="flex flex-col gap-1.5 max-w-[78%]">
-        <div className="flex items-center gap-1.5 text-slate-600 text-[10px] font-mono">
+        <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-mono">
           <Sparkles size={11} />
           <span>Ask next</span>
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="ml-0.5 text-slate-600 hover:text-slate-400 transition-colors"
+            className="ml-0.5 text-slate-400 hover:text-slate-400 transition-colors"
             aria-label="Dismiss suggestions"
           >
             <X size={11} />

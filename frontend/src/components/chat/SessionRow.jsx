@@ -53,7 +53,7 @@ export default function SessionRow({ session, active, onSelect, onRename, onDele
   }
 
   const iconClass = `flex-shrink-0 transition-colors ${
-    active ? "text-amber-300" : "text-slate-500 group-hover:text-amber-300"
+    active ? "text-amber-300" : "text-slate-400 group-hover:text-amber-300"
   }`;
   const selectLayout = `flex flex-1 min-w-0 items-center gap-2 py-2.5 ${
     collapsed ? "lg:justify-center lg:px-2" : "pl-3"
@@ -147,9 +147,9 @@ export default function SessionRow({ session, active, onSelect, onRename, onDele
                       <button
                         type="button"
                         onClick={handleRename}
-                        className="menu-item text-slate-700 hover:text-slate-900 hover:bg-slate-100/90"
+                        className="menu-item text-slate-400 hover:text-slate-900 hover:bg-slate-100/90"
                       >
-                        <Pencil size={14} className="flex-shrink-0 text-slate-500" />
+                        <Pencil size={14} className="flex-shrink-0 text-slate-400" />
                         Rename
                       </button>
                       <button
