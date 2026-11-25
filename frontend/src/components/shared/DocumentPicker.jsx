@@ -164,6 +164,15 @@ export default function DocumentPicker({
     };
   }, [open]);
 
+  // Deleting is permanent and removes the row the user is focused on, so confirm
+  // first and move focus somewhere that still exists.
+  function handleDelete(id) {
+    const doc = documents.find((d) => d.id === id);
+    if (!window.confirm(`Delete "${doc?.title ?? "this document"}"? This can't be undone.`)) return;
+    remove(id);
+    toggleRef.current?.focus();
+  }
+
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setDragging(false);
@@ -291,7 +300,7 @@ export default function DocumentPicker({
                     doc={doc}
                     selected={selectedIds.has(doc.id)}
                     onToggle={toggleDoc}
-                    onDelete={remove}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>

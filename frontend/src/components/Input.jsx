@@ -57,7 +57,7 @@ export function Input({
         )}
       </div>
       {hasError && (
-        <p id="input-error" className="text-rose-500 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id="input-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
@@ -103,7 +103,7 @@ export function Textarea({
         {...props}
       />
       {hasError && (
-        <p id="textarea-error" className="text-rose-500 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id="textarea-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
@@ -452,7 +452,7 @@ export function Select({
       </div>
 
       {hasError && (
-        <p id="select-error" className="text-rose-500 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id="select-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
