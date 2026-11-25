@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, MessageSquare, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 
 export default function SessionRow({ session, active, onSelect, onRename, onDelete, collapsed }) {
@@ -6,6 +6,7 @@ export default function SessionRow({ session, active, onSelect, onRename, onDele
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef(null);
 
   // `collapsed` only affects the desktop rail (the mobile drawer is always wide),
   // so text is hidden at `lg` rather than removed from the DOM.
@@ -45,63 +46,88 @@ export default function SessionRow({ session, active, onSelect, onRename, onDele
     onDelete(session.id);
   }
 
-  function handleSelectRow() {
-    if (!editing) onSelect(session.id);
+  function closeMenu() {
+    setMenuOpen(false);
+    // Hand focus back to the control that opened the menu.
+    menuButtonRef.current?.focus();
   }
+
+  const iconClass = `flex-shrink-0 transition-colors ${
+    active ? "text-amber-300" : "text-slate-500 group-hover:text-amber-300"
+  }`;
+  const selectLayout = `flex flex-1 min-w-0 items-center gap-2 py-2.5 ${
+    collapsed ? "lg:justify-center lg:px-2" : "pl-3"
+  }`;
 
   return (
     <div className="relative">
       <div
-        onClick={handleSelectRow}
-        className={`group flex items-center gap-2 py-2.5 rounded-xl cursor-pointer border transition-all duration-150
-          ${collapsed ? "lg:justify-center lg:px-2" : "px-3"}
-          ${
-            active
-              ? "bg-amber-500/20 border-amber-400/50 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]"
-              : "border-transparent hover:bg-amber-500/10 hover:border-amber-400/25"
-          }`}
+        className={`group flex items-center gap-1 rounded-xl border transition-all duration-150 ${
+          collapsed ? "" : "pr-1"
+        } ${
+          active
+            ? "bg-amber-500/20 border-amber-400/50 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]"
+            : "border-transparent hover:bg-amber-500/10 hover:border-amber-400/25"
+        }`}
       >
-        <MessageSquare
-          size={14}
-          className={`flex-shrink-0 transition-colors ${
-            active ? "text-amber-300" : "text-slate-500 group-hover:text-amber-300"
-          }`}
-        />
-
         {editing ? (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitEdit(e);
-              if (e.key === "Escape") cancelEdit(e);
-            }}
-            className={`${hideWhenCollapsed} flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400`}
-          />
+          <div className={selectLayout}>
+            <MessageSquare size={14} className={iconClass} aria-hidden="true" />
+            <input
+              autoFocus
+              aria-label="Chat title"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitEdit(e);
+                if (e.key === "Escape") cancelEdit(e);
+              }}
+              className={`${hideWhenCollapsed} flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400`}
+            />
+          </div>
         ) : (
-          <span
-            className={`${hideWhenCollapsed} flex-1 min-w-0 truncate text-xs transition-colors ${
-              active
-                ? "text-amber-200 font-semibold"
-                : "text-slate-400 group-hover:text-slate-200"
-            }`}
+          // A real button, so the row is reachable and operable from the keyboard.
+          <button
+            type="button"
+            onClick={() => onSelect(session.id)}
+            aria-current={active ? "true" : undefined}
+            aria-label={session.title}
+            title={session.title}
+            className={`${selectLayout} text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70`}
           >
-            {session.title}
-          </span>
+            <MessageSquare size={14} className={iconClass} aria-hidden="true" />
+            <span
+              className={`${hideWhenCollapsed} flex-1 min-w-0 truncate text-xs transition-colors ${
+                active
+                  ? "text-amber-200 font-semibold"
+                  : "text-slate-400 group-hover:text-slate-200"
+              }`}
+            >
+              {session.title}
+            </span>
+          </button>
         )}
 
         {/* Action menu button - always visible */}
-        <div className={`relative ${hideWhenCollapsed}`}>
+        <div
+          className={`relative ${hideWhenCollapsed}`}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && menuOpen) {
+              e.stopPropagation();
+              closeMenu();
+            }
+          }}
+        >
           <button
+            ref={menuButtonRef}
             onClick={(e) => {
               e.stopPropagation();
               setMenuOpen(!menuOpen);
             }}
             className="icon-button flex-shrink-0"
             title="More actions"
-            aria-label="Session actions"
+            aria-label={`Actions for ${session.title}`}
+            aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
             <MoreHorizontal size={14} />

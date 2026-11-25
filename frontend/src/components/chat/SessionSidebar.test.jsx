@@ -50,3 +50,30 @@ test("the backdrop only exists while the drawer is open and closes it on click",
   fireEvent.click(screen.getByTestId("sidebar-backdrop"));
   expect(base.onClose).toHaveBeenCalledTimes(1);
 });
+
+test("Escape closes the open drawer and focus returns to what opened it", () => {
+  const opener = document.createElement("button");
+  document.body.appendChild(opener);
+  opener.focus();
+
+  const { rerender } = render(ui());
+  rerender(ui({ open: true }));
+  expect(screen.getByRole("button", { name: "Close sidebar" })).toHaveFocus();
+
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(base.onClose).toHaveBeenCalledTimes(1);
+
+  rerender(ui({ open: false }));
+  expect(opener).toHaveFocus();
+  opener.remove();
+});
+
+test("a re-render while open does not steal focus or close the drawer", () => {
+  const { rerender } = render(ui({ open: true }));
+  const close = screen.getByRole("button", { name: "Close sidebar" });
+  screen.getByRole("button", { name: "New Chat" }).focus();
+
+  rerender(ui({ open: true, onClose: jest.fn() }));
+
+  expect(close).not.toHaveFocus();
+});

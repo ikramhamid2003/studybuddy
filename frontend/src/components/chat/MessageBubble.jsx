@@ -4,6 +4,8 @@ import DocumentSources from "../shared/DocumentSources";
 function URLBadge({ hasUrl }) {
   return (
     <span
+      role="img"
+      aria-label="Content from website"
       className="absolute -top-1 -right-1 rounded-full bg-amber-500/90 text-xs text-amber-300 border border-slate-950/50 p-0.5 shadow-sm"
       title="Content from website"
     >
@@ -18,8 +20,9 @@ export default function MessageBubble({ msg }) {
 
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-fade-up`}>
-      {/* Avatar */}
+      {/* Avatar: decorative, the speaker is announced by the hidden label below */}
       <div
+        aria-hidden="true"
         className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm border
           ${isUser ? "bg-rose-500 border-rose-400/20" : "bg-slate-900/60 border-slate-800/80"}`}
       >
@@ -37,6 +40,7 @@ export default function MessageBubble({ msg }) {
               : "backdrop-blur-md bg-slate-900/40 text-slate-200 border border-slate-800/80 rounded-tl-sm whitespace-pre-wrap"
             }`}
         >
+          <span className="sr-only">{isUser ? "You said: " : "Assistant said: "}</span>
           {hasUrl ? (
             <>
               {msg.content.content || msg.content || ""}
