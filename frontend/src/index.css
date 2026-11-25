@@ -381,6 +381,9 @@
     transition: none;
     transform: none;
   }
+  .flashcard-inner {
+    transition: none;
+  }
   .animate-float,
   .animate-float-reverse,
   .animate-fade-up,
