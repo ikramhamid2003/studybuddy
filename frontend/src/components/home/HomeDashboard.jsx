@@ -101,7 +101,7 @@ function StatTile({ icon: Icon, label, value, sub, tone = "indigo" }) {
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg border ${tones[tone]}`}>
           <Icon size={15} />
         </div>
-        {sub && <span className="text-[11px] font-medium text-slate-400">{sub}</span>}
+        {sub && <span className="text-[11px] font-medium text-slate-500">{sub}</span>}
       </div>
       <p className="font-display mt-3 text-2xl font-bold leading-none tracking-tight text-slate-900">{value}</p>
       <p className="mt-1.5 text-xs font-medium text-slate-500">{label}</p>
@@ -332,7 +332,7 @@ export default function HomeDashboard() {
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
               <Zap size={13} className="text-violet-500" /> Daily token budget
             </span>
-            <span className="text-[11px] font-medium text-slate-400">
+            <span className="text-[11px] font-medium text-slate-500">
               {formatCompactCount(usedToday)} of {formatCompactCount(dailyLimit)} used
             </span>
           </div>
@@ -342,7 +342,7 @@ export default function HomeDashboard() {
               style={{ width: `${Math.max(budgetPct, usedToday > 0 ? 3 : 0)}%` }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-slate-400">
+          <p className="mt-1.5 text-[11px] text-slate-500">
             {budgetPct >= 100
               ? "Budget spent — tools pause until midnight."
               : `${formatCompactCount(usage.tokens_remaining_today)} tokens left today.`}
@@ -384,7 +384,7 @@ export default function HomeDashboard() {
                     <LatestIcon size={16} className={latestStyle.text} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       Continue where you left off
                     </p>
                     <p className="truncate text-sm font-semibold text-slate-900">
@@ -512,7 +512,7 @@ export default function HomeDashboard() {
                           <Icon size={13} className={style.text} />
                           {entry.label}
                         </span>
-                        <span className="font-mono text-[11px] text-slate-400">
+                        <span className="font-mono text-[11px] text-slate-500">
                           {entry.count} · {entry.pct}%
                         </span>
                       </div>
@@ -569,7 +569,7 @@ export default function HomeDashboard() {
                       <span className="block truncate text-sm font-medium text-slate-800">
                         {session.title || "Untitled chat"}
                       </span>
-                      <span className="block text-[11px] text-slate-400">
+                      <span className="block text-[11px] text-slate-500">
                         {relativeTime(session.updated_at || session.created_at, now)}
                       </span>
                     </span>
@@ -612,7 +612,7 @@ export default function HomeDashboard() {
                     <span className="block truncate text-sm font-medium text-slate-800">
                       {doc.title || doc.filename}
                     </span>
-                    <span className="block text-[11px] text-slate-400">
+                    <span className="block text-[11px] text-slate-500">
                       {doc.chunk_count ? `${doc.chunk_count} chunks · ` : ""}
                       {relativeTime(doc.created_at, now)}
                     </span>

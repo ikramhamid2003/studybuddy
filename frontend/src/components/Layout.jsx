@@ -235,7 +235,7 @@ export default function Layout({ children }) {
               <ChevronDown
                 size={15}
                 className={`transition-transform duration-200 ${
-                  dropdownOpen ? "rotate-180 text-indigo-600" : "text-slate-400"
+                  dropdownOpen ? "rotate-180 text-indigo-600" : "text-slate-500"
                 }`}
               />
             </button>
@@ -247,7 +247,7 @@ export default function Layout({ children }) {
                   onClick={() => setDropdownOpen(false)}
                 />
                 <div className="dropdown-panel absolute right-0 top-full mt-1.5 w-60 z-50 animate-scale-in">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Study Tools
                   </div>
                   <nav className="p-1 space-y-0.5" aria-label="Tools menu">
@@ -268,7 +268,7 @@ export default function Layout({ children }) {
                           <>
                             <Icon
                               className={`flex-shrink-0 transition-colors ${
-                                isActive ? activeColor : "text-slate-400"
+                                isActive ? activeColor : "text-slate-500"
                               }`}
                               size={16}
                             />

@@ -105,12 +105,12 @@ export default function SessionSidebar({
           ) : sessions.length === 0 ? (
             <div className="text-center py-8 px-2">
               <div className="w-10 h-10 rounded-xl bg-slate-800/60 flex items-center justify-center mx-auto mb-2 border border-slate-800">
-                <MessageSquare className="text-slate-500" size={20} />
+                <MessageSquare className="text-slate-400" size={20} />
               </div>
-              <p className={`${collapsed ? "lg:hidden" : ""} text-slate-500 text-xs font-mono mb-1`}>
+              <p className={`${collapsed ? "lg:hidden" : ""} text-slate-400 text-xs font-mono mb-1`}>
                 No chats yet
               </p>
-              <p className={`${collapsed ? "lg:hidden" : ""} text-slate-600 text-[10px] font-light max-w-xs mx-auto`}>
+              <p className={`${collapsed ? "lg:hidden" : ""} text-slate-400 text-[10px] font-light max-w-xs mx-auto`}>
                 Send a message to start your first conversation.
               </p>
             </div>

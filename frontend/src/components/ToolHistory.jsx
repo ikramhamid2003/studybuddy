@@ -95,14 +95,14 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
             {TITLES[type] || "History"}
           </span>
         </div>
-        <div className="text-center py-12 bg-slate-900/40 border border-slate-800/60 rounded-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-800">
+        <div className="text-center py-12 bg-white border border-slate-200 rounded-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 border border-slate-200">
             <Icon className="text-slate-500" size={28} />
           </div>
-          <p className="text-slate-400 text-sm font-medium mb-1">
+          <p className="text-slate-600 text-sm font-medium mb-1">
             No saved {TITLES[type]?.toLowerCase() || "history"} yet
           </p>
-          <p className="text-slate-600 text-xs font-light max-w-xs mx-auto">
+          <p className="text-slate-600 text-xs max-w-xs mx-auto">
             Generate something above and it will appear here automatically.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function ToolHistory({ type, activeId, onSelect, onDeleted }) {
         <span className="text-slate-500 text-xs font-mono uppercase tracking-widest">
           {TITLES[type] || "History"}
         </span>
-        <span className="ml-auto text-slate-600 text-xs font-mono">
+        <span className="ml-auto text-slate-500 text-xs font-mono">
           {history.length} saved
         </span>
       </div>

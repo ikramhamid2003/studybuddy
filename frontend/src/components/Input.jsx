@@ -31,7 +31,7 @@ export function Input({
         )}
         <input
           className={`
-            w-full px-4 py-2.5 bg-white border rounded-xl text-slate-900 text-sm placeholder-slate-400
+            w-full px-4 py-2.5 bg-white border rounded-xl text-slate-900 text-sm placeholder-slate-500
             focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors duration-150
             ${hasError
               ? "border-rose-400 focus:border-rose-500 focus:ring-rose-400/30 bg-rose-50/20"
@@ -91,7 +91,7 @@ export function Textarea({
       )}
       <textarea
         className={`
-          w-full px-4 py-3 bg-white border rounded-xl text-slate-900 text-sm placeholder-slate-400
+          w-full px-4 py-3 bg-white border rounded-xl text-slate-900 text-sm placeholder-slate-500
           focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors duration-150 resize-y min-h-[140px] font-body
           ${hasError
             ? "border-rose-400 focus:border-rose-500 focus:ring-rose-400/30 bg-rose-50/20"

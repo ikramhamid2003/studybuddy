@@ -47,7 +47,7 @@ export default function Sparkline({ series = [], className = "", height = 56 }) 
           );
         })}
       </svg>
-      <div className="mt-1.5 flex justify-between text-[10px] font-medium text-slate-400">
+      <div className="mt-1.5 flex justify-between text-[10px] font-medium text-slate-500">
         <span>{series[0].label}</span>
         <span className="text-indigo-600">Today</span>
       </div>

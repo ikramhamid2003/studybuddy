@@ -182,7 +182,7 @@ export default function HomeLanding() {
 
           {/* Live router demo — the same function the real home page uses */}
           <div className="animate-fade-up rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-elevated backdrop-blur-sm sm:p-6">
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               <Wand2 size={13} className="text-indigo-500" />
               Try the router
             </p>
@@ -195,7 +195,7 @@ export default function HomeLanding() {
                   onChange={(event) => setDemo(event.target.value)}
                   aria-label="Example study request"
                   placeholder="e.g. summarize my lecture notes"
-                  className="w-full bg-transparent py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent py-3 text-sm text-slate-800 outline-none placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function HomeLanding() {
               )}
             </div>
 
-            <p className="mt-4 text-[11px] leading-relaxed text-slate-400">
+            <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
               This is the real routing logic, not a mock — signed in, the same box opens that tool with your
               text already filled in.
             </p>
@@ -406,7 +406,7 @@ export default function HomeLanding() {
             </div>
             <span className="text-sm font-medium text-slate-600">StudyBuddy AI</span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Built with LangChain · Groq · Django · pgvector · React
           </p>
         </div>
