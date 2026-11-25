@@ -219,3 +219,45 @@ class DocumentUpload(models.Model):
 
     def __str__(self):
         return f"Upload for document {self.document_id} (attempt {self.attempts})"
+
+
+class CardReview(models.Model):
+    """Spaced-repetition state for one flashcard of a saved deck.
+
+    Cards live inside Generation.result["flashcards"], so a card is identified
+    by its deck and position. A card with no row here has never been reviewed
+    and counts as new.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="card_reviews",
+    )
+    generation = models.ForeignKey(
+        Generation,
+        on_delete=models.CASCADE,
+        related_name="card_reviews",
+    )
+    card_index = models.PositiveIntegerField()
+    ease = models.FloatField(default=2.5)
+    interval_days = models.PositiveIntegerField(default=0)
+    repetitions = models.PositiveIntegerField(default=0)
+    lapses = models.PositiveIntegerField(default=0)
+    due_at = models.DateTimeField(db_index=True)
+    last_reviewed_at = models.DateTimeField(auto_now=True)
+
+    objects = models.Manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["generation", "card_index"], name="study_api_cardreview_unique_card"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "due_at"], name="study_api_cardrev_user_due"),
+        ]
+
+    def __str__(self):
+        return f"card {self.card_index} of generation {self.generation_id}"

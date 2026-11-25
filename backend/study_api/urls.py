@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .review_views import DueCardsView, ReviewCardView
 from .serializers import UsernameTokenObtainPairSerializer
 from .views import (
     ChatSessionDetailView,
@@ -38,6 +39,8 @@ urlpatterns = [
     path("sessions/", ChatSessionListCreateView.as_view(), name="chat_sessions"),
     path("sessions/<int:pk>/", ChatSessionDetailView.as_view(), name="chat_session_detail"),
     path("sessions/<int:pk>/suggestions/", ChatSuggestionsView.as_view(), name="chat_suggestions"),
+    path("flashcards/review/", DueCardsView.as_view(), name="flashcard_review_due"),
+    path("flashcards/review/answer/", ReviewCardView.as_view(), name="flashcard_review_answer"),
     path("usage/", UsageStatsView.as_view(), name="usage_stats"),
     path("auth/register/", RegisterView.as_view(), name="auth_register"),
     path(
