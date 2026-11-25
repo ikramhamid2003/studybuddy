@@ -44,10 +44,22 @@ test("selected documents report as checked", () => {
   expect(screen.getByRole("checkbox", { name: /Biology notes/ })).toBeChecked();
 });
 
-test("delete buttons are named after their document", () => {
+test("delete asks first and returns focus to the toggle", () => {
+  const confirm = jest.spyOn(window, "confirm").mockReturnValue(true);
   const library = setup();
   fireEvent.click(screen.getByRole("button", { name: "Delete Biology notes" }));
+  expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Biology notes"));
   expect(library.remove).toHaveBeenCalledWith(1);
+  expect(screen.getByRole("button", { name: /My documents/ })).toHaveFocus();
+  confirm.mockRestore();
+});
+
+test("declining the confirmation keeps the document", () => {
+  const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+  const library = setup();
+  fireEvent.click(screen.getByRole("button", { name: "Delete Biology notes" }));
+  expect(library.remove).not.toHaveBeenCalled();
+  confirm.mockRestore();
 });
 
 test("Escape closes the panel and returns focus to the toggle", () => {

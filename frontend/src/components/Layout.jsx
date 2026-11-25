@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -58,6 +58,19 @@ const navItems = [
 
 export default function Layout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const menuToggleRef = useRef(null);
+
+  // Escape closes the mobile tools menu and hands focus back to its button.
+  useEffect(() => {
+    if (!dropdownOpen) return undefined;
+    function onKeyDown(e) {
+      if (e.key !== "Escape") return;
+      setDropdownOpen(false);
+      menuToggleRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [dropdownOpen]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -219,9 +232,10 @@ export default function Layout({ children }) {
           </div>
           <div className="relative">
             <button
+              ref={menuToggleRef}
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
-              aria-haspopup="true"
+              aria-controls="mobile-tools-menu"
               className={`
                 flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all duration-150
                 ${
@@ -246,7 +260,7 @@ export default function Layout({ children }) {
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="dropdown-panel absolute right-0 top-full mt-1.5 w-60 z-50 animate-scale-in">
+                <div id="mobile-tools-menu" className="dropdown-panel absolute right-0 top-full mt-1.5 w-60 z-50 animate-scale-in">
                   <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Study Tools
                   </div>
