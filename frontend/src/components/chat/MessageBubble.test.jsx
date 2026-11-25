@@ -23,3 +23,10 @@ test("shows source citations only on assistant replies", () => {
   rerender(<MessageBubble msg={{ role: "user", content: "answer", sources }} />);
   expect(screen.queryByText("Thermo notes")).toBeNull();
 });
+
+test("announces who is speaking to screen readers", () => {
+  const { rerender } = render(<MessageBubble msg={{ role: "user", content: "hi" }} />);
+  expect(screen.getByText("You said:")).toBeInTheDocument();
+  rerender(<MessageBubble msg={{ role: "assistant", content: "hello" }} />);
+  expect(screen.getByText("Assistant said:")).toBeInTheDocument();
+});

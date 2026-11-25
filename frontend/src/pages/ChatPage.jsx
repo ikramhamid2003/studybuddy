@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Send,
   Trash2,
@@ -18,6 +18,7 @@ import SessionSidebar from "../components/chat/SessionSidebar";
 import { SUGGESTIONS } from "../components/chat/chatConstants";
 import { useLibrary } from "../context/DocumentLibraryContext";
 import useChat from "../hooks/useChat";
+import useAutoScroll from "../hooks/useAutoScroll";
 
 export default function ChatPage() {
   const library = useLibrary();
@@ -42,9 +43,12 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, bottomRef]);
+  // Follow the conversation only while the reader is at the bottom; see the hook.
+  const { scrollRef, onScroll } = useAutoScroll({
+    bottomRef,
+    changeKey: `${messages.length}:${messages.at(-1)?.content?.length ?? 0}:${loading}`,
+    lastIsUser: messages.at(-1)?.role === "user",
+  });
 
   return (
     // Fills the leftover viewport height so the transcript scrolls internally
@@ -116,8 +120,18 @@ export default function ChatPage() {
             </Button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {/* Messages: a log region, so assistant replies are announced as they
+              arrive; aria-busy holds announcements back while one is streaming. */}
+          <div
+            ref={scrollRef}
+            onScroll={onScroll}
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+            aria-busy={loading}
+            aria-label="Conversation"
+            className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+          >
             {/* Quick suggestions on first load */}
             {messages.length === 1 && (
               <Card variant="outlined" className="animate-fade-up">
@@ -160,6 +174,7 @@ export default function ChatPage() {
               <input
                 ref={inputRef}
                 type="text"
+                aria-label="Message"
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, 2000))}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
@@ -171,11 +186,12 @@ export default function ChatPage() {
                 loading={loading}
                 disabled={!input.trim()}
                 size="md"
+                aria-label="Send message"
               >
                 <Send size={15} />
               </Button>
             </div>
-            <p className="text-slate-700 text-xs mt-1.5 ml-1">Press Enter to send • Shift+Enter for new line</p>
+            <p className="text-slate-500 text-xs mt-1.5 ml-1">Press Enter to send</p>
           </div>
         </div>
       </div>

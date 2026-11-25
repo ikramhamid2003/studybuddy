@@ -1,9 +1,34 @@
+import { useEffect, useRef } from "react";
 import { Plus, MessageSquare, X } from "lucide-react";
 import Button from "../Button";
 import LoadingSkeleton from "../LoadingSkeleton";
 import SessionRow from "./SessionRow";
 
 /** The sessions rail: a drawer on mobile, a collapsible column on desktop. */
+// Mobile drawer behaviour: Escape closes it, focus moves in when it opens and
+// returns to whatever opened it when it closes. (On desktop the rail is always
+// visible and `open` stays false, so none of this runs.)
+function useDrawerFocus(open, onClose, closeRef) {
+  // The page passes a fresh onClose every render; reading it through a ref keeps
+  // the effect (and its focus handling) tied to `open` alone.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const opener = document.activeElement;
+    closeRef.current?.focus();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, [open, closeRef]);
+}
+
 export default function SessionSidebar({
   sessions,
   sessionsLoading,
@@ -16,6 +41,9 @@ export default function SessionSidebar({
   onRename,
   onDelete,
 }) {
+  const closeRef = useRef(null);
+  useDrawerFocus(open, onClose, closeRef);
+
   return (
     <>
       {/* Mobile backdrop: clicking outside closes the drawer. */}
@@ -42,6 +70,7 @@ export default function SessionSidebar({
         <div className="p-3 border-b border-slate-800 flex items-center justify-between lg:hidden">
           <span className="text-white text-sm font-semibold">Chats</span>
           <button
+            ref={closeRef}
             onClick={() => onClose()}
             className="icon-button"
             aria-label="Close sidebar"

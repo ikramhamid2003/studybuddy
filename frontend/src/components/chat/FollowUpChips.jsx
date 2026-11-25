@@ -52,7 +52,7 @@ export default function FollowUpChips({ sessionId, onPick }) {
             <X size={11} />
           </button>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="Suggested follow-up questions" className="flex flex-wrap gap-1.5">
           {suggestions.map((s, i) => (
             <button
               key={i}
