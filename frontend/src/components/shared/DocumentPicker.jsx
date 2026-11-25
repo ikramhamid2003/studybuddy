@@ -38,55 +38,73 @@ export function StatusBadge({ status }) {
 }
 
 function DocumentCard({ doc, selected, onToggle, onDelete }) {
+  const ready = doc.status === "ready";
   return (
     <div
-      className={`group relative flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer
+      className={`group relative flex items-start gap-1 rounded-xl border transition-all focus-within:ring-2 focus-within:ring-indigo-500
         ${selected
           ? "border-indigo-300 bg-indigo-50 shadow-sm shadow-indigo-100"
           : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
         }`}
-      onClick={() => doc.status === "ready" && onToggle(doc.id)}
-      title={doc.status !== "ready" ? "Document is not ready yet" : ""}
     >
-      <div
-        className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors
-          ${doc.status === "ready"
-            ? selected
-              ? "bg-indigo-600 border-indigo-600"
-              : "border-slate-300 bg-white group-hover:border-indigo-400"
-            : "border-slate-200 bg-slate-100 cursor-not-allowed"
-          }`}
+      {/* A real checkbox, visually hidden, so Tab/Space work and the row's
+          name and state are announced. The label makes the whole row clickable. */}
+      <label
+        className={`flex min-w-0 flex-1 items-start gap-3 p-3.5 ${ready ? "cursor-pointer" : "cursor-not-allowed"}`}
+        title={ready ? "" : "Document is not ready yet"}
       >
-        {selected && <div className="w-2 h-2 bg-white rounded-sm" />}
-      </div>
-
-      <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
-        <FileText size={15} className="text-indigo-500" />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">{doc.title}</p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <StatusBadge status={doc.status} />
-          {doc.status === "ready" && (
-            <span className="text-xs text-slate-500">
-              {doc.chunk_count} chunks · {doc.page_count}p · {formatBytes(doc.file_size)}
-            </span>
-          )}
-          {doc.status === "error" && (
-            <span className="text-xs text-red-500 truncate max-w-[200px]" title={doc.error_message}>
-              {doc.error_message}
-            </span>
-          )}
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={selected}
+          disabled={!ready}
+          onChange={() => onToggle(doc.id)}
+        />
+        <div
+          aria-hidden="true"
+          className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors
+            ${ready
+              ? selected
+                ? "bg-indigo-600 border-indigo-600"
+                : "border-slate-400 bg-white group-hover:border-indigo-400"
+              : "border-slate-200 bg-slate-100"
+            }`}
+        >
+          {selected && <div className="w-2 h-2 bg-white rounded-sm" />}
         </div>
-      </div>
 
+        <div aria-hidden="true" className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
+          <FileText size={15} className="text-indigo-500" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-slate-800 truncate">{doc.title}</p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <StatusBadge status={doc.status} />
+            {ready && (
+              <span className="text-xs text-slate-500">
+                {doc.chunk_count} chunks · {doc.page_count}p · {formatBytes(doc.file_size)}
+              </span>
+            )}
+            {doc.status === "error" && (
+              <span className="text-xs text-red-700 truncate max-w-[200px]" title={doc.error_message}>
+                {doc.error_message}
+              </span>
+            )}
+          </div>
+        </div>
+      </label>
+
+      {/* Hover-only on devices that hover; always visible on touch, and shown
+          whenever the row or the button itself has keyboard focus. */}
       <button
-        onClick={(e) => { e.stopPropagation(); onDelete(doc.id); }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-500 flex-shrink-0"
+        type="button"
+        onClick={() => onDelete(doc.id)}
+        aria-label={`Delete ${doc.title}`}
         title="Delete document"
+        className="m-2 flex-shrink-0 rounded-lg p-1.5 text-slate-500 transition-opacity hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:hover)]:opacity-0"
       >
-        <Trash2 size={14} />
+        <Trash2 size={14} aria-hidden="true" />
       </button>
     </div>
   );
@@ -120,6 +138,7 @@ export default function DocumentPicker({
 
   const fileInputRef = useRef(null);
   const rootRef = useRef(null);
+  const toggleRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
 
@@ -131,7 +150,11 @@ export default function DocumentPicker({
       if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
     }
     function onKeyDown(e) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      // Put focus back where the popover was opened from, so a keyboard user
+      // is not dropped at the top of the page.
+      toggleRef.current?.focus();
     }
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -170,13 +193,14 @@ export default function DocumentPicker({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         disabled={isUploading}
+        aria-busy={isUploading}
         title={`PDF, TXT, or MD · up to ${RAG_MAX_MB} MB`}
         className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all motion-reduce:transition-none
           ${dragging ? "bg-indigo-700 ring-2 ring-indigo-300" : "bg-indigo-600 hover:bg-indigo-700"}
           ${isUploading ? "cursor-wait opacity-80" : ""}
         `}
       >
-        {isUploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+        {isUploading ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />}
         {isUploading
           ? `Uploading${uploadProgress != null ? ` · ${uploadProgress}%` : "…"}`
           : dragging
@@ -186,10 +210,11 @@ export default function DocumentPicker({
 
       <div className="relative">
         <button
+          ref={toggleRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-haspopup="true"
+          aria-controls="document-picker-panel"
           className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all motion-reduce:transition-none
             ${open
               ? "border-indigo-300 bg-indigo-50 text-indigo-700"
@@ -210,13 +235,18 @@ export default function DocumentPicker({
             </span>
           )}
           {processingCount > 0 && !isUploading && (
-            <Loader2 size={13} className="animate-spin text-blue-500" />
+            <Loader2 size={13} className="animate-spin text-blue-500" role="img" aria-label="Documents are being processed" />
           )}
           <ChevronDown size={15} className={`text-slate-500 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-30 mt-2 flex w-[min(26rem,calc(100vw-2.5rem))] flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div
+            id="document-picker-panel"
+            role="group"
+            aria-label={title}
+            className="absolute left-0 top-full z-30 mt-2 flex w-[min(26rem,calc(100vw-2.5rem))] flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+          >
             <div className="flex items-center justify-between gap-2">
               <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
                 <BookOpen size={14} className="flex-shrink-0 text-slate-500" />
