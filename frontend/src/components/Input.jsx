@@ -514,12 +514,3 @@ Select.propTypes = {
   id: PropTypes.string,
   "aria-label": PropTypes.string,
 };
-
-export {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  DropdownDivider,
-  DropdownHeader,
-} from "./Dropdown";
