@@ -146,7 +146,7 @@ jobs:
           CI: true
         run: |
           cd frontend
-          npm test -- --watchAll=false
+          npm test
 
       - name: Production build
         env:

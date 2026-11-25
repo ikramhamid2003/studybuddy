@@ -1,9 +1,9 @@
 const DEFAULT_API_URL =
-  process.env.NODE_ENV === "production"
+  import.meta.env.PROD
     ? "https://studybuddy-api-hkgx.onrender.com/api"
     : "http://localhost:8000/api";
 
-const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
+const BASE_URL = import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL;
 
 // Broadcast when the access token has expired and could not be renewed, so
 // AuthContext can drop the session instead of leaving the UI signed in with a

@@ -12,17 +12,17 @@ import {
   deleteChatSession,
 } from "../utils/api";
 
-jest.mock("react-hot-toast", () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
-jest.mock("../context/DocumentLibraryContext", () => ({
+vi.mock("react-hot-toast", () => ({ __esModule: true, default: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("../context/DocumentLibraryContext", () => ({
   useLibrary: () => ({ selectedIds: new Set([4, 5]) }),
 }));
-jest.mock("../utils/api", () => ({
-  generateAll: jest.fn(),
-  listGenerations: jest.fn(),
-  deleteGeneration: jest.fn(),
-  listChatSessions: jest.fn(),
-  getChatSession: jest.fn(),
-  deleteChatSession: jest.fn(),
+vi.mock("../utils/api", () => ({
+  generateAll: vi.fn(),
+  listGenerations: vi.fn(),
+  deleteGeneration: vi.fn(),
+  listChatSessions: vi.fn(),
+  getChatSession: vi.fn(),
+  deleteChatSession: vi.fn(),
 }));
 
 function setup() {
@@ -33,7 +33,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   listGenerations.mockResolvedValue([]);
   listChatSessions.mockResolvedValue([]);
 });
@@ -124,11 +124,11 @@ test("deleting a saved generation asks first and closes it if it was open", asyn
   await waitFor(() => expect(result.current.history).toHaveLength(1));
   act(() => result.current.openFromHistory(item));
 
-  jest.spyOn(window, "confirm").mockReturnValueOnce(false);
+  vi.spyOn(window, "confirm").mockReturnValueOnce(false);
   await act(async () => result.current.deleteGenerationHandler(item));
   expect(deleteGeneration).not.toHaveBeenCalled();
 
-  jest.spyOn(window, "confirm").mockReturnValueOnce(true);
+  vi.spyOn(window, "confirm").mockReturnValueOnce(true);
   await act(async () => result.current.deleteGenerationHandler(item));
   expect(deleteGeneration).toHaveBeenCalledWith(3);
   expect(result.current.active).toBeNull();

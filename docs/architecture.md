@@ -8,7 +8,7 @@
 studybuddy/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                # GitHub Actions CI pipeline (Ruff + migration-drift check + Pytest + pgvector job + ESLint + Jest)
+│       ├── ci.yml                # GitHub Actions CI pipeline (Ruff + migration-drift check + Pytest + pgvector job + ESLint + Vitest)
 │       └── keepalive.yml         # Wakes the Render free instance every 10 minutes
 ├── docs/                         # Everything behind the root README (this folder)
 │   ├── README.md                 # Index
@@ -36,7 +36,7 @@ studybuddy/
 │   │   ├── context/              # AuthContext for JWT session management (+7-test cache-teardown and
 │   │   │                         # auth-rejection suite), DocumentLibraryContext
 │   │   ├── utils/                # api.js (explicit resource client + the shared rejectionMessage()
-│   │   │                         # error-reason extractor), api.test.js (46-test Jest suite),
+│   │   │                         # error-reason extractor), api.test.js (46-test Vitest suite),
 │   │   │                         # routeColors, clipboard, personalize.js (+31-test suite) and
 │   │   │                         # pendingTopic.js (home -> tool pre-fill hand-off)
 │   │   ├── App.jsx               # Routing & React Query provider

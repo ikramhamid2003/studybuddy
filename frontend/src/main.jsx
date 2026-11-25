@@ -6,9 +6,9 @@ import { Analytics } from "@vercel/analytics/react";
 import * as Sentry from "@sentry/react";
 
 // Error monitoring is optional; local development runs cleanly without a DSN.
-if (process.env.REACT_APP_GLITCHTIP_DSN) {
+if (import.meta.env.REACT_APP_GLITCHTIP_DSN) {
   Sentry.init({
-    dsn: process.env.REACT_APP_GLITCHTIP_DSN,
+    dsn: import.meta.env.REACT_APP_GLITCHTIP_DSN,
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration(),

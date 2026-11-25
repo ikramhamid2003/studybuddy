@@ -5,11 +5,11 @@ import { fetchCurrentUser, rejectionMessage, SESSION_EXPIRED_EVENT } from "../ut
 const AuthContext = createContext(null);
 
 const DEFAULT_API_URL =
-  process.env.NODE_ENV === "production"
+  import.meta.env.PROD
     ? "https://studybuddy-api-hkgx.onrender.com/api"
     : "http://localhost:8000/api";
 
-const BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
+const BASE_URL = import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL;
 
 export function AuthProvider({ children }) {
   // The access token is the single source of truth; user state is derived from

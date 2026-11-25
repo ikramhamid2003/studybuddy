@@ -1,22 +1,22 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useDocumentLibrary, MAX_SELECTED_DOCS, docIdsOption } from "./documentLibrary";
 
 // The library hook reads its owner from auth, so the account switch is driven
 // through a mock user rather than a real login.
 let mockUser = { id: 3, username: "ada" };
-jest.mock("../../context/AuthContext", () => ({
+vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, token: "x", loading: false }),
 }));
 
 let mockDocs = [{ id: 9, title: "Notes", status: "ready" }];
-jest.mock("../../utils/api", () => ({
+vi.mock("../../utils/api", () => ({
   listDocuments: () => Promise.resolve(mockDocs),
-  deleteDocument: jest.fn(),
-  uploadDocument: jest.fn(),
-  validateRagFile: jest.fn(() => null),
+  deleteDocument: vi.fn(),
+  uploadDocument: vi.fn(),
+  validateRagFile: vi.fn(() => null),
 }));
 
-const { useDocumentLibrary, MAX_SELECTED_DOCS, docIdsOption } = require("./documentLibrary");
 
 // Private to the module on purpose; mirrored here because it is what leaks
 // across accounts when nothing clears it.

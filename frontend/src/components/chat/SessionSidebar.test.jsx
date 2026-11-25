@@ -8,14 +8,14 @@ const base = {
   activeSessionId: null,
   open: false,
   collapsed: false,
-  onClose: jest.fn(),
-  onNewChat: jest.fn(),
-  onSelect: jest.fn(),
-  onRename: jest.fn(),
-  onDelete: jest.fn(),
+  onClose: vi.fn(),
+  onNewChat: vi.fn(),
+  onSelect: vi.fn(),
+  onRename: vi.fn(),
+  onDelete: vi.fn(),
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
 // Button reads the current route for its accent colour, so it needs a router.
 const ui = (props) => (
@@ -73,7 +73,7 @@ test("a re-render while open does not steal focus or close the drawer", () => {
   const close = screen.getByRole("button", { name: "Close sidebar" });
   screen.getByRole("button", { name: "New Chat" }).focus();
 
-  rerender(ui({ open: true, onClose: jest.fn() }));
+  rerender(ui({ open: true, onClose: vi.fn() }));
 
   expect(close).not.toHaveFocus();
 });

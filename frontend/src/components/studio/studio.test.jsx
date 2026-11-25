@@ -59,7 +59,7 @@ const quiz = {
 };
 
 test("quiz result reports progress and passes the picked answer up", () => {
-  const onSelectAnswer = jest.fn();
+  const onSelectAnswer = vi.fn();
   render(router(<ResultView {...base} active={quiz} onSelectAnswer={onSelectAnswer} />));
   expect(screen.getByText("Submit Quiz (0/1)")).toBeInTheDocument();
   fireEvent.click(screen.getByText("4"));
@@ -73,8 +73,8 @@ test("a submitted quiz shows the explanation and hides the submit button", () =>
 });
 
 test("flashcards result shows the count and wires export and reset", () => {
-  const onExportCSV = jest.fn();
-  const onResetCards = jest.fn();
+  const onExportCSV = vi.fn();
+  const onResetCards = vi.fn();
   render(
     router(
       <ResultView
@@ -106,7 +106,7 @@ const history = [
 ];
 
 function setupHistory(props = {}) {
-  const handlers = { onTabChange: jest.fn(), onOpen: jest.fn(), onDelete: jest.fn() };
+  const handlers = { onTabChange: vi.fn(), onOpen: vi.fn(), onDelete: vi.fn() };
   render(
     router(
       <HistoryList

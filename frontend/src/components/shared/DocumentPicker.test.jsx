@@ -13,13 +13,13 @@ function setup(overrides = {}) {
     readyCount: 1,
     isLoading: false,
     selectedIds: new Set(),
-    toggleDoc: jest.fn(),
-    clearSelection: jest.fn(),
-    selectAllReady: jest.fn(),
+    toggleDoc: vi.fn(),
+    clearSelection: vi.fn(),
+    selectAllReady: vi.fn(),
     uploadProgress: null,
     isUploading: false,
-    upload: jest.fn(),
-    remove: jest.fn(),
+    upload: vi.fn(),
+    remove: vi.fn(),
     ...overrides,
   };
   render(<DocumentPicker library={library} />);
@@ -45,7 +45,7 @@ test("selected documents report as checked", () => {
 });
 
 test("delete asks first and returns focus to the toggle", () => {
-  const confirm = jest.spyOn(window, "confirm").mockReturnValue(true);
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
   const library = setup();
   fireEvent.click(screen.getByRole("button", { name: "Delete Biology notes" }));
   expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Biology notes"));
@@ -55,7 +55,7 @@ test("delete asks first and returns focus to the toggle", () => {
 });
 
 test("declining the confirmation keeps the document", () => {
-  const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   const library = setup();
   fireEvent.click(screen.getByRole("button", { name: "Delete Biology notes" }));
   expect(library.remove).not.toHaveBeenCalled();

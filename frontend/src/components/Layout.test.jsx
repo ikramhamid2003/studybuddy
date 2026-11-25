@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Layout from "./Layout";
 
-jest.mock("../context/AuthContext", () => ({
-  useAuth: () => ({ user: { username: "demo" }, logout: jest.fn() }),
+vi.mock("../context/AuthContext", () => ({
+  useAuth: () => ({ user: { username: "demo" }, logout: vi.fn() }),
 }));
 
 function setup() {

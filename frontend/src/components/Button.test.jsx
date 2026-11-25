@@ -8,7 +8,7 @@ function renderButton(ui) {
 
 describe("Button", () => {
   test("renders children and fires onClick", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     renderButton(<Button onClick={onClick}>Generate</Button>);
     fireEvent.click(screen.getByRole("button", { name: /generate/i }));
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -26,7 +26,7 @@ describe("Button", () => {
   });
 
   test("respects disabled prop", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     renderButton(
       <Button disabled onClick={onClick}>
         Locked
