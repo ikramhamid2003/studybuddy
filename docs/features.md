@@ -233,7 +233,7 @@ proxy buffering disabled so streamed chat still streams. Both ports bind to
 
 ## 🛡️ Quality gates
 
-Ruff Python linter, a **151-test Pytest suite**, ESLint, and **169 Vitest tests** in 19
+Ruff Python linter, a **195-test Pytest suite**, ESLint, and **181 Vitest tests** in 20
 suites — all enforced in **GitHub Actions CI/CD**, which also checks for unmigrated
 model changes and runs the pgvector retrieval SQL against a real Postgres. See
 [Quality](quality.md).

@@ -17,7 +17,7 @@
 - **Per-user daily token budget** — 10,000 tokens/day by default, refused with a 429 and drawn as a live meter on the dashboard.
 - **SSRF-hardened scraping** — DNS-resolved IP validation, per-hop redirect re-checks and an optional domain allowlist on every URL fetch.
 - **Every tool in one workspace** — Explain, Summarize, Quiz, Flashcards, Chat and the All-in-One Studio, plus a dashboard that knows what you studied.
-- **Quality gates in CI** — Ruff, a migration-drift check, 151 Pytest tests (including a pgvector job against real Postgres), ESLint and 169 Vitest tests.
+- **Quality gates in CI** — Ruff, a migration-drift check, 195 Pytest tests (including a pgvector job against real Postgres), ESLint and 181 Vitest tests.
 - **Predictable provider behaviour** — a 30 s request timeout with SDK retries off, and structured output validated against Pydantic schemas.
 
 ---
@@ -67,10 +67,19 @@ Everything else lives in [`docs/`](docs/README.md):
 | **[Getting started](docs/getting-started.md)** | Prerequisites, the `.env` reference, manual setup, the Docker stack |
 | **[Features](docs/features.md)** | Every capability in depth — the six tools, grounding, the dashboard, caching, the budget |
 | **[Architecture](docs/architecture.md)** | Repository layout, the request flow, the grounding path, the cache key, the guard layers |
-| **[API reference](docs/api.md)** | All 17 endpoints, the JWT flow, the error-shape contract |
+| **[API reference](docs/api.md)** | Every API route, the JWT flow, the error-shape contract |
 | **[Deployment](docs/deployment.md)** | Render + Neon + Vercel, the pgvector opt-in, the free-tier caveats |
 | **[Performance](docs/performance.md)** | "By the numbers" — measured latencies, the cost levers, and what this repo does *not* claim |
 | **[Quality](docs/quality.md)** | The test suites, the CI jobs, and how to re-measure every number quoted here |
+
+---
+
+## 🤝 Contributing
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) covers the toolchain, the exact gates CI runs, the
+migration-drift rule, and the commit/PR conventions. Found a security problem? Use the
+private reporting channel in [`SECURITY.md`](SECURITY.md) — please don't open a public
+issue.
 
 ---
 

@@ -1,0 +1,22 @@
+root = true
+
+# Line endings are deliberately not set: tracked files are mixed (Markdown and
+# YAML are LF, several Python/JS files are CRLF). Forcing one here would rewrite
+# whole files on save; normalize the history separately if that is wanted.
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
+[*.md]
+# Keep intentional hard line breaks in Markdown.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

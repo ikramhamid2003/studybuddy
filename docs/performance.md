@@ -12,25 +12,25 @@ take a live LLM call to obtain is called out as unmeasured instead of being esti
 |------|-------|---------------|
 | Backend Python files / lines | 42 files · 6,275 LOC | `find backend -name '*.py' -not -path '*/venv/*' \| wc -l` and `-exec cat {} + \| wc -l` |
 | Frontend source files / lines | 52 files · 9,435 LOC | `find frontend/src \( -name '*.js' -o -name '*.jsx' -o -name '*.css' \)` counted the same way |
-| API paths (OpenAPI) | 17 | `GET /api/schema/` → count `paths:` keys |
+| API paths (OpenAPI) | 19 | `GET /api/schema/` → count `paths:` keys |
 | Frontend routes | 11 | `frontend/src/App.jsx` |
-| Django migrations (app / applied) | 6 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
-| Test modules · tests | 11 pytest files · 151 tests · 19 Vitest files · 169 tests | `pytest --collect-only -q`; `npm test` |
+| Django migrations (app / applied) | 8 files · 36 applied | `ls backend/study_api/migrations`; `django_migrations` |
+| Test modules · tests | 15 pytest files · 195 tests · 20 Vitest files · 181 tests | `pytest --collect-only -q`; `npm test` |
 | Dependencies | 29 pinned Python (22 runtime + 7 dev) · 18 npm (12 runtime + 6 dev) | `backend/requirements.txt` (install), `backend/requirements-dev.txt` (include `-r` line), `frontend/package.json` |
 | AI tools persisted per request type | 5 (`explain`, `summarize`, `quiz`, `flashcards`, `chat`) | `GenerateSerializer.type` choices |
 | Endpoints accepting `document_ids` | 3 (`/api/generate/` for all 5 tool types, `/api/chat/stream/`, `/api/rag/query/` — the last serves the retired Ask My Docs page's endpoint, no longer called by the UI) | `grep -n document_ids backend/study_api/views.py backend/study_api/dispatchers.py` |
-| Tests covering RAG + grounding | 69 of the 151 (`test_rag.py` 54 · `test_generations.py` 15) | `pytest --collect-only -q \| grep -c test_rag` and `grep -c test_generations` |
+| Tests covering RAG + grounding | 69 of the 195 (`test_rag.py` 54 · `test_generations.py` 15) | `pytest --collect-only -q \| grep -c test_rag` and `grep -c test_generations` |
 | Local Docker stack | 3 services (`db`, `backend`, `frontend`) | `docker compose config --services` |
 
 ---
 
-## Quality & build (measured 2026-11-15 · Windows · Node 24.13.1 · Python 3.12.13)
+## Quality & build (measured 2026-11-15 · test rows re-measured 2026-11-25 · Windows · Node 24.13.1 · Python 3.12.13)
 
 | Check | Result |
 |-------|--------|
 | `ruff check backend/` | **0 errors** (was 6) |
-| `pytest` | **150 passed, 1 skipped**, 0 failed · **151 collected** · 116.26 s (the skip is the pgvector case, which needs the CI Postgres job; wall time varies with machine load — the same suite measured 104.85 s unattended and 266.17 s on an earlier run) |
-| `jest` (all 8 suites) | **112 passed**, 0 failed · 6.80 s (wall time varies with machine load — the same suites ran in 14.29 s under load) |
+| `pytest` | **194 passed, 1 skipped**, 0 failed · **195 collected** · 4.17 s (re-measured 2026-11-25 with an MD5 password hasher selected only while testing; the 2026-11-15 run took 116.26 s because PBKDF2 dominated the auth tests. The skip is the pgvector case, which needs the CI Postgres job) |
+| `npm test` (Vitest) | **181 passed**, 0 failed · 20 suites · 20.78 s (wall time varies with machine load) |
 | `npm run build` | Compiled successfully · **207.55 kB** gzipped JS, **14.29 kB** gzipped CSS |
 | `npx eslint src --ext .js,.jsx` | **0 errors, 0 warnings** — ESLint is not `--max-warnings 0`, so CI stays green on warnings |
 | `docker compose up --build` | **Stack smoke-tested** (2026-11-15, Docker 29.9.2): all three services reach `healthy`; `GET /api/health/`, the OpenAPI schema, register → login → `auth/me`, the 401 guard on an unauthenticated call, `generations` / `sessions` / `rag/documents` / `usage`, and a real `POST /api/generate/` all succeed **through the nginx proxy**. A cold generation returned in 2,912 ms; the identical repeat was served from the response cache in 84 ms and billed **0 extra tokens**. `POST /api/chat/stream/` returned `text/event-stream` with 31 `chunk` frames and a closing `{"done": true, "session_id": null, "sources": []}` frame, first frame at 858 ms. Postgres confirmed `vector` 0.8.7, 36 applied migrations and the `studybuddy_cache` table |

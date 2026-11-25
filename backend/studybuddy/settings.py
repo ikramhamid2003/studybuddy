@@ -115,6 +115,11 @@ if IS_TESTING:
                 "NAME": BASE_DIR / "db_test.sqlite3",
             }
         }
+
+    # PBKDF2 is deliberately CPU-expensive, and the auth tests create and check
+    # users by the dozen; hashing was most of the suite's wall time. MD5 is
+    # selected only under IS_TESTING, so deployed settings keep PBKDF2.
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 else:
     # Render/Postgres can provide DATABASE_URL; local dev falls back to sqlite.
     db_url = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
@@ -228,6 +233,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+if IS_TESTING:
+    # WhiteNoise warns on every request when its root is missing. Tests never
+    # run collectstatic, so create the directory once instead of printing the
+    # same warning for every test request.
+    STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

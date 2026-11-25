@@ -3,10 +3,18 @@ import Card from "../Card";
 import Button from "../Button";
 import PropTypes from "prop-types";
 
+/**
+ * The result summary shown once a quiz has been submitted.
+ *
+ * The card lives on the app's light canvas, so the copy uses the light
+ * palette (slate-600/700 on white) rather than the dark-canvas greys. The
+ * accent fill keeps the near-black ink contract from `routeColors.js`.
+ */
 export default function ScoreCard({ score, total, onRetry }) {
-  const pct = Math.round((score / total) * 100);
-  const color =
-    pct >= 80 ? "text-emerald-400 font-black" : pct >= 50 ? "text-amber-400 font-semibold" : "text-rose-400";
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  const tone = pct >= 80 ? "emerald" : pct >= 50 ? "amber" : "rose";
+  const textColor =
+    pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-rose-600";
   const barColor =
     pct >= 80
       ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
@@ -19,25 +27,45 @@ export default function ScoreCard({ score, total, onRetry }) {
   return (
     <Card
       variant="elevated"
-      accent={pct >= 80 ? "emerald" : pct >= 50 ? "amber" : "rose"}
-      className="text-center animate-fade-up card-elevated"
+      accent={tone}
+      className="animate-fade-up"
     >
-      <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-4 animate-bounce" />
-      <div className={`font-display text-6xl mb-1 ${color}`}>{pct}%</div>
-      <p className="text-slate-400 text-sm mb-1">
-        {score} / {total} correct
-      </p>
-      <p className="text-slate-200 font-medium mb-5">{message}</p>
-      <div className="w-full h-2.5 bg-slate-950/60 rounded-full overflow-hidden mb-5 mx-auto max-w-xs border border-slate-800">
-        <div
-          className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
+      <div
+        role="group"
+        aria-label={`Quiz score: ${score} of ${total} correct, ${pct} percent`}
+        className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left"
+      >
+        {/* Score */}
+        <div className="flex items-center gap-4 sm:flex-col sm:items-start sm:gap-2">
+          <Trophy
+            className="h-10 w-10 flex-shrink-0 text-amber-500 motion-safe:animate-bounce sm:h-12 sm:w-12"
+            aria-hidden="true"
+          />
+          <div>
+            <div className={`font-display text-5xl leading-none sm:text-6xl ${textColor}`}>
+              {pct}%
+            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              {score} / {total} correct
+            </p>
+          </div>
+        </div>
+
+        {/* Message, progress and the one action this screen offers */}
+        <div className="flex w-full flex-1 flex-col items-center gap-3 sm:items-end">
+          <p className="text-sm font-medium text-slate-700">{message}</p>
+          <div className="h-2.5 w-full max-w-xs overflow-hidden rounded-full border border-slate-300 bg-slate-200">
+            <div
+              className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <Button onClick={onRetry} variant="primary" color={tone} className="w-full sm:w-auto">
+            <RefreshCw size={15} className="mr-1.5" />
+            Try Again
+          </Button>
+        </div>
       </div>
-      <Button onClick={onRetry} variant="secondary">
-        <RefreshCw size={15} className="mr-1.5" />
-        Try Again
-      </Button>
     </Card>
   );
 }

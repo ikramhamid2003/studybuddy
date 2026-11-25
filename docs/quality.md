@@ -6,8 +6,8 @@
 
 | Suite | Command | Size |
 |-------|---------|------|
-| Backend (pytest) | `cd backend && pytest` | **11 modules · 151 tests** — one of them (the pgvector case) skips on SQLite |
-| Frontend (Vitest) | `cd frontend && npm test` | **19 suites · 169 tests** |
+| Backend (pytest) | `cd backend && pytest` | **15 modules · 195 tests** — one of them (the pgvector case) skips on SQLite |
+| Frontend (Vitest) | `cd frontend && npm test` | **20 suites · 181 tests** |
 | Python lint (Ruff) | `cd backend && ruff check .` | 0 errors |
 | Frontend lint (ESLint) | `cd frontend && npm run lint` | 0 errors, 0 warnings (ESLint is not `--max-warnings 0`, so CI stays green on warnings) |
 | Type check | `uvx pyrefly check --min-severity warn` | warnings are hidden at the default severity. Configs: `pyrefly.toml` (root + backend) and `pyrightconfig.json` |
@@ -20,7 +20,7 @@
 - **Auth** (`frontend/src/context/AuthContext.test.jsx`, 7 tests) — cache teardown and auth-rejection handling.
 - **Document library** (`frontend/src/components/shared/documentLibrary.test.jsx`, 4 tests) — selection ownership.
 - **Component render tests** — `Button`, `Card`, `Input`.
-- **Backend** — `test_rag.py` (54) and `test_generations.py` (15) cover RAG and grounding (69 of the 151); the rest cover views, chat sessions, the LangChain client, the content fetcher, throttling, token security, usage tracking and re-indexing.
+- **Backend** — `test_rag.py` (54) and `test_generations.py` (15) cover RAG and grounding (69 of the 195); the rest cover views, chat sessions, the LangChain client, the content fetcher, throttling, token security, usage tracking and re-indexing.
 
 > The Pytest suite needs **no real database** — it switches to SQLite (`db_test.sqlite3`)
 > automatically. The single exception is the pgvector branch of `retrieve_chunks()`,
@@ -35,9 +35,9 @@ Runs on every push and pull request to `main`, in three jobs:
 
 | Job | What it does |
 |-----|--------------|
-| **Backend Quality & Tests** | Python 3.12 → `ruff check backend/` → the **migration-drift check** (`python manage.py makemigrations --check --dry-run`, the same gate `backend/build.sh` runs before a deploy migrates) → the full pytest suite. |
+| **Backend Quality & Tests** | Python 3.12 → `ruff check backend/` → an advisory `pip-audit` → the **migration-drift check** (`python manage.py makemigrations --check --dry-run`, the same gate `backend/build.sh` runs before a deploy migrates) → the full pytest suite. |
 | **RAG pgvector SQL** | A `pgvector/pgvector:pg16` Postgres service, `CREATE EXTENSION IF NOT EXISTS vector` on `template1` (deliberately not a migration — a deployment whose database user cannot create extensions must still be able to fall back), then `pytest study_api/tests/test_rag.py -k pgvector`. |
-| **Frontend Quality & Tests** | Node 24 (matching `engines.node`) → `npm ci --legacy-peer-deps` → `npm run lint` → `npm test`. The lockfile is not allowed to disagree with `package.json`: there is no `|| npm install` fallback, so a drifted lockfile fails the build instead of silently resolving something else. |
+| **Frontend Quality & Tests** | Node 24 (matching `engines.node`) → `npm ci --legacy-peer-deps` → `npm run lint` → `npm test` → `npm run build`, plus an advisory production-dependency `npm audit`. The lockfile is not allowed to disagree with `package.json`: there is no `|| npm install` fallback, so a drifted lockfile fails the build instead of silently resolving something else. |
 
 A fourth workflow, **Keep API Warm** (`.github/workflows/keepalive.yml`), pings
 `/api/health/` every 10 minutes so Render's free instance does not spin down. That ping
