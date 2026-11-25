@@ -2,10 +2,23 @@ import { useState } from "react";
 import { Eye, RotateCw } from "lucide-react";
 import PropTypes from "prop-types";
 
-export default function Flashcard({ card, index = 0 }) {
+export default function Flashcard({ card, index = 0, total }) {
   const [flipped, setFlipped] = useState(false);
+  // Spoken after a flip only, so a freshly rendered deck stays quiet.
+  const [announcement, setAnnouncement] = useState("");
 
-  const handleFlip = () => setFlipped((f) => !f);
+  const handleFlip = () => {
+    const next = !flipped;
+    setFlipped(next);
+    setAnnouncement(next ? `Answer: ${card.back}` : `Question: ${card.front}`);
+  };
+
+  const position = total ? `${index + 1} of ${total}` : `${index + 1}`;
+  // The visible faces are hidden from assistive tech (the face that is turned
+  // away would otherwise be read too), so the button's name carries the content.
+  const label = flipped
+    ? `Card ${position}, answer: ${card.back}. Press Enter or Space to show the question.`
+    : `Card ${position}, question: ${card.front}.${card.hint ? ` Hint: ${card.hint}.` : ""} Press Enter or Space to show the answer.`;
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -14,19 +27,20 @@ export default function Flashcard({ card, index = 0 }) {
   };
 
   return (
+    <>
     <div
-      className="flashcard-scene h-52 cursor-pointer group select-none lift-hover"
+      data-flashcard
+      className="flashcard-scene h-52 cursor-pointer group select-none lift-hover rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
       onClick={handleFlip}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="button"
-      aria-label={flipped ? "Show question" : "Show answer"}
-      aria-pressed={flipped}
+      aria-label={label}
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
+      <div className={`flashcard-inner ${flipped ? "flipped" : ""}`} aria-hidden="true">
         {/* Front Face (Question) */}
-        <div className="flashcard-face bg-gradient-to-br from-sky-50 via-indigo-50/50 to-white border-2 border-sky-200 hover:border-sky-400 rounded-2xl flex flex-col items-center justify-between p-6 text-center shadow-md hover:shadow-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+        <div className="flashcard-face bg-gradient-to-br from-sky-50 via-indigo-50/50 to-white border-2 border-sky-200 hover:border-sky-400 rounded-2xl flex flex-col items-center justify-between p-6 text-center shadow-md hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between w-full">
             <span className="px-2.5 py-0.5 bg-sky-200/80 text-sky-800 text-[10px] font-mono uppercase tracking-widest rounded-full font-bold">
               Question #{index + 1}
@@ -43,7 +57,7 @@ export default function Flashcard({ card, index = 0 }) {
             )}
           </div>
 
-          <div className="text-[11px] text-sky-600 font-semibold flex items-center gap-1 opacity-80 group-hover:opacity-100">
+          <div className="text-[11px] text-sky-700 font-semibold flex items-center gap-1 opacity-80 group-hover:opacity-100">
             <Eye size={13} /> Click or press Space to reveal answer
           </div>
         </div>
@@ -69,6 +83,8 @@ export default function Flashcard({ card, index = 0 }) {
         </div>
       </div>
     </div>
+    <span role="status" aria-live="polite" className="sr-only">{announcement}</span>
+    </>
   );
 }
 
@@ -79,4 +95,5 @@ Flashcard.propTypes = {
     hint: PropTypes.string,
   }).isRequired,
   index: PropTypes.number,
+  total: PropTypes.number,
 };
