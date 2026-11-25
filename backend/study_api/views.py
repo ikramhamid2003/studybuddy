@@ -7,7 +7,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .dispatchers import (
     _action_generation_delete,
@@ -341,12 +340,6 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class LoginView(TokenObtainPairView):
-    """POST /api/auth/login/ — token login with a brute-force throttle."""
-
-    throttle_classes = (AuthRateThrottle,)
 
 
 class MeView(APIView):
