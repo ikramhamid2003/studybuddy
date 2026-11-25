@@ -10,10 +10,6 @@ updates:
       # each gets its own review.
       backend-minor-and-patch:
         update-types: ["minor", "patch"]
-    ignore:
-      # CI never boots gunicorn, so a major bump needs a manual deploy test.
-      - dependency-name: gunicorn
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
