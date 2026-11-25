@@ -384,3 +384,22 @@ export const getDocumentStatus = (documentId) =>
 /** Delete a document and all its indexed chunks. */
 export const deleteDocument = (documentId) =>
   _request(`/rag/documents/${documentId}/`, {}, "DELETE");
+
+// ── Spaced-repetition review ────────────────────────────────────────────────
+
+/** Cards due for review now, plus how many are due / new in total. */
+export const fetchDueCards = ({ generationId, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (generationId != null) params.set("generation_id", String(generationId));
+  if (limit != null) params.set("limit", String(limit));
+  const query = params.toString();
+  return _request(`/flashcards/review/${query ? `?${query}` : ""}`, {}, "GET");
+};
+
+/** Record how well a card was recalled: again | hard | good | easy. */
+export const submitCardReview = (generationId, cardIndex, rating) =>
+  _request("/flashcards/review/answer/", {
+    generation_id: generationId,
+    card_index: cardIndex,
+    rating,
+  });

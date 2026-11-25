@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { Layers, RotateCcw, Download, ArrowRight } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Layers, RotateCcw, Download, ArrowRight, Brain } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -9,13 +9,14 @@ import { Input, Select } from "../components/Input";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import ToolHistory from "../components/ToolHistory";
 import Flashcard from "../components/shared/Flashcard";
+import ReviewSession from "../components/flashcards/ReviewSession";
 import DocumentPicker from "../components/shared/DocumentPicker";
 import DocumentSources from "../components/shared/DocumentSources";
 import GroundingNote from "../components/shared/GroundingNote";
 import { docIdsOption } from "../components/shared/documentLibrary";
 import { useGenerationAbort } from "../components/shared/generationAbort";
 import { useLibrary } from "../context/DocumentLibraryContext";
-import { generateAll } from "../utils/api";
+import { fetchDueCards, generateAll } from "../utils/api";
 import { usePendingTopic } from "../utils/pendingTopic";
 
 export default function FlashcardsPage() {
@@ -32,6 +33,20 @@ export default function FlashcardsPage() {
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState(0); // used to reset all cards
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+  // null = browsing; otherwise a spaced-repetition session (optionally one deck).
+  const [review, setReview] = useState(null);
+
+  // How many cards are waiting, shown on the "Review" banner.
+  const { data: queueSummary } = useQuery({
+    queryKey: ["flashcard-review", "summary"],
+    queryFn: () => fetchDueCards({ limit: 1 }),
+  });
+  const waiting = (queueSummary?.due_count ?? 0) + (queueSummary?.new_count ?? 0);
+
+  function endReview() {
+    setReview(null);
+    queryClient.invalidateQueries({ queryKey: ["flashcard-review"] });
+  }
 
   async function handleGenerate() {
     if (!topic.trim()) return toast.error("Please enter a topic");
@@ -56,6 +71,7 @@ export default function FlashcardsPage() {
       setKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["generations", "flashcards"] });
       queryClient.invalidateQueries({ queryKey: ["usage_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["flashcard-review"] });
       toast.success(`${data.flashcards.length} flashcards created!`);
     } catch (err) {
       if (abort.isAbort(err)) return;
@@ -85,6 +101,15 @@ export default function FlashcardsPage() {
     toast("All cards reset!", { icon: "🔄" });
   }
 
+  if (review) {
+    return (
+      <div>
+        <PageHeader icon="🃏" title="Review" subtitle="Rate how well you remember each card" />
+        <ReviewSession generationId={review.generationId} onExit={endReview} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
@@ -92,6 +117,24 @@ export default function FlashcardsPage() {
         title="Flashcards"
         subtitle="Click any card to flip it and reveal the answer"
       />
+
+      {waiting > 0 && (
+        <Card className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Brain className="text-sky-700" size={20} aria-hidden="true" />
+            <p className="text-slate-700 text-sm">
+              <strong className="font-semibold text-slate-900">
+                {queueSummary.due_count} due
+              </strong>
+              {" · "}
+              {queueSummary.new_count} new. Spaced repetition shows each card just before you would forget it.
+            </p>
+          </div>
+          <Button size="sm" color="sky" onClick={() => setReview({ generationId: undefined })}>
+            Start review
+          </Button>
+        </Card>
+      )}
 
       {/* Grounding: upload button + document dropdown, the shared document library */}
       <DocumentPicker library={library} title="Ground the deck in my documents" />
@@ -143,6 +186,16 @@ export default function FlashcardsPage() {
               {cards.length} cards · click or press Space to flip
             </span>
             <div className="flex gap-2">
+              {activeHistoryId != null && (
+                <button
+                  type="button"
+                  onClick={() => setReview({ generationId: activeHistoryId })}
+                  className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-3.5 py-2 text-xs font-medium text-sky-900 transition-colors hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+                >
+                  <Brain size={13} aria-hidden="true" />
+                  Review this deck
+                </button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
