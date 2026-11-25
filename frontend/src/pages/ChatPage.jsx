@@ -114,7 +114,7 @@ export default function ChatPage() {
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={startNewChat}>
+            <Button variant="ghost" surface="dark" size="sm" onClick={startNewChat}>
               <Trash2 size={13} />
               Clear
             </Button>
