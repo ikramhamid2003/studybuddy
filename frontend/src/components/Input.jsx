@@ -11,15 +11,22 @@ export function Input({
   leftIcon,
   rightIcon,
   onRightIconClick,
+  id,
   ...props
 }) {
   const hasError = Boolean(error);
   const hasHint = Boolean(hint);
+  // Ids tie the label and the error/hint text to this field; fixed ids would
+  // collide when a form has more than one field.
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-600 text-xs font-medium">
+        <label htmlFor={inputId} className="text-slate-600 text-xs font-medium">
           {label}
         </label>
       )}
@@ -40,8 +47,9 @@ export function Input({
             ${rightIcon ? "pr-10" : ""}
             ${inputClassName}
           `}
+          id={inputId}
           aria-invalid={hasError}
-          aria-describedby={hasError ? "input-error" : hasHint ? "input-hint" : undefined}
+          aria-describedby={hasError ? errorId : hasHint ? hintId : undefined}
           {...props}
         />
         {rightIcon && (
@@ -57,13 +65,13 @@ export function Input({
         )}
       </div>
       {hasError && (
-        <p id="input-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id={errorId} className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
       )}
       {hasHint && !hasError && (
-        <p id="input-hint" className="text-slate-500 text-xs font-light">
+        <p id={hintId} className="text-slate-500 text-xs font-light">
           {hint}
         </p>
       )}
@@ -77,15 +85,20 @@ export function Textarea({
   textareaClassName = "",
   error,
   hint,
+  id,
   ...props
 }) {
   const hasError = Boolean(error);
   const hasHint = Boolean(hint);
+  const generatedId = useId();
+  const textareaId = id || generatedId;
+  const errorId = `${textareaId}-error`;
+  const hintId = `${textareaId}-hint`;
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-slate-600 text-xs font-medium">
+        <label htmlFor={textareaId} className="text-slate-600 text-xs font-medium">
           {label}
         </label>
       )}
@@ -98,18 +111,19 @@ export function Textarea({
             : "border-slate-200 focus:border-indigo-400"}
           ${textareaClassName}
         `}
+        id={textareaId}
         aria-invalid={hasError}
-        aria-describedby={hasError ? "textarea-error" : hasHint ? "textarea-hint" : undefined}
+        aria-describedby={hasError ? errorId : hasHint ? hintId : undefined}
         {...props}
       />
       {hasError && (
-        <p id="textarea-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id={errorId} className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
       )}
       {hasHint && !hasError && (
-        <p id="textarea-hint" className="text-slate-500 text-xs font-light">
+        <p id={hintId} className="text-slate-500 text-xs font-light">
           {hint}
         </p>
       )}
@@ -335,12 +349,15 @@ export function Select({
   };
 
   const generatedId = useId();
-  const listboxId = `${id || generatedId}-listbox`;
+  const selectId = id || generatedId;
+  const listboxId = `${selectId}-listbox`;
+  const errorId = `${selectId}-error`;
+  const hintId = `${selectId}-hint`;
 
   return (
     <div ref={containerRef} className={`flex flex-col gap-1.5 relative ${className}`}>
       {label && (
-        <label className="text-slate-600 text-xs font-medium">
+        <label htmlFor={selectId} className="text-slate-600 text-xs font-medium">
           {label}
         </label>
       )}
@@ -354,7 +371,8 @@ export function Select({
           aria-controls={listboxId}
           aria-label={ariaLabel || label || placeholder}
           aria-invalid={hasError}
-          aria-describedby={hasError ? "select-error" : hasHint ? "select-hint" : undefined}
+          id={selectId}
+          aria-describedby={hasError ? errorId : hasHint ? hintId : undefined}
           disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
           onKeyDown={handleKeyDown}
@@ -452,13 +470,13 @@ export function Select({
       </div>
 
       {hasError && (
-        <p id="select-error" className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
+        <p id={errorId} className="text-rose-600 text-xs font-medium flex items-center gap-1" role="alert">
           <span className="w-3 h-3 text-center leading-none" aria-hidden="true">!</span>
           {error}
         </p>
       )}
       {hasHint && !hasError && (
-        <p id="select-hint" className="text-slate-500 text-xs font-light">
+        <p id={hintId} className="text-slate-500 text-xs font-light">
           {hint}
         </p>
       )}
