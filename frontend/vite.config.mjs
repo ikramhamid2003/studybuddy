@@ -8,7 +8,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   envPrefix: ["VITE_", "REACT_APP_"],
-  server: { port: 3000 },
+  // Lets `REACT_APP_API_URL=/api npm start` exercise cookie sessions locally.
+  server: { port: 3000, proxy: { "/api": "http://localhost:8000" } },
   build: { outDir: "build", sourcemap: false },
   test: {
     globals: true,

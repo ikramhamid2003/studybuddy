@@ -1,9 +1,10 @@
-const DEFAULT_API_URL =
-  import.meta.env.PROD
-    ? "https://studybuddy-api-hkgx.onrender.com/api"
-    : "http://localhost:8000/api";
-
-const BASE_URL = import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL;
+import {
+  API_BASE_URL as BASE_URL,
+  CLIENT_HEADERS,
+  COOKIE_MODE,
+  cookieInit,
+  writeIdentity,
+} from "./session";
 
 // Broadcast when the access token has expired and could not be renewed, so
 // AuthContext can drop the session instead of leaving the UI signed in with a
@@ -17,10 +18,23 @@ let refreshInFlight = null;
 function clearTokens() {
   localStorage.removeItem("token");
   localStorage.removeItem("refresh");
+  writeIdentity(null);
   window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }
 
 async function exchangeRefreshToken(refresh) {
+  if (COOKIE_MODE) {
+    // The refresh token is an httpOnly cookie: nothing to send, nothing to
+    // store. The server rotates both cookies on success.
+    const resp = await fetch(`${BASE_URL}/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
+      body: "{}",
+      ...cookieInit,
+    });
+    return resp.ok ? "cookie" : null;
+  }
+
   const resp = await fetch(`${BASE_URL}/auth/refresh/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -37,7 +51,7 @@ async function exchangeRefreshToken(refresh) {
 }
 
 async function refreshAccessToken() {
-  const refresh = localStorage.getItem("refresh");
+  const refresh = COOKIE_MODE ? "cookie" : localStorage.getItem("refresh");
   if (!refresh) return null;
 
   // Concurrent 401s share one exchange. Rotating tokens are single-use, so a
@@ -54,9 +68,9 @@ async function refreshAccessToken() {
 
 function authHeaders(json = true) {
   // Read at call time so a retry picks up the token a refresh just stored.
-  const headers = {};
+  const headers = { ...CLIENT_HEADERS };
   if (json) headers["Content-Type"] = "application/json";
-  const token = localStorage.getItem("token");
+  const token = COOKIE_MODE ? null : localStorage.getItem("token");
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 }
@@ -110,6 +124,7 @@ async function _request(path, body = {}, method = "POST", signal) {
       fetch(`${BASE_URL}${path}`, {
         method,
         headers: authHeaders(),
+        ...cookieInit,
         ...(method === "GET" ? {} : { body: JSON.stringify(body) }),
         ...(signal ? { signal } : {}),
       }),
@@ -198,6 +213,7 @@ export const sendChatStream = async (
     fetch(`${BASE_URL}/chat/stream/`, {
       method: "POST",
       headers: authHeaders(),
+      ...cookieInit,
       body: JSON.stringify({
         message,
         history,
@@ -330,6 +346,8 @@ export const uploadDocument = async (file, title = "", options = {}) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${BASE_URL}/rag/upload/`);
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      for (const [name, value] of Object.entries(CLIENT_HEADERS)) xhr.setRequestHeader(name, value);
+      if (COOKIE_MODE) xhr.withCredentials = true;
 
       xhr.upload.onprogress = (event) => {
         if (!onProgress || !event.lengthComputable) return;
@@ -353,7 +371,7 @@ export const uploadDocument = async (file, title = "", options = {}) => {
       xhr.send(formData);
     });
 
-  let token = localStorage.getItem("token");
+  let token = COOKIE_MODE ? null : localStorage.getItem("token");
   let result = await sendOnce(token);
 
   // Mirror fetchWithRefresh: renew once on 401, then retry the multipart upload.

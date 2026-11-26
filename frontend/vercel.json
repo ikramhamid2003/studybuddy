@@ -5,6 +5,10 @@
   "outputDirectory": "build",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://studybuddy-api-hkgx.onrender.com/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
