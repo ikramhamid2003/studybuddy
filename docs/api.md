@@ -16,7 +16,8 @@ The live schema is browsable at **`/api/docs/`** (Swagger UI) and machine-readab
 | `POST` | `/api/auth/login/` | Public | Obtain JWT access + refresh tokens |
 | `POST` | `/api/auth/refresh/` | Public | Exchange a refresh token for a new access token |
 | `GET` | `/api/auth/me/` | JWT | Return the signed-in user's `id` and `username`; recovers the handle for tokens issued before the `username` claim existed |
-| `POST` | `/api/token/blacklist/` | Public | Revoke a refresh token (logout) |
+| `POST` | `/api/auth/logout/` | Public | Revoke the refresh token (cookie or body) and clear the session cookies; always `204` |
+| `POST` | `/api/token/blacklist/` | Public | Revoke a refresh token (legacy logout) |
 
 ### The token flow
 
@@ -27,6 +28,14 @@ The live schema is browsable at **`/api/docs/`** (Swagger UI) and machine-readab
   `localStorage` under `token` / `refresh` and refreshes silently on a 401.
 - simplejwt **rotates** refresh tokens: the old one is blacklisted on use, so the new
   one must replace it or the next renewal fails. Concurrent 401s share one exchange.
+- **Cookie sessions (opt-in).** A request that carries the header `X-StudyBuddy-Client`
+  gets httpOnly cookies instead of tokens: `login` sets `sb_access` (path `/`) and
+  `sb_refresh` (path `/api/auth/`), both `Secure; SameSite=Strict`, and answers
+  `{user: {id, username}}`; `refresh` reads the refresh cookie and rotates both. Cookie
+  requests that change state must also send that header (the CSRF defence). Requests
+  without the header behave exactly as described above, so API clients are unaffected.
+  The web client uses cookie mode when `REACT_APP_API_URL` is a relative path (`/api`),
+  which needs the same-origin proxy in `frontend/vercel.json`.
 - A token minted before the `username` claim existed self-heals through
   `GET /api/auth/me/`, so the handle appears without forcing a re-login.
 

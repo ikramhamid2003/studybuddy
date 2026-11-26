@@ -5,6 +5,7 @@ from pathlib import Path
 
 import dj_database_url
 import sentry_sdk
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -165,6 +166,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [*default_headers, "x-studybuddy-client"]
 CSRF_TRUSTED_ORIGINS = _env_list(
     "CSRF_TRUSTED_ORIGINS",
     "https://*.vercel.app,https://*.onrender.com",
@@ -179,7 +181,7 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "study_api.cookie_auth.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_THROTTLE_CLASSES": [

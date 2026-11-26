@@ -1,22 +1,26 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchCurrentUser, rejectionMessage, SESSION_EXPIRED_EVENT } from "../utils/api";
+import {
+  API_BASE_URL as BASE_URL,
+  CLIENT_HEADERS,
+  COOKIE_MODE,
+  cookieInit,
+  discardLegacyTokens,
+  readIdentity,
+  writeIdentity,
+} from "../utils/session";
 
 const AuthContext = createContext(null);
-
-const DEFAULT_API_URL =
-  import.meta.env.PROD
-    ? "https://studybuddy-api-hkgx.onrender.com/api"
-    : "http://localhost:8000/api";
-
-const BASE_URL = import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL;
 
 export function AuthProvider({ children }) {
   // The access token is the single source of truth; user state is derived from
   // the JWT payload whenever the token changes.
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  // In cookie mode the tokens are httpOnly cookies this code cannot see; "signed
+  // in" is then the cached identity, confirmed against the API on load.
+  const [user, setUser] = useState(() => (COOKIE_MODE ? readIdentity() : null));
+  const [token, setToken] = useState(() => (COOKIE_MODE ? null : localStorage.getItem("token")));
   const [loading, setLoading] = useState(true);
 
   // React Query caches by query key, not by account. Without this, the next
@@ -24,10 +28,34 @@ export function AuthProvider({ children }) {
   // documents and usage out of memory until each query refetches. Losing the
   // token covers logout, a rejected refresh, and an undecodable token alike.
   useEffect(() => {
-    if (!token) queryClient.clear();
-  }, [token, queryClient]);
+    if (COOKIE_MODE ? !user && !loading : !token) queryClient.clear();
+  }, [token, user, loading, queryClient]);
+
+  // Cookie mode: confirm the cached identity still has a live session.
+  useEffect(() => {
+    if (!COOKIE_MODE) return;
+    discardLegacyTokens();
+    if (!readIdentity()) {
+      setLoading(false);
+      return;
+    }
+    fetchCurrentUser()
+      .then((me) => {
+        const identity = { id: me.id, username: me.username };
+        writeIdentity(identity);
+        setUser(identity);
+      })
+      .catch((error) => {
+        // Offline is not the same as signed out: keep the cached identity.
+        if (error instanceof TypeError) return;
+        writeIdentity(null);
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
+    if (COOKIE_MODE) return;
     if (token) {
       localStorage.setItem("token", token);
       try {
@@ -68,6 +96,7 @@ export function AuthProvider({ children }) {
     // refresh token was also rejected, so the session is genuinely over and the
     // route guards have to return the app to guest state.
     const onSessionExpired = () => {
+      writeIdentity(null);
       localStorage.removeItem("token");
       localStorage.removeItem("refresh");
       setToken(null);
@@ -78,6 +107,23 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(username, password) {
+    if (COOKIE_MODE) {
+      const res = await fetch(`${BASE_URL}/auth/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
+        body: JSON.stringify({ username, password }),
+        ...cookieInit,
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.user) {
+        throw new Error(rejectionMessage(json, "Invalid credentials"));
+      }
+      // The tokens are now in httpOnly cookies; only the identity is kept here.
+      writeIdentity(json.user);
+      setUser(json.user);
+      return json;
+    }
+
     try {
       const res = await fetch(`${BASE_URL}/auth/login/`, {
         method: "POST",
@@ -126,6 +172,23 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    if (COOKIE_MODE) {
+      try {
+        // The server revokes the refresh token and expires both cookies.
+        await fetch(`${BASE_URL}/auth/logout/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
+          body: "{}",
+          ...cookieInit,
+        });
+      } catch {
+        // Even if the revoke call fails, clear local state.
+      }
+      writeIdentity(null);
+      setUser(null);
+      return;
+    }
+
     // Revoke the refresh token before clearing local state. The action is
     // public because the refresh token is the credential, and it must work even
     // when the access token has already expired.

@@ -61,6 +61,14 @@ stack is not a deployment path.**
 
 1. Connect the `frontend/` directory to Vercel.
 2. Set `REACT_APP_API_URL` to your deployed Render backend URL, and optionally `REACT_APP_GLITCHTIP_DSN` for frontend error tracking.
+
+   **Optional: keep login tokens out of JavaScript.** With an absolute API URL the app
+   stores its tokens in `localStorage`, where any injected script could read them.
+   Setting `REACT_APP_API_URL=/api` switches the app to httpOnly cookie sessions: the
+   rewrite in `frontend/vercel.json` forwards `/api/*` to the Render backend, so the
+   cookie is first-party and works in Safari and Firefox. Edit the rewrite's destination
+   if your backend URL differs, redeploy, and check sign-in, chat streaming and a PDF
+   upload on the preview first. Users sign in once more after the switch.
 3. Deploy! Any `*.vercel.app` origin is automatically allowed by the backend's CORS config.
 
 ---
