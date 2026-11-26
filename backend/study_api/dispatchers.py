@@ -449,9 +449,13 @@ def _action_rag_query(data: dict[str, Any], request: Any) -> Response:
     try:
         chunks = retrieve_chunks(doc_ids, question, top_k=top_k)
         result = rag_answer(question, chunks)
-    except Exception as e:
+    except Exception:
+        # The detail (a provider error, a missing key) stays in the log: sent to
+        # the client it describes the deployment to anyone with an account.
         logger.exception("RAG query failed for user=%s", request.user.pk)
-        return _error(f"RAG query failed: {e}", code=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return _error(
+            "RAG query failed. Please try again.", code=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
 
     sources = [
         {

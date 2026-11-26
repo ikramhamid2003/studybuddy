@@ -62,6 +62,30 @@ def _auto_title(message: str) -> str:
     return title[:47] + "…" if len(title) > 47 else title
 
 
+def _record_usage_log(user) -> None:
+    """Write the tokens spent since the last reset onto the usage meter.
+
+    UsageLog is what the daily budget sums for every model call that is not a
+    persisted Generation. An endpoint that skips this stays outside the budget
+    however many tokens it burns. Accounting must never turn a finished answer
+    into a 500, so a failed write is logged and dropped.
+    """
+
+    try:
+        usage = take_last_usage()
+        if usage["input_tokens"] or usage["output_tokens"]:
+            UsageLog.objects.create(
+                user=user,
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                estimated_cost=estimate_cost_usd(
+                    usage["input_tokens"], usage["output_tokens"]
+                ),
+            )
+    except Exception:
+        logger.exception("Token usage could not be recorded for user=%s", getattr(user, "pk", None))
+
+
 class GenerateView(APIView):
     """POST /api/generate/ — Run any tool for a topic and persist the result.
 
@@ -384,7 +408,16 @@ class ChatSuggestionsView(APIView):
     def post(self, request, pk):
         from .dispatchers import _action_chat_suggestions
 
-        return _action_chat_suggestions({"session_id": pk}, request)
+        # The suggestions call reaches the model, so it sits behind the same
+        # daily budget as every other generation and is metered like one.
+        limited = enforce_daily_token_limit(request.user)
+        if limited is not None:
+            return limited
+        reset_last_usage()
+        try:
+            return _action_chat_suggestions({"session_id": pk}, request)
+        finally:
+            _record_usage_log(request.user)
 
 
 class RagDocumentsView(APIView):
@@ -410,7 +443,16 @@ class RagQueryView(APIView):
     throttle_scope = "rag"
 
     def post(self, request):
-        return _action_rag_query(request.data, request)
+        # An embedding plus two model calls run per request: the same budget
+        # gate and the same meter as the tools.
+        limited = enforce_daily_token_limit(request.user)
+        if limited is not None:
+            return limited
+        reset_last_usage()
+        try:
+            return _action_rag_query(request.data, request)
+        finally:
+            _record_usage_log(request.user)
 
 
 class RagUploadView(APIView):
