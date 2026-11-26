@@ -28,6 +28,7 @@ def _env_list(name, default):
 
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
+
 # Production deployments should set SECRET_KEY/DEBUG/ALLOWED_HOSTS in the env.
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-change-this-before-production-please"
@@ -112,6 +113,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "studybuddy.wsgi.application"
+
 
 # Determine if we are testing (defined earlier in settings)
 if IS_TESTING:
