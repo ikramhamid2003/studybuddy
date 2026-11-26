@@ -10,7 +10,7 @@ const question = {
 };
 
 function renderCard(props = {}) {
-  const onSelect = jest.fn();
+  const onSelect = vi.fn();
   render(
     <QuizQuestionCard
       question={question}

@@ -20,9 +20,9 @@ const questions = [
 ];
 
 function renderResults(props = {}) {
-  const onSelectAnswer = jest.fn();
-  const onSubmit = jest.fn();
-  const onRetry = jest.fn();
+  const onSelectAnswer = vi.fn();
+  const onSubmit = vi.fn();
+  const onRetry = vi.fn();
   render(
     // The shared Button reads the current route, so it needs a router.
     <MemoryRouter>
