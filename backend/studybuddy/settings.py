@@ -28,7 +28,6 @@ def _env_list(name, default):
 
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
-
 # Production deployments should set SECRET_KEY/DEBUG/ALLOWED_HOSTS in the env.
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-change-this-before-production-please"
@@ -59,6 +58,7 @@ ALLOWED_HOSTS = _env_list(
 # The admin is a second, unthrottled login surface. Point it at a non-default
 # path in a deployment instead of leaving it at /admin/ for every scanner.
 ADMIN_PATH = os.getenv("ADMIN_PATH", "admin/")
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -158,6 +158,7 @@ else:
 TIME_ZONE = "UTC"
 USE_TZ = True
 
+
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
@@ -236,6 +237,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
+
 
 # HTTPS hardening. Off by default so plain-http local setups (docker compose on
 # localhost) keep working; render.yaml turns it on. TLS is terminated and
