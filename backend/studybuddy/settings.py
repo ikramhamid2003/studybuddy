@@ -33,6 +33,20 @@ def _env_list(name, default):
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-change-this-before-production-please"
 )
+# Keys that are published in this repository and therefore belong to nobody.
+# wsgi.py refuses to serve with one of them when DEBUG is off.
+_PUBLIC_SECRET_KEYS = {
+    "django-insecure-change-this-before-production-please",  # the default above
+    "some-long-random-secret-key",  # backend/.env.example
+}
+
+
+def secret_key_is_public(key: str) -> bool:
+    """True when *key* could not have come from a private source."""
+
+    return key.strip() in _PUBLIC_SECRET_KEYS or len(key.strip()) < 32
+
+
 # Off unless the env says otherwise: with this defaulting to True, one forgotten
 # variable on a deployment turned failed requests into tracebacks that dump the
 # settings module, and the API can return prompt text. Local dev sets DEBUG=True
@@ -42,7 +56,9 @@ ALLOWED_HOSTS = _env_list(
     "ALLOWED_HOSTS",
     "localhost,127.0.0.1,.onrender.com",
 )
-
+# The admin is a second, unthrottled login surface. Point it at a non-default
+# path in a deployment instead of leaving it at /admin/ for every scanner.
+ADMIN_PATH = os.getenv("ADMIN_PATH", "admin/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -97,7 +113,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "studybuddy.wsgi.application"
 
-
 # Determine if we are testing (defined earlier in settings)
 if IS_TESTING:
     # Isolated local database so tests never mutate dev/prod data. SQLite can
@@ -142,7 +157,6 @@ else:
 # America/Chicago, which silently moved that reset to ~19:00 UTC.
 TIME_ZONE = "UTC"
 USE_TZ = True
-
 
 CACHES = {
     "default": {
@@ -197,6 +211,11 @@ REST_FRAMEWORK = {
         "chat": os.getenv("THROTTLE_CHAT_RATE", "90/hour"),
         "auth": os.getenv("THROTTLE_AUTH_RATE", "20/hour"),
     },
+    # Exactly one trusted proxy (Render's edge, or the Compose nginx) sits in
+    # front of the app. Without this DRF keys IP throttles on the whole
+    # X-Forwarded-For header, which the client controls, so a spoofed value per
+    # request gives a fresh bucket and the login throttle never trips.
+    "NUM_PROXIES": 1,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -217,7 +236,6 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
-
 
 # HTTPS hardening. Off by default so plain-http local setups (docker compose on
 # localhost) keep working; render.yaml turns it on. TLS is terminated and
