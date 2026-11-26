@@ -49,12 +49,12 @@ React 18 + Tailwind CSS + React Query · Django REST Framework · LangChain (`la
 ```bash
 git clone https://github.com/ikramhamid2003/studybuddy.git
 cd studybuddy
-cp backend/.env.example backend/.env      # add GROQ_API_KEY and GEMINI_API_KEY
+cp backend/.env.example backend/.env      # add GROQ_API_KEY, GEMINI_API_KEY and SECRET_KEY
 docker compose up --build
 # → app http://localhost:3000 · API http://localhost:8000
 ```
 
-The Compose stack runs the production topology — pgvector Postgres, gunicorn and an nginx-served React build — so it needs `backend/.env` or it refuses to start. No Docker? [`docs/getting-started.md`](docs/getting-started.md) has the manual path (venv + `npm install`) in four commands.
+The Compose stack runs the production topology — pgvector Postgres, gunicorn and an nginx-served React build — so it needs `backend/.env` or it refuses to start — and because it runs with `DEBUG=false`, the `SECRET_KEY` in it has to be a real value, not the example's. No Docker? [`docs/getting-started.md`](docs/getting-started.md) has the manual path (venv + `npm install`) in four commands.
 
 ---
 
