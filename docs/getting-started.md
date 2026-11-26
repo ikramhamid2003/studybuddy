@@ -47,6 +47,7 @@ below.
 | `THROTTLE_GENERATE_RATE` | no | `60/hour` | `/api/generate/` only — the heaviest route. |
 | `THROTTLE_RAG_RATE` | no | `40/hour` | `/api/rag/upload/` and `/api/rag/query/`. |
 | `THROTTLE_CHAT_RATE` | no | `90/hour` | `/api/chat/stream/`. |
+| `THROTTLE_AUTH_RATE` | no | `20/hour` | Register, login and refresh — slows credential stuffing. |
 | `DATABASE_URL` | no | sqlite file | Postgres/Neon connection string. Any Postgres URL is forced onto TLS by default. |
 | `DB_SSL_REQUIRE` | no | on for Postgres | Set to `false` only for a local Postgres built without SSL. sqlite URLs ignore it — their driver rejects connection `OPTIONS`. |
 | `SECRET_KEY` | no | insecure dev default | Any long random string. A deployment must set its own. |
@@ -58,6 +59,8 @@ below.
 | `RAG_CHUNK_SIZE` | no | `800` | Characters per chunk. |
 | `RAG_CHUNK_OVERLAP` | no | `150` | Chunk overlap (18.75% of the chunk) so answers straddling a boundary are not missed. |
 | `RAG_TOP_K` | no | `5` | Chunks retrieved per query. |
+| `RAG_INGEST_TIMEOUT_SECONDS` | no | `600` | How long an ingestion claim may run before the reaper requeues it. |
+| `RAG_START_WORKER_THREAD` | no | on (off under tests) | Runs the ingestion worker inside the web process. Set `false` and run `python manage.py process_ingest_queue` as a separate worker instead. |
 | `RAG_MAX_UPLOAD_MB` | no | `20` | Upload size ceiling. |
 | `RAG_MAX_DOCUMENTS_PER_USER` | no | `25` | Documents one account may keep; further uploads get a 409. `0` disables. |
 | `RAG_MAX_CHUNKS_PER_DOCUMENT` | no | `2000` | Sections one document may produce; larger files fail before any embedding call. `0` disables. |
@@ -67,6 +70,9 @@ below.
 | `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` / `EMAIL_USE_TLS` | no | `smtp.gmail.com` / `587` / — / — / `true` | SMTP transport. Gmail needs a **16-character App Password**, not the account password. |
 | `EMAIL_TIMEOUT` | no | `5` | Seconds. Bounds an unresponsive SMTP host — without it `smtplib` blocks on the OS TCP timeout (21 s on Windows, minutes on Linux). |
 | `GLITCHTIP_DSN` | no | — | GlitchTip (Sentry-compatible) DSN. Empty disables error tracking. |
+| `SENTRY_TRACES_SAMPLE_RATE` | no | `0.1` | Fraction of requests traced when error tracking is on. |
+| `FORCE_HTTPS` | no | `False` | Redirects to HTTPS, marks cookies secure and sends HSTS. Set `True` in production. |
+| `SECURE_HSTS_SECONDS` | no | `31536000` | HSTS max-age, used only when `FORCE_HTTPS` is on. |
 
 ---
 
@@ -99,14 +105,18 @@ The API runs at **`http://localhost:8000`**.
 
 ```bash
 cd frontend
-npm install
-npm start
+npm ci --legacy-peer-deps
+npm start          # Vite dev server
+npm test           # Vitest
 ```
 
 The app runs at **`http://localhost:3000`** and calls `http://localhost:8000/api` by
 default. Point it elsewhere with `REACT_APP_API_URL` (in `.env` for dev,
-`.env.production` for builds) — for example, at the deployed API:
+`.env.production` for builds; `VITE_*` names work too) — for example, at the deployed API:
 `REACT_APP_API_URL=https://studybuddy-api-hkgx.onrender.com/api`.
+
+To try **cookie sessions** locally, start with `REACT_APP_API_URL=/api npm start`: the
+dev server proxies `/api` to `http://localhost:8000`, so the app is same-origin.
 
 ---
 

@@ -16,15 +16,19 @@
 - **Response caching** — an identical prompt is served from a 7-day Postgres cache with **0 tokens billed**; the cache key includes the selected document set.
 - **Per-user daily token budget** — 10,000 tokens/day by default, refused with a 429 and drawn as a live meter on the dashboard.
 - **SSRF-hardened scraping** — DNS-resolved IP validation, per-hop redirect re-checks and an optional domain allowlist on every URL fetch.
+- **Spaced-repetition flashcards** — an SM-2 variant schedules new and due cards; review them with keys 1–4.
+- **Hardened sessions** — optional httpOnly cookie sessions with a CSRF header check, throttled auth, strong password rules and HSTS.
+- **Durable ingestion queue** — uploads are processed from a DB-backed queue with atomic claims, retries and a reaper.
+- **Accessible UI** — labelled forms, focus management in dialogs, a live-region chat log, reduced-motion support and contrast-checked colours.
 - **Every tool in one workspace** — Explain, Summarize, Quiz, Flashcards, Chat and the All-in-One Studio, plus a dashboard that knows what you studied.
-- **Quality gates in CI** — Ruff, a migration-drift check, 195 Pytest tests (including a pgvector job against real Postgres), ESLint and 181 Vitest tests.
+- **Quality gates in CI** — Ruff, a migration-drift check, 207 Pytest tests (including a pgvector job against real Postgres), ESLint, 206 Vitest tests, a production build and dependency audits.
 - **Predictable provider behaviour** — a 30 s request timeout with SDK retries off, and structured output validated against Pydantic schemas.
 
 ---
 
 ## 🛠️ Tech stack
 
-React 18 + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq`) on the Groq API · Gemini Embedding 2 + pgvector · Firecrawl / BeautifulSoup · Neon Postgres · JWT · Docker Compose · GitHub Actions
+React 18 + Vite + Tailwind CSS + React Query · Django REST Framework · LangChain (`langchain-groq`) on the Groq API · Gemini Embedding 2 + pgvector · Firecrawl / BeautifulSoup · Neon Postgres · JWT / httpOnly cookie sessions · Docker Compose · GitHub Actions
 
 ```text
   Browser (Vercel SPA)          Django REST API (Render · gunicorn)            Providers & Data

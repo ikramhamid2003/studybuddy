@@ -25,7 +25,7 @@ The live schema is browsable at **`/api/docs/`** (Swagger UI) and machine-readab
   `{access, refresh, username}`. The `username` claim is embedded in the access token
   so the sidebar can name the signed-in student without an extra request.
 - The access token lives 1 day, the refresh token 7 days. The frontend stores both in
-  `localStorage` under `token` / `refresh` and refreshes silently on a 401.
+  `localStorage` under `token` / `refresh` (token mode) and refreshes silently on a 401.
 - simplejwt **rotates** refresh tokens: the old one is blacklisted on use, so the new
   one must replace it or the next renewal fails. Concurrent 401s share one exchange.
 - **Cookie sessions (opt-in).** A request that carries the header `X-StudyBuddy-Client`
@@ -49,6 +49,8 @@ The live schema is browsable at **`/api/docs/`** (Swagger UI) and machine-readab
 | `GET` | `/api/generations/` | JWT | List saved generations, newest first; optional `?type=` filter |
 | `DELETE` | `/api/generations/<id>/` | JWT | Delete one saved generation owned by the caller |
 | `GET` | `/api/usage/` | JWT | Return cumulative token usage and estimated cost |
+| `GET` | `/api/flashcards/review/` | JWT | New and due flashcards for spaced-repetition review |
+| `POST` | `/api/flashcards/review/answer/` | JWT | Record a 1–4 grade for a card; returns its updated schedule |
 
 ---
 
@@ -131,5 +133,7 @@ actually went wrong.
 |------|------|
 | `400` | Validation failure, a `document_ids` list over the 25 cap, or a document that is not owned by the caller / not `ready` |
 | `401` | Missing, expired or unrefreshable token |
+| `403` | A cookie-session request that changes state without the `X-StudyBuddy-Client` header |
+| `409` | Document cap reached (`RAG_MAX_DOCUMENTS_PER_USER`) |
 | `429` | Daily token budget spent, or a throttle scope exceeded |
 | `503` | Grounding failed (retrieval or embedding provider unavailable) — never degraded into an ungrounded answer |

@@ -8,7 +8,7 @@
 studybuddy/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                # GitHub Actions CI pipeline (Ruff + migration-drift check + Pytest + pgvector job + ESLint + Vitest)
+│       ├── ci.yml                # GitHub Actions CI pipeline (Ruff + migration-drift check + Pytest + pgvector job + ESLint + Vitest + build + dependency audits)
 │       └── keepalive.yml         # Wakes the Render free instance every 10 minutes
 ├── docs/                         # Everything behind the root README (this folder)
 │   ├── README.md                 # Index
@@ -20,43 +20,58 @@ studybuddy/
 │   ├── performance.md            # "By the numbers"
 │   ├── quality.md                # Test suites + CI
 │   └── assets/                   # A sample document to try document grounding with
-├── frontend/                     # React + Tailwind CSS UI
-│   ├── public/
+├── frontend/                     # React + Tailwind CSS UI (Vite)
+│   ├── index.html                # Vite entry document
+│   ├── vite.config.mjs           # Vite + Vitest config, dev proxy for /api
+│   ├── eslint.config.mjs         # ESLint 9 flat config (react, react-hooks, jsx-a11y subset)
+│   ├── vercel.json               # Vercel build + /api rewrite to the Render API
 │   ├── src/
+│   │   ├── main.jsx              # Entry point
+│   │   ├── App.jsx               # Routing (lazy route chunks) & React Query provider
 │   │   ├── components/           # Layout (collapsible sidebar / mobile dropdown), PageHeader, Card,
-│   │   │                         # Button, Input, LoadingSkeleton, ToolHistory, ErrorBoundary
-│   │   ├── shared/               # ChatBubble, Flashcard, ScoreCard, SectionTitle, TypeBadge,
-│   │   │                         # DocumentPicker + DocumentSources + GroundingNote (the grounding
-│   │   │                         # panel reused by every tool page), the useDocumentLibrary() hook
-│   │   │                         # behind them (+4-test ownership suite) and useGenerationAbort()
-│   │   ├── home/                 # HomeDashboard (signed-in personalized face, +14-test
-│   │   │                         # failure-semantics suite), HomeLanding (visitor
-│   │   │                         # face), Sparkline + ProgressRing (hand-rolled SVG, no chart lib)
+│   │   │   │                     # Button, Input, LoadingSkeleton, ToolHistory, ErrorBoundary, CopyButton
+│   │   │   ├── chat/             # SessionSidebar, SessionRow, MessageBubble, TypingIndicator, FollowUpChips
+│   │   │   ├── studio/           # All-in-One Studio sections
+│   │   │   ├── flashcards/       # ReviewSession (spaced-repetition review UI)
+│   │   │   ├── shared/           # ChatBubble, Flashcard, QuizQuestionCard, QuizResults, ScoreCard,
+│   │   │   │                     # DocumentPicker + DocumentSources + GroundingNote (grounding panel
+│   │   │   │                     # reused by every tool page)
+│   │   │   └── home/             # HomeDashboard (signed-in face), HomeLanding (visitor face),
+│   │   │                         # Sparkline + ProgressRing (hand-rolled SVG, no chart lib)
+│   │   ├── hooks/                # useChat (streaming + sessions), useStudio, useAutoScroll
 │   │   ├── pages/                # Home, All, Explain, Summarize, Quiz, Flashcards, Chat, Login, Register
-│   │   ├── context/              # AuthContext for JWT session management (+7-test cache-teardown and
-│   │   │                         # auth-rejection suite), DocumentLibraryContext
-│   │   ├── utils/                # api.js (explicit resource client + the shared rejectionMessage()
-│   │   │                         # error-reason extractor), api.test.js (46-test Vitest suite),
-│   │   │                         # routeColors, clipboard, personalize.js (+31-test suite) and
-│   │   │                         # pendingTopic.js (home -> tool pre-fill hand-off)
-│   │   ├── App.jsx               # Routing & React Query provider
+│   │   ├── context/              # AuthContext (JWT or cookie session), DocumentLibraryContext
+│   │   ├── utils/                # api.js (explicit resource client + rejectionMessage()), session.js
+│   │   │                         # (token / cookie-mode session state), routeColors, clipboard,
+│   │   │                         # personalize.js, pendingTopic.js
 │   │   ├── index.css             # Tailwind directives & menu / button / icon component classes
-│   │   └── .dockerignore         # Keeps node_modules / build / .env out of the image build context
+│   │   └── setupTests.js         # Vitest + Testing Library setup
+│   ├── .dockerignore             # Keeps node_modules / build / .env out of the image build context
 │   └── package.json
 │
 ├── backend/                      # Django REST Framework API
 │   ├── studybuddy/               # Project config (settings.py, urls.py, wsgi.py)
 │   ├── study_api/                # API surface
+│   │   ├── views.py              # Generate / chat / document / library endpoints
+│   │   ├── auth_views.py         # Register, login, refresh, logout (token and cookie modes)
+│   │   ├── cookie_auth.py        # httpOnly cookie sessions + CSRF header check (opt-in)
+│   │   ├── generation.py         # Grounding (_ground_documents), prompt assembly, response cache, per-tool responses
+│   │   ├── prompts.py            # System prompts
 │   │   ├── dispatchers.py        # Shared action handlers (usage, generations, RAG, suggestions)
 │   │   ├── langchain_client.py   # LangChain/Groq client (text, JSON, streaming, structured output)
 │   │   ├── rag_pipeline.py       # RAG: extraction, chunking, Gemini embeddings, retrieval, grounded answers
-│   │   ├── content_fetcher.py    # URL -> clean markdown (Firecrawl when configured, built-in scraper otherwise); SSRF-guarded
-│   │   ├── models.py             # ChatSession, ChatMessage, Generation, Document & DocumentChunk persistence
+│   │   ├── ingestion.py          # Durable DB-backed ingestion queue (claims, retries, reaper, worker)
+│   │   ├── content_fetcher.py    # URL -> clean markdown (Firecrawl or built-in scraper); SSRF-guarded
+│   │   ├── srs.py                # SM-2 variant scheduler for flashcard review
+│   │   ├── review_views.py       # /flashcards/review/ endpoints
+│   │   ├── models.py             # ChatSession, ChatMessage, Generation, Document, DocumentChunk, DocumentUpload, CardReview
 │   │   ├── schemas.py            # Pydantic schemas for structured output
-│   │   ├── serializers.py        # DRF serializers (register, generate, chat, sessions)
-│   │   ├── signals.py            # post_save hook on User -> admin signup notification email
-│   │   ├── throttles.py          # Per-scope rate limits
-│   │   └── tests/                # Pytest suite (views, generations, chat sessions, langchain client, RAG, content fetcher)
+│   │   ├── serializers.py        # DRF serializers
+│   │   ├── signals.py            # post_save hook on User -> admin signup notification
+│   │   ├── signup_notifications.py
+│   │   ├── throttles.py          # Per-scope rate limits (incl. AuthRateThrottle)
+│   │   ├── management/commands/  # process_ingest_queue, reindex_documents
+│   │   └── tests/                # Pytest suite (17 modules)
 │   ├── build.sh                  # Render build: runtime-only install -> migration-drift check -> collectstatic -> migrate
 │   ├── manage.py
 │   ├── pytest.ini
@@ -98,7 +113,7 @@ studybuddy/
    the request with **429** if the day's budget is already spent. All of that happens
    **before** any provider call.
 2. `langchain_client.reset_last_usage()` clears the per-request token counter.
-3. `views._ground_documents(user, document_ids, query)` runs **once**, for every tool
+3. `generation._ground_documents(user, document_ids, query)` runs **once**, for every tool
    type — it is the only grounding entry point (see below).
 4. `content_fetcher.process_topic_with_url()` decides whether the input is a URL at
    all. Plain-text topics go straight to Groq; only URL-type topics are scraped.
@@ -119,7 +134,7 @@ Grounding is a property of the **request**, not of the tool, so there is exactly
 implementation:
 
 ```text
-views._ground_documents(user, document_ids, query)
+generation._ground_documents(user, document_ids, query)
         │
         ├─ dispatchers.ready_document_ids(user, requested)   ← owner + status='ready'
         │        (a foreign or still-ingesting id is a 400, before any LLM call)
@@ -133,7 +148,7 @@ views._ground_documents(user, document_ids, query)
 The resulting context is folded into the prompt by `_with_docs()` **before**
 `_cached_json_response()` computes its key — so the cache is document-set aware and a
 different selection can never replay another library's answer. `_with_docs()` also
-adds the abstain instruction (`DOCS_PREAMBLE` in `views.py`); `_grounded_chat_system()`
+adds the abstain instruction (`DOCS_PREAMBLE` in `generation.py`); `_grounded_chat_system()`
 is its chat-shaped counterpart. Sources are merged into the payload **before**
 `cache.set`, so a reopened history still shows which documents answered it.
 
