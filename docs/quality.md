@@ -6,10 +6,10 @@
 
 | Suite | Command | Size |
 |-------|---------|------|
-| Backend (pytest) | `cd backend && pytest` | **15 modules · 195 tests** — one of them (the pgvector case) skips on SQLite |
-| Frontend (Vitest) | `cd frontend && npm test` | **20 suites · 181 tests** |
+| Backend (pytest) | `cd backend && pytest` | **17 modules · 208 tests collected (207 pass, 1 skipped)** — the skip (the pgvector case) skips on SQLite |
+| Frontend (Vitest) | `cd frontend && npm test` | **24 files · 206 tests** (Vitest 5, jsdom) |
 | Python lint (Ruff) | `cd backend && ruff check .` | 0 errors |
-| Frontend lint (ESLint) | `cd frontend && npm run lint` | 0 errors, 0 warnings (ESLint is not `--max-warnings 0`, so CI stays green on warnings) |
+| Frontend lint (ESLint) | `cd frontend && npm run lint` | 0 errors (ESLint 9 flat config in `eslint.config.mjs`: react, react-hooks and a jsx-a11y rule subset; not `--max-warnings 0`, so CI stays green on warnings) |
 | Type check | `uvx pyrefly check --min-severity warn` | warnings are hidden at the default severity. Configs: `pyrefly.toml` (root + backend) and `pyrightconfig.json` |
 
 ### What the suites cover
@@ -19,8 +19,10 @@
 - **Dashboard** (`frontend/src/components/home/HomeDashboard.test.jsx`, 14 tests) — keeps a failed request from masquerading as an empty account.
 - **Auth** (`frontend/src/context/AuthContext.test.jsx`, 7 tests) — cache teardown and auth-rejection handling.
 - **Document library** (`frontend/src/components/shared/documentLibrary.test.jsx`, 4 tests) — selection ownership.
-- **Component render tests** — `Button`, `Card`, `Input`.
-- **Backend** — `test_rag.py` (54) and `test_generations.py` (15) cover RAG and grounding (69 of the 195); the rest cover views, chat sessions, the LangChain client, the content fetcher, throttling, token security, usage tracking and re-indexing.
+- **Component render tests** — `Button`, `Card`, `Input` (plus label association in `InputLabels.test.jsx`), `Flashcard`, `ReviewSession`, the chat components, the document picker and the Studio.
+- **Hooks** — `useChat`, `useStudio` and `useAutoScroll`.
+- **Cookie mode** (`frontend/src/utils/cookieMode.test.jsx`) — session handling when the API base is a relative path.
+- **Backend** — `test_rag.py` (54) and `test_generations.py` (15) cover RAG and grounding (69 of the 208); the rest cover views, chat sessions, the LangChain client, the content fetcher, throttling, token security, usage tracking, re-indexing, the ingestion queue, library caps, cookie auth (`test_cookie_auth.py`), the SM-2 scheduler (`test_srs.py`) and flashcard review (`test_flashcard_review.py`).
 
 > The Pytest suite needs **no real database** — it switches to SQLite (`db_test.sqlite3`)
 > automatically. The single exception is the pgvector branch of `retrieve_chunks()`,

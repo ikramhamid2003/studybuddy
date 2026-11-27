@@ -69,6 +69,7 @@ stack is not a deployment path.**
    cookie is first-party and works in Safari and Firefox. Edit the rewrite's destination
    if your backend URL differs, redeploy, and check sign-in, chat streaming and a PDF
    upload on the preview first. Users sign in once more after the switch.
+   `frontend/vercel.json` pins the Vite framework preset, `npm ci --legacy-peer-deps`, the `build` output directory and the SPA fallback, so no dashboard build settings are needed.
 3. Deploy! Any `*.vercel.app` origin is automatically allowed by the backend's CORS config.
 
 ---
@@ -80,6 +81,7 @@ stack is not a deployment path.**
 | `DATABASE_URL` | yes | Neon/Postgres connection string |
 | `SECRET_KEY` | no (`generateValue: true`) | Django secret key |
 | `DEBUG` | no (`"False"`) | Never on in production |
+| `FORCE_HTTPS` | no (`"true"`) | HTTPS redirect, secure cookies and HSTS |
 | `ALLOWED_HOSTS` | no (`studybuddy-api-hkgx.onrender.com,.onrender.com`) | Host allowlist |
 | `CORS_ALLOWED_ORIGINS` | no (`https://studybuddy-omega-gray.vercel.app`) | Browser origins allowed to call the API |
 | `CSRF_TRUSTED_ORIGINS` | no (`https://*.vercel.app,https://*.onrender.com`) | CSRF trust |
